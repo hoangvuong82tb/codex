@@ -1,0 +1,327 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style x:Key="ExplorerTabButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="#EAF0F7" />
+        <Setter Property="BorderBrush" Value="#CFD9E7" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="#1F1F1F" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8,8,0,0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#F4F7FB" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#E2EAF4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ExplorerTabAddButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="#EAF0F7" />
+        <Setter Property="BorderBrush" Value="#CFD9E7" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="#4A617F" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8,8,0,0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#F4F7FB" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#E2EAF4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ExplorerTopIconButtonStyle" TargetType="Button" BasedOn="{StaticResource FluentSecondaryButton}">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinWidth" Value="32" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="#1F1F1F" />
+    </Style>
+
+    <Style x:Key="ExplorerNavGlyphButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="30" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="#D6DFEC" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="#2D3748" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="15">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#F3F6FA" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#E8EEF6" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="#A8B2C2" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#E2E8F0" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ExplorerNavAccentButtonStyle" TargetType="Button" BasedOn="{StaticResource ExplorerNavGlyphButtonStyle}">
+        <Setter Property="Background" Value="#EEF3F9" />
+    </Style>
+
+    <Style x:Key="ExplorerCommandButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="#1F1F1F" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#F3F6FA" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#E8EEF6" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ExplorerCommandBarButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="#1F1F1F" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="9,4" />
+        <Setter Property="Margin" Value="1,0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#F3F6FA" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#E8EEF6" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="#B8C0CE" />
+                            <Setter TargetName="Root" Property="Opacity" Value="0.68" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ExplorerCommandBarIconButtonStyle" TargetType="Button" BasedOn="{StaticResource ExplorerCommandBarButtonStyle}">
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <Style x:Key="ExplorerPreviewToggleButtonStyle" TargetType="ToggleButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="#1F1F1F" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#F3F6FA" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#E8EEF6" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#E8F1FF" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ExplorerNavTreeViewStyle" TargetType="TreeView">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style x:Key="ExplorerNavExpanderToggleStyle" TargetType="ToggleButton">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Root"
+                            Width="{TemplateBinding Width}"
+                            Height="{TemplateBinding Height}"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="4">
+                        <TextBlock x:Name="Chevron"
+                                   Text="&#xE76C;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="10"
+                                   Foreground="#697A91"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chevron" Property="Text" Value="&#xE70D;" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#EEF3FA" />
+                            <Setter TargetName="Chevron" Property="Foreground" Value="#3E5D86" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ExplorerNavTreeItemStyle" TargetType="TreeViewItem">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0,1,0,1" />
+        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Foreground" Value="#1F1F1F" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TreeViewItem">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="22" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <ToggleButton x:Name="Expander"
+                                          Grid.Column="0"
+                                          Style="{StaticResource ExplorerNavExpanderToggleStyle}"
+                                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Visibility="Collapsed" />
+
+                            <Border x:Name="HeaderBorder"
+                                    Grid.Column="1"
+                                    Padding="8,5"
+                                    Background="Transparent"
+                                    CornerRadius="6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Image Source="{Binding IconPath}"
+                                           Width="14"
+                                           Height="14"
+                                           Stretch="Uniform"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Title}"
+                                               Foreground="{TemplateBinding Foreground}"
+                                               FontSize="{TemplateBinding FontSize}"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <ItemsPresenter x:Name="ItemsHost" Margin="22,0,0,0" Visibility="Collapsed" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="HasItems" Value="True">
+                            <Setter TargetName="Expander" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsExpanded" Value="True">
+                            <Setter TargetName="ItemsHost" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="HeaderBorder" Property="Background" Value="#F3F6FA" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="HeaderBorder" Property="Background" Value="#E8F1FF" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

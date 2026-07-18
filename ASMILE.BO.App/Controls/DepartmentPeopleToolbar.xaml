@@ -1,0 +1,58 @@
+<UserControl x:Class="ASMILE.BO.App.Controls.DepartmentPeopleToolbar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="70"
+             d:DesignWidth="1380">
+    <controls:EnterpriseCommandToolbar SearchText="{Binding Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                       SearchPlaceholder="Tìm bộ phận hoặc nhân sự..."
+                                       RefreshCommand="{Binding RefreshCommand}"
+                                       ExportTemplateCommand="{Binding ExportDepartmentTemplateCommand}"
+                                       ExportTemplateText="Xuất mẫu bộ phận"
+                                       AlternateExportTemplateCommand="{Binding ExportPersonTemplateCommand}"
+                                       AlternateExportTemplateText="Xuất mẫu nhân sự"
+                                       ExportCurrentViewCommand="{Binding ExportCurrentViewCommand}"
+                                       ExportCurrentViewText="Xuất dữ liệu hiện tại"
+                                       ImportDataCommand="{Binding ImportDataCommand}">
+        <controls:EnterpriseCommandToolbar.FilterContent>
+            <ComboBox Style="{StaticResource FluentComboBox}"
+                      Height="46"
+                      ItemsSource="{Binding StatusFilters}"
+                      SelectedItem="{Binding SelectedStatusFilter}" />
+        </controls:EnterpriseCommandToolbar.FilterContent>
+        <controls:EnterpriseCommandToolbar.ActionsContent>
+            <StackPanel Orientation="Horizontal">
+                <Button MinWidth="136"
+                        Style="{StaticResource EnterpriseCommandSecondaryButton}"
+                        Command="{Binding OpenNewDepartmentCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE710;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="15"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                   Margin="0,0,8,0" />
+                        <TextBlock Text="Thêm bộ phận"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                    </StackPanel>
+                </Button>
+                <Button MinWidth="132"
+                        Margin="12,0,0,0"
+                        Style="{StaticResource EnterpriseCommandSecondaryButton}"
+                        Command="{Binding OpenNewPersonCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE716;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="15"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                   Margin="0,0,8,0" />
+                        <TextBlock Text="Thêm nhân sự"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </controls:EnterpriseCommandToolbar.ActionsContent>
+    </controls:EnterpriseCommandToolbar>
+</UserControl>

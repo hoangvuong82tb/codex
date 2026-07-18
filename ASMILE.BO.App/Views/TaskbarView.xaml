@@ -1,0 +1,87 @@
+<UserControl x:Class="ASMILE.BO.App.Views.TaskbarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:model="clr-namespace:ASMILE.BO.App.Models"
+             xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="58"
+             d:DesignWidth="1540">
+    <Border Style="{StaticResource TaskbarRootChromeStyle}">
+        <Grid Margin="10,0,10,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource TaskbarPanelStyle}" Margin="0,2,0,2">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource TaskbarItemButtonStyle}" Command="{Binding ToggleStartMenuCommand}">
+                            <Image Source="file:///D:/ASMILE-BO/Windows_Icon/Icons/logo/u2.png"
+                                   Width="18"
+                                   Height="18"
+                                   Stretch="Uniform"
+                                   SnapsToDevicePixels="True"
+                                   RenderOptions.BitmapScalingMode="Fant" />
+                        </Button>
+
+                            <ItemsControl ItemsSource="{Binding TaskbarPinnedModules}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type model:AppModuleInfo}">
+                                        <controls:TaskbarItemControl IconSource="{Binding IconImage}"
+                                                                     IndicatorBrush="{Binding AccentBrush}"
+                                                                     IsRunning="{Binding IsRunning}"
+                                                                     IsActive="{Binding IsActiveOnTaskbar}"
+                                                                     IsMinimized="{Binding IsMinimizedOnTaskbar}"
+                                                                     InvokeCommand="{Binding DataContext.TaskbarModuleInvokeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                     InvokeCommandParameter="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                        <Border Width="1" Height="22" Margin="6,0" Background="#92C8D4E7" />
+
+                            <ItemsControl ItemsSource="{Binding TaskbarRunningWindows}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type model:AppWindowViewModel}">
+                                        <controls:TaskbarItemControl IconSource="{Binding Module.IconImage}"
+                                                                     IndicatorBrush="{Binding Module.AccentBrush}"
+                                                                     IsRunning="True"
+                                                                     IsActive="{Binding IsActive}"
+                                                                     IsMinimized="{Binding IsMinimized}"
+                                                                     InvokeCommand="{Binding DataContext.ToggleTaskbarWindowCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                     InvokeCommandParameter="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <Border Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource TaskbarTrayPanelStyle}" Margin="0,2,0,2">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,6,0" />
+                    <TextBlock Text="SQL" FontSize="11.5" Margin="0,0,8,0" Foreground="{StaticResource AccentGreenBrush}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding CurrentCompanyStatus}" FontSize="11.5" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBlock Text="{Binding CurrentUserName}" FontSize="11.5" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding SystemClock}" FontSize="11.5" FontWeight="SemiBold" />
+                    <TextBlock Text="  " />
+                    <TextBlock Text="{Binding SystemDate}" FontSize="11.5" Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

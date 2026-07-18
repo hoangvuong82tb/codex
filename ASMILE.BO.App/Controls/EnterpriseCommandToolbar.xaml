@@ -1,0 +1,204 @@
+<UserControl x:Class="ASMILE.BO.App.Controls.EnterpriseCommandToolbar"
+             x:Name="Root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="70"
+             d:DesignWidth="1200">
+    <DockPanel LastChildFill="True">
+        <StackPanel DockPanel.Dock="Right"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center">
+            <ContentPresenter Content="{Binding FilterContent, ElementName=Root}"
+                              Margin="12,0,0,0"
+                              VerticalAlignment="Center">
+                <ContentPresenter.Style>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding FilterContent, ElementName=Root}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentPresenter.Style>
+            </ContentPresenter>
+
+            <ContentPresenter Content="{Binding ActionsContent, ElementName=Root}"
+                              Margin="12,0,0,0"
+                              VerticalAlignment="Center">
+                <ContentPresenter.Style>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ActionsContent, ElementName=Root}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentPresenter.Style>
+            </ContentPresenter>
+
+            <Button x:Name="ExportImportButton"
+                    MinWidth="154"
+                    Margin="12,0,0,0"
+                    Tag="{Binding ElementName=Root}"
+                    Click="ExportImportButton_Click">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource EnterpriseCommandPrimaryButton}">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ShowExportImport, ElementName=Root}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding ExportImportIconGlyph, ElementName=Root}"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="15"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                               Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding ExportImportText, ElementName=Root}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                    <TextBlock Text="&#xE70D;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="11"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+                <Button.ContextMenu>
+                    <ContextMenu Style="{StaticResource EnterpriseCommandMenuStyle}"
+                                 DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+                        <MenuItem Command="{Binding ExportTemplateCommand}">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem" BasedOn="{StaticResource EnterpriseCommandMenuItemStyle}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ExportTemplateCommand}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding ExportTemplateIconGlyph}"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               Margin="0,0,8,0" />
+                                    <TextBlock Text="{Binding ExportTemplateText}" />
+                                </StackPanel>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem Command="{Binding AlternateExportTemplateCommand}">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem" BasedOn="{StaticResource EnterpriseCommandMenuItemStyle}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AlternateExportTemplateCommand}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding AlternateExportTemplateIconGlyph}"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               Margin="0,0,8,0" />
+                                    <TextBlock Text="{Binding AlternateExportTemplateText}" />
+                                </StackPanel>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem Command="{Binding ExportCurrentViewCommand}">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem" BasedOn="{StaticResource EnterpriseCommandMenuItemStyle}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ExportCurrentViewCommand}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding ExportCurrentViewIconGlyph}"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               Margin="0,0,8,0" />
+                                    <TextBlock Text="{Binding ExportCurrentViewText}" />
+                                </StackPanel>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem Command="{Binding ImportDataCommand}">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem" BasedOn="{StaticResource EnterpriseCommandMenuItemStyle}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ImportDataCommand}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding ImportDataIconGlyph}"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               Margin="0,0,8,0" />
+                                    <TextBlock Text="{Binding ImportDataText}" />
+                                </StackPanel>
+                            </MenuItem.Header>
+                        </MenuItem>
+                    </ContextMenu>
+                </Button.ContextMenu>
+            </Button>
+
+            <Button MinWidth="112"
+                    Margin="12,0,0,0"
+                    Command="{Binding RefreshCommand, ElementName=Root}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource EnterpriseCommandSecondaryButton}">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ShowRefresh, ElementName=Root}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding RefreshIconGlyph, ElementName=Root}"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="15"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                               Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding RefreshText, ElementName=Root}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <controls:SearchBoxControl MinWidth="{Binding SearchMinWidth, ElementName=Root}"
+                                   Height="{Binding SearchHeight, ElementName=Root}"
+                                   Text="{Binding SearchText, ElementName=Root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                   Placeholder="{Binding SearchPlaceholder, ElementName=Root}">
+            <controls:SearchBoxControl.Style>
+                <Style TargetType="controls:SearchBoxControl">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ShowSearch, ElementName=Root}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </controls:SearchBoxControl.Style>
+        </controls:SearchBoxControl>
+    </DockPanel>
+</UserControl>

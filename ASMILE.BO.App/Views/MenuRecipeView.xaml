@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="ASMILE.BO.App.Views.MenuRecipeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:panels="clr-namespace:ASMILE.BO.App.Views.MenuRecipe.Panels"
+             xmlns:screens="clr-namespace:ASMILE.BO.App.Views.MenuRecipe.Screens"
+             mc:Ignorable="d"
+             FontFamily="Segoe UI"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ASMILE.BO.App;component/Views/MenuRecipe/MenuRecipeStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Background="#F0F4F8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="32" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{Binding SidebarWidth}" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <panels:MenuSidebarPanel Grid.Column="0" />
+
+            <Grid Grid.Column="1">
+                <screens:MenuDashboardScreen />
+                <screens:MenuItemsScreen />
+                <screens:MenuCategoriesScreen />
+                <screens:MenuIngredientsScreen />
+                <screens:MenuPreparationAreasScreen />
+                <screens:MenuRecipeManagementScreen />
+                <screens:MenuCostingScreen />
+                <screens:MenuWarningsScreen />
+                <screens:MenuSettingsScreen />
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="1" Height="32">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding StatusIsSuccess}" Value="True">
+                            <Setter Property="Background" Value="#F0FDF4" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding StatusIsSuccess}" Value="False">
+                            <Setter Property="Background" Value="#FEF2F2" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid Margin="12,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Border Width="6" Height="6" CornerRadius="3" Background="{Binding StatusBannerBrush, Mode=OneWay}" Margin="0,0,6,0" />
+                    <TextBlock Text="{Binding StatusMessage}" FontSize="12">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding StatusIsSuccess}" Value="True">
+                                        <Setter Property="Foreground" Value="#166534" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding StatusIsSuccess}" Value="False">
+                                        <Setter Property="Foreground" Value="#991B1B" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+                <TextBlock Text="{Binding LastUpdatedDisplay}" FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

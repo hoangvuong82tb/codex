@@ -1,0 +1,152 @@
+﻿<UserControl x:Class="ASMILE.BO.App.Controls.ItemListCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="620"
+             d:DesignWidth="860">
+    <UserControl.Resources>
+        <Style x:Key="ItemCellTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="#2E4263" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="ItemCodeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ItemCellTextStyle}">
+            <Setter Property="Foreground" Value="#123A92" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+
+        <Style x:Key="RowActionButtonStyle" TargetType="Button" BasedOn="{StaticResource EnterpriseDialogIconButton}">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinWidth" Value="28" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+    </UserControl.Resources>
+
+    <controls:RoundedClipBorder Style="{StaticResource FluentCardStyle}" Padding="0" Background="#FFFFFF">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="64" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="18,0,18,0">
+                <DataGrid ItemsSource="{Binding ItemsPager.Items}"
+                          SelectedItem="{Binding SelectedItem}"
+                          MouseDoubleClick="DataGrid_MouseDoubleClick"
+                          Style="{StaticResource FluentDataGridStyle}"
+                          ColumnHeaderStyle="{StaticResource FluentDataGridColumnHeaderStyle}"
+                          RowStyle="{StaticResource FluentListRow}"
+                          Background="Transparent"
+                          HorizontalGridLinesBrush="#E8EFF8"
+                          VerticalGridLinesBrush="Transparent">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="Mã hàng" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Border x:Name="SelectedStripe"
+                                                Width="3"
+                                                Background="#2F63DE"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Stretch"
+                                                Margin="-20,0,0,0"
+                                                Visibility="Collapsed" />
+                                        <TextBlock Text="{Binding ItemCode}" Style="{StaticResource ItemCodeTextStyle}" />
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                                            <Setter TargetName="SelectedStripe" Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="Tên hàng" Binding="{Binding ItemName}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource ItemCellTextStyle}" />
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="ĐVT" Binding="{Binding Unit}" Width="92">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource ItemCellTextStyle}" />
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="Nhóm" Binding="{Binding GroupName}" Width="130">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource ItemCellTextStyle}" />
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTemplateColumn Header="Trạng thái" Width="148">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="StatePill" Style="{StaticResource FluentBadge}" MinWidth="112">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Ellipse x:Name="Dot" Width="8" Height="8" Fill="#1C9650" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="StateText"
+                                                       Text="Kích hoạt"
+                                                       Margin="8,0,0,0"
+                                                       Foreground="#1E7C48"
+                                                       FontSize="13.5"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                            <Setter TargetName="StatePill" Property="Background" Value="#FCEDEF" />
+                                            <Setter TargetName="Dot" Property="Fill" Value="#DB4747" />
+                                            <Setter TargetName="StateText" Property="Text" Value="Ngưng" />
+                                            <Setter TargetName="StateText" Property="Foreground" Value="#C74343" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Border Background="#EAFFFFFF" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="Đang tải dữ liệu..."
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Foreground="{StaticResource SupplierTextSecondaryBrush}" />
+                </Border>
+
+                <Border Background="#00FFFFFF" Visibility="{Binding HasNoItems, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="&#xECAA;" FontFamily="Segoe MDL2 Assets" FontSize="40" Foreground="#7E94AE" HorizontalAlignment="Center" />
+                        <TextBlock Text="Chưa có dữ liệu hàng hóa" Margin="0,8,0,0" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource SupplierTextPrimaryBrush}" />
+                        <TextBlock Text="Bấm 'Xuất - Nhập' hoặc thêm mới để tạo danh mục hàng hóa." Margin="0,4,0,0" Foreground="{StaticResource SupplierTextSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="1">
+                <Rectangle Height="1" Fill="#D7E2F0" VerticalAlignment="Top" />
+                <Grid Margin="18,0,18,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock VerticalAlignment="Center"
+                               Foreground="#546B89"
+                               FontSize="13.5"
+                               Text="{Binding ItemsPager.PageText}" />
+
+                    <controls:TablePagerControl Grid.Column="1" DataContext="{Binding ItemsPager}" />
+                </Grid>
+            </Grid>
+        </Grid>
+    </controls:RoundedClipBorder>
+</UserControl>
+
+

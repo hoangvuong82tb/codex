@@ -1,0 +1,299 @@
+<UserControl x:Class="ASMILE.BO.App.Views.TrainingDataView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+    <Grid Background="{StaticResource SurfaceBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Margin="20,16,20,12" Padding="22,16" CornerRadius="18" Background="White" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8B8;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#1D4ED8" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding TitleText}" FontSize="31" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding SubtitleText}" Margin="0,6,0,0" FontSize="14" Foreground="#475569" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <ItemsControl ItemsSource="{Binding StatusBadges}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,8,0" Padding="10,4" CornerRadius="10"
+                                            Background="{Binding BackgroundBrush}" BorderBrush="{Binding BorderBrush}" BorderThickness="1">
+                                        <TextBlock Text="{Binding Text}" FontSize="12" FontWeight="SemiBold" Foreground="{Binding ForegroundBrush}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding LastResetText}" FontSize="12" Foreground="#64748B" HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding JournalStatusText}" FontSize="12" Foreground="#64748B" HorizontalAlignment="Right" Margin="0,4,0,0" />
+                    <TextBlock Text="{Binding MarkerStatusText}" FontSize="12" Foreground="#64748B" HorizontalAlignment="Right" Margin="0,4,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="20,0,20,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="7*" />
+                <ColumnDefinition Width="3*" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <Border Background="White" CornerRadius="18" BorderBrush="#E2E8F0" BorderThickness="1" Padding="22" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Chọn mô hình demo" FontSize="21" FontWeight="SemiBold" />
+                            <ItemsControl ItemsSource="{Binding ProfileCards}" Margin="0,14,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="3" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding DataContext.SelectDemoProfileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Margin="0,0,10,0"
+                                                Padding="0"
+                                                HorizontalAlignment="Stretch"
+                                                Background="Transparent"
+                                                BorderThickness="0">
+                                            <Border Background="{Binding BackgroundBrush}" BorderBrush="{Binding BorderBrush}" BorderThickness="1.2" CornerRadius="16" Padding="18" MinHeight="230">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="*" />
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#2563EB" HorizontalAlignment="Right" Visibility="{Binding SelectionGlyphVisibility}" />
+                                                    <Image Grid.Row="0" Source="{Binding IconPath}" Width="40" Height="40" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                                                    <TextBlock Grid.Row="1" Margin="0,10,0,0" Text="{Binding DisplayName}" FontSize="17" FontWeight="SemiBold" />
+                                                    <TextBlock Grid.Row="2" Margin="0,6,0,0" Text="{Binding Description}" TextWrapping="Wrap" Foreground="#475569" FontSize="13" />
+                                                    <StackPanel Grid.Row="3" Margin="0,10,0,0">
+                                                        <ItemsControl ItemsSource="{Binding FeatureChips}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <WrapPanel />
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="0,0,6,6">
+                                                                        <TextBlock Text="{Binding}" FontSize="12" Foreground="#1E3A8A" />
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                        <ItemsControl ItemsSource="{Binding StatLines}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <TextBlock Text="{Binding}" FontSize="12" Foreground="#334155" Margin="0,0,0,4" />
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="White" CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" Padding="20" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="2. Hành động chính" FontSize="17" FontWeight="SemiBold" />
+                                <WrapPanel Margin="0,12,0,0">
+                                    <Button Content="Nạp demo theo mô hình" Command="{Binding SeedFullTrainingCommand}" Height="38" MinWidth="190" Margin="0,0,10,10" Style="{StaticResource EnterpriseModuleCmdInfo}" Tag="&#xE8B8;" />
+                                    <Button Content="Nạp dữ liệu nền chuẩn" Command="{Binding SeedFoundationCommand}" Height="38" MinWidth="170" Margin="0,0,10,10" Style="{StaticResource EnterpriseModuleCmdSuccess}" Tag="&#xE8F1;" />
+                                    <Button Content="Kiểm tra dữ liệu hiện tại" Command="{Binding PreflightCheckCommand}" Height="38" MinWidth="190" Margin="0,0,10,10" Style="{StaticResource EnterpriseModuleCmdWarning}" Tag="&#xE9D2;" />
+                                </WrapPanel>
+                                <TextBlock Text="{Binding StatusMessage}" Margin="0,4,0,0" Foreground="#475569" />
+                                <TextBlock Text="{Binding ErrorText}" Margin="0,6,0,0" Foreground="#B91C1C" TextWrapping="Wrap"
+                                           Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Background="White" CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" Padding="20" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="3. Quản lý dữ liệu mẫu" FontSize="17" FontWeight="SemiBold" />
+                                <WrapPanel Margin="0,12,0,0">
+                                    <Button Content="Xóa dữ liệu mẫu" Command="{Binding DeleteTrainingDataCommand}" Height="38" MinWidth="160" Margin="0,0,10,10" Style="{StaticResource EnterpriseModuleCmdDanger}" Tag="&#xE74D;" />
+                                    <Button Content="Chỉ xóa dữ liệu mẫu" Command="{Binding ResetTrainingOnlyCommand}" Height="38" MinWidth="180" Margin="0,0,10,10" Style="{StaticResource EnterpriseModuleCmdWarning}" Tag="&#xE777;" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+<Border Background="#FEF2F2" BorderBrush="#FCA5A5" BorderThickness="1" CornerRadius="16" Padding="18" Margin="0,0,0,16"
+                            Visibility="{Binding ShowMigrationWarningCard, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="Cần cập nhật cơ sở dữ liệu trước khi tiếp tục" FontSize="16" FontWeight="SemiBold" Foreground="#B91C1C" />
+                            <TextBlock Text="Migration TrainingDataMarkers chưa có. Hệ thống đang khóa thao tác nguy hiểm để bảo vệ dữ liệu." Margin="0,6,0,0" Foreground="#991B1B" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#FEF2F2" CornerRadius="16" BorderBrush="#FCA5A5" BorderThickness="1" Padding="20" Margin="0,0,0,16">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE814;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#B91C1C" VerticalAlignment="Center" />
+                                <TextBlock Text="Vùng nguy hiểm" FontSize="19" FontWeight="SemiBold" Foreground="#B91C1C" Margin="8,0,0,0" />
+                            </StackPanel>
+                            <TextBlock Text="Các thao tác dưới đây có thể xóa dữ liệu nghiệp vụ thật." Margin="0,6,0,12" Foreground="#991B1B" />
+                            <WrapPanel>
+                                <Button Content="Reset toàn bộ dữ liệu" Command="{Binding ResetToBlankCommand}" Style="{StaticResource EnterpriseModuleCmdDanger}" Tag="&#xE74D;" Height="38" MinWidth="180" Margin="0,0,10,10" />
+                                <Button Content="Clear business data" Command="{Binding ClearBusinessDataCommand}" Style="{StaticResource EnterpriseModuleCmdDanger}" Tag="&#xE894;" Height="38" MinWidth="160" Margin="0,0,10,10" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="White" CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Cảnh báo" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding AlertItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#FFFBEB" BorderBrush="#FCD34D" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding Message}" Foreground="#475569" Margin="0,2,0,0" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="Warning" Foreground="#64748B" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="16" Padding="16" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#475569" />
+                                <TextBlock Text="Nhật ký thao tác" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Margin="0,12,0,0" Visibility="{Binding EmptyStateVisibility}">
+                                <TextBlock Text="&#xE9CE;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#94A3B8" HorizontalAlignment="Center" />
+                                <TextBlock Text="Chưa có thao tác nào trong phiên này" FontSize="13" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                            </StackPanel>
+
+                            <DataGrid Grid.Row="1" Margin="0,12,0,0"
+                                      Visibility="{Binding LogTableVisibility}"
+                                      ItemsSource="{Binding StepLogs}" AutoGenerateColumns="False" HeadersVisibility="Column"
+                                      CanUserAddRows="False" IsReadOnly="True"
+                                      EnableRowVirtualization="True" EnableColumnVirtualization="True"
+                                      VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                                      MaxHeight="260">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Step" Binding="{Binding StepName}" Width="1.4*" />
+                                    <DataGridTextColumn Header="Entity" Binding="{Binding EntityName}" Width="*" />
+                                    <DataGridTextColumn Header="Deleted" Binding="{Binding DeletedCount}" Width="78" />
+                                    <DataGridTextColumn Header="Created" Binding="{Binding CreatedCount}" Width="78" />
+                                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="96" />
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="2*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+
+                    <Border Background="#ECFDF3" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="16" Padding="18"
+                            Visibility="{Binding HasCompletionResult, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="Hoàn tất khởi tạo dữ liệu demo" FontSize="17" FontWeight="SemiBold" Foreground="#166534" />
+                            <TextBlock Text="{Binding CompletionMessage}" Margin="0,5,0,8" Foreground="#166534" TextWrapping="Wrap" />
+                            <ItemsControl ItemsSource="{Binding CompletionSummary}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock FontSize="13" Margin="0,0,0,3">
+                                            <Run Text="• " />
+                                            <Run Text="{Binding Value, Mode=OneWay}" FontWeight="SemiBold" />
+                                            <Run Text=" " />
+                                            <Run Text="{Binding Label, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Content="Mở Dashboard" Style="{StaticResource EnterpriseModuleCmdInfo}" Tag="&#xE80F;" IsEnabled="{Binding CanOpenDashboard}" ToolTip="{Binding QuickActionUnavailableHint}" Margin="0,0,8,8" />
+                                <Button Content="Mở Sổ cái" Style="{StaticResource EnterpriseModuleCmdWarning}" Tag="&#xE8A5;" IsEnabled="{Binding CanOpenLedger}" ToolTip="{Binding QuickActionUnavailableHint}" Margin="0,0,8,8" />
+                                <Button Content="Mở Kho" Style="{StaticResource EnterpriseModuleCmdSuccess}" Tag="&#xE7B8;" IsEnabled="{Binding CanOpenInventory}" ToolTip="{Binding QuickActionUnavailableHint}" Margin="0,0,8,8" />
+                                <Button Content="Mở Công nợ" Style="{StaticResource EnterpriseModuleCmdInfo}" Tag="&#xE8D4;" IsEnabled="{Binding CanOpenDebt}" ToolTip="{Binding QuickActionUnavailableHint}" Margin="0,0,8,8" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <ScrollViewer Grid.Column="1" Margin="16,0,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <Border Background="White" CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Preflight summary" FontSize="17" FontWeight="SemiBold" />
+                            <Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="Database" Foreground="#64748B" /><TextBlock Grid.Column="1" Text="{Binding DatabaseBadgeText}" FontWeight="SemiBold" /></Grid>
+                            <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="Environment" Foreground="#64748B" /><TextBlock Grid.Column="1" Text="{Binding EnvironmentBadgeText}" FontWeight="SemiBold" /></Grid>
+                            <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="Risk level" Foreground="#64748B" /><TextBlock Grid.Column="1" Text="{Binding RiskBadgeText}" FontWeight="SemiBold" /></Grid>
+                            <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="Destructive reset" Foreground="#64748B" /><TextBlock Grid.Column="1" Text="{Binding DestructiveResetStateText}" FontWeight="SemiBold" /></Grid>
+                            <TextBlock Text="Confirm text" Margin="0,10,0,0" Foreground="#64748B" />
+                            <TextBlock Text="{Binding FullResetConfirmationHint}" FontWeight="SemiBold" />
+                            <TextBlock Text="Nhập xác nhận" Margin="0,8,0,4" Foreground="#64748B" />
+                            <TextBox Text="{Binding ConfirmationText, UpdateSourceTrigger=PropertyChanged}" Height="34" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="White" CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Preview dữ liệu sẽ tạo" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding DemoPreviewDescription}" Margin="0,5,0,10" Foreground="#64748B" FontSize="13" />
+                            <ItemsControl ItemsSource="{Binding PreviewStatCards}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,4,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="15" VerticalAlignment="Center" Foreground="#2563EB" /><TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="14" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="{Binding EstimatedCount}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" /></Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="White" CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="Safety checklist" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding SafetyChecklistItems}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Margin="0,4,0,4"><TextBlock FontFamily="Segoe MDL2 Assets" Text="{Binding Glyph}" Foreground="{Binding GlyphBrush}" /><TextBlock Text="{Binding Label}" Margin="8,0,0,0" FontSize="13" TextWrapping="Wrap" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>
+

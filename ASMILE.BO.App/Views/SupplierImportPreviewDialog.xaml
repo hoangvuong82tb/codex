@@ -1,0 +1,257 @@
+<UserControl x:Class="ASMILE.BO.App.Views.SupplierImportPreviewDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:ASMILE.BO.App.ViewModels"
+             mc:Ignorable="d"
+             SnapsToDevicePixels="True"
+             UseLayoutRounding="True"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType">
+    <UserControl.Resources>
+        <Style x:Key="SummaryFilterButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Xem trước dữ liệu nhập"
+                       FontSize="26"
+                       FontWeight="SemiBold"
+                       Foreground="#1A2F4B" />
+            <TextBlock Text="Kiểm tra và chỉnh sửa dữ liệu trước khi nhập vào hệ thống."
+                       Margin="0,6,0,0"
+                       FontSize="14"
+                       Foreground="#5A6F8D" />
+        </StackPanel>
+
+        <UniformGrid Grid.Row="1" Columns="5" Margin="0,0,0,14">
+            <Button Style="{StaticResource SummaryFilterButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Tất cả" Margin="0,0,10,0">
+                <Border Padding="14">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource FluentCardStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsAllFilterActive}" Value="True">
+                                    <Setter Property="Background" Value="#F2F7FF" />
+                                    <Setter Property="BorderBrush" Value="#C8DAF7" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock Text="Tổng dòng" FontSize="13" Foreground="#5A6F8D" />
+                        <TextBlock Text="{Binding Summary.TotalRows}" FontSize="24" FontWeight="SemiBold" Foreground="#1F3554" />
+                    </StackPanel>
+                </Border>
+            </Button>
+            <Button Style="{StaticResource SummaryFilterButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Hợp lệ" Margin="0,0,10,0">
+                <Border Padding="14">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource FluentCardStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsValidFilterActive}" Value="True">
+                                    <Setter Property="Background" Value="#F2F7FF" />
+                                    <Setter Property="BorderBrush" Value="#C8DAF7" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock Text="Hợp lệ" FontSize="13" Foreground="#5A6F8D" />
+                        <TextBlock Text="{Binding Summary.ValidRows}" FontSize="24" FontWeight="SemiBold" Foreground="#1E7C48" />
+                    </StackPanel>
+                </Border>
+            </Button>
+            <Button Style="{StaticResource SummaryFilterButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Cảnh báo" Margin="0,0,10,0">
+                <Border Padding="14">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource FluentCardStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsWarningFilterActive}" Value="True">
+                                    <Setter Property="Background" Value="#F2F7FF" />
+                                    <Setter Property="BorderBrush" Value="#C8DAF7" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock Text="Cảnh báo" FontSize="13" Foreground="#5A6F8D" />
+                        <TextBlock Text="{Binding Summary.WarningRows}" FontSize="24" FontWeight="SemiBold" Foreground="#B87410" />
+                    </StackPanel>
+                </Border>
+            </Button>
+            <Button Style="{StaticResource SummaryFilterButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Trùng dữ liệu" Margin="0,0,10,0">
+                <Border Padding="14">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource FluentCardStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDuplicateFilterActive}" Value="True">
+                                    <Setter Property="Background" Value="#F2F7FF" />
+                                    <Setter Property="BorderBrush" Value="#C8DAF7" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock Text="Trùng dữ liệu" FontSize="13" Foreground="#5A6F8D" />
+                        <TextBlock Text="{Binding Summary.DuplicateRows}" FontSize="24" FontWeight="SemiBold" Foreground="#B04A4A" />
+                    </StackPanel>
+                </Border>
+            </Button>
+            <Button Style="{StaticResource SummaryFilterButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Lỗi">
+                <Border Padding="14">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource FluentCardStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsErrorFilterActive}" Value="True">
+                                    <Setter Property="Background" Value="#F2F7FF" />
+                                    <Setter Property="BorderBrush" Value="#C8DAF7" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock Text="Lỗi" FontSize="13" Foreground="#5A6F8D" />
+                        <TextBlock Text="{Binding Summary.ErrorRows}" FontSize="24" FontWeight="SemiBold" Foreground="#C74343" />
+                    </StackPanel>
+                </Border>
+            </Button>
+        </UniformGrid>
+
+        <Border Grid.Row="2" Style="{StaticResource FluentCardStyle}" Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <DockPanel Margin="16,14,16,10">
+                    <TextBlock DockPanel.Dock="Left"
+                               Text="Bảng dữ liệu nhập"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="#223A58"
+                               VerticalAlignment="Center" />
+                </DockPanel>
+
+                <DataGrid Grid.Row="1"
+                          Margin="16,0,16,16"
+                          ItemsSource="{Binding RowsView}"
+                          Style="{StaticResource PreviewGridStyle}"
+                          ColumnHeaderStyle="{StaticResource PreviewGridHeaderStyle}"
+                          CellStyle="{StaticResource PreviewGridCellStyle}"
+                          RowStyle="{StaticResource PreviewGridRowStyle}"
+                          FrozenColumnCount="3"
+                          EnableRowVirtualization="True"
+                          EnableColumnVirtualization="True"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="Chọn" Width="62">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource PreviewCheckBoxStyle}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="Trạng thái" Width="132" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Background="{Binding StateBackground}" CornerRadius="12" Padding="8,4" HorizontalAlignment="Left">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="7" Height="7" Fill="{Binding StateForeground}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding StateText}" Foreground="{Binding StateForeground}" FontWeight="SemiBold" FontSize="12.5" Margin="6,0,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="Chi tiết lỗi" Width="170" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding IssueSummary}"
+                                               Foreground="#3F5677"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding IssueTooltip}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="M? NCC" Binding="{Binding SupplierCode, UpdateSourceTrigger=PropertyChanged}" Width="120" />
+                        <DataGridTextColumn Header="Tên nhà cung cấp" Binding="{Binding SupplierName, UpdateSourceTrigger=PropertyChanged}" Width="190" />
+                        <DataGridTextColumn Header="Điện thoại" Binding="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Width="130" />
+                        <DataGridTextColumn Header="Tài khoản ngân hàng" Binding="{Binding BankAccountNo, UpdateSourceTrigger=PropertyChanged}" Width="168" />
+                        <DataGridTextColumn Header="Địa chỉ" Binding="{Binding Address, UpdateSourceTrigger=PropertyChanged}" Width="200" />
+                        <DataGridTextColumn Header="Ghi chú" Binding="{Binding Note, UpdateSourceTrigger=PropertyChanged}" Width="180" />
+                        <DataGridTemplateColumn Header="Kích hoạt" Width="82">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsActive, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource PreviewCheckBoxStyle}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="3" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="1"
+                    Style="{StaticResource PreviewActionButtonStyle}"
+                    Command="{Binding CancelImportCommand}"
+                    FocusVisualStyle="{x:Null}">
+                <TextBlock Text="Hủy" />
+            </Button>
+            <Button Grid.Column="3"
+                    Style="{StaticResource PreviewActionButtonStyle}"
+                    Command="{Binding ValidateImportRowsCommand}"
+                    FocusVisualStyle="{x:Null}">
+                <TextBlock Text="Kiểm tra lại" />
+            </Button>
+            <Button Grid.Column="5"
+                    Style="{StaticResource PreviewPrimaryButtonStyle}"
+                    Command="{Binding ConfirmImportCommand}"
+                    IsEnabled="{Binding CanConfirmImport}"
+                    FocusVisualStyle="{x:Null}">
+                <TextBlock Text="Nhập dữ liệu hợp lệ" Foreground="White" />
+            </Button>
+        </Grid>
+    </Grid>
+</UserControl>

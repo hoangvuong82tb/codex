@@ -1,0 +1,51 @@
+﻿<UserControl x:Class="ASMILE.BO.App.Controls.TaskbarItemControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="34"
+             d:DesignWidth="40">
+    <Grid>
+        <Button Style="{StaticResource TaskbarItemButtonStyle}"
+                Command="{Binding InvokeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                CommandParameter="{Binding InvokeCommandParameter, RelativeSource={RelativeSource AncestorType=UserControl}}">
+            <Image Source="{Binding IconSource, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                   Width="18"
+                   Height="18"
+                   Stretch="Uniform" />
+        </Button>
+
+        <Border Height="2"
+                Width="16"
+                VerticalAlignment="Bottom"
+                HorizontalAlignment="Center"
+                Margin="0,0,0,2"
+                Background="{Binding IndicatorBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                Visibility="{Binding IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+        <Border Height="2"
+                Width="22"
+                VerticalAlignment="Bottom"
+                HorizontalAlignment="Center"
+                Margin="0,0,0,5"
+                CornerRadius="1"
+                Background="{StaticResource TextOnDarkBrush}"
+                Visibility="{Binding IsActive, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="8"
+                                  ShadowDepth="0"
+                                  Opacity="0.55"
+                                  Color="{StaticResource TextOnDarkColor}" />
+            </Border.Effect>
+        </Border>
+
+        <Border Height="2"
+                Width="10"
+                VerticalAlignment="Bottom"
+                HorizontalAlignment="Center"
+                Margin="0,0,0,8"
+                Background="#89A2C7"
+                Visibility="{Binding IsMinimized, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+    </Grid>
+</UserControl>

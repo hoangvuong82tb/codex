@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="ASMILE.BO.App.Views.AuditCenterView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:controls="clr-namespace:ASMILE.BO.App.Controls" xmlns:views="clr-namespace:ASMILE.BO.App.Views">
+  <Grid Background="{StaticResource SurfaceBrush}" Margin="18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <controls:EnterpriseCommandToolbar Grid.Row="0" SearchPlaceholder="Tìm module hoặc nội dung nhật ký..." RefreshText="Làm mới" ShowExportImport="False" SearchText="{Binding PermissionFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" RefreshCommand="{Binding RefreshCommand}">
+      <controls:EnterpriseCommandToolbar.ActionsContent>
+        <StackPanel Orientation="Horizontal">
+          <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Mở nguồn" Command="{Binding OpenSourceCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xuất JSON" Command="{Binding ExportJsonCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xuất CSV" Command="{Binding ExportCSVCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xuất ZIP" Command="{Binding ExportZipCommand}" />
+        </StackPanel>
+      </controls:EnterpriseCommandToolbar.ActionsContent>
+    </controls:EnterpriseCommandToolbar>
+    <DockPanel Grid.Row="1" Margin="0,14,0,12">
+      <StackPanel DockPanel.Dock="Left">
+        <TextBlock Text="Trung tâm kiểm tra hệ thống" Style="{StaticResource AppTitleTextStyle}" />
+        <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" Text="{Binding StatusMessage}" />
+      </StackPanel>
+      <UniformGrid DockPanel.Dock="Right" Columns="4" Width="780">
+        <controls:EnterpriseSummaryCard Title="Nhật ký" Subtitle="Theo bộ lọc" IconGlyph="" Margin="0,0,10,0" Value="{Binding AuditItems.Count}" />
+        <controls:EnterpriseSummaryCard Title="Chuỗi liên quan" Subtitle="Chuỗi liên quan" IconGlyph="" Margin="0,0,10,0" Value="{Binding CorrelationGroups.Count}" />
+        <controls:EnterpriseSummaryCard Title="Bản chụp" Subtitle="Bản chụp entity" IconGlyph="" Margin="0,0,10,0" Value="{Binding Snapshots.Count}" />
+        <controls:EnterpriseSummaryCard Title="Xuất dữ liệu" Subtitle="Lịch sử xuất" IconGlyph="" Value="{Binding ExportHistory.Count}" />
+      </UniformGrid>
+    </DockPanel>
+    <controls:EnterpriseFilterPanel Grid.Row="2" Title="Bộ lọc truy vết">
+      <controls:EnterpriseFilterPanel.PanelContent>
+        <WrapPanel>
+          <StackPanel Style="{StaticResource AccountingFilterField}">
+            <TextBlock Text="Hành động" Style="{StaticResource AccountingFilterLabel}" />
+            <TextBox Style="{StaticResource AccountingFilterTextBox}" Width="150" Text="{Binding ActionFilter, UpdateSourceTrigger=PropertyChanged}" />
+          </StackPanel>
+          <StackPanel Style="{StaticResource AccountingFilterField}">
+            <TextBlock Text="Người dùng" Style="{StaticResource AccountingFilterLabel}" />
+            <TextBox Style="{StaticResource AccountingFilterTextBox}" Width="150" Text="{Binding UserFilter, UpdateSourceTrigger=PropertyChanged}" />
+          </StackPanel>
+          <StackPanel Style="{StaticResource AccountingFilterField}">
+            <TextBlock Text="Đối tượng" Style="{StaticResource AccountingFilterLabel}" />
+            <TextBox Style="{StaticResource AccountingFilterTextBox}" Width="150" Text="{Binding EntityFilter, UpdateSourceTrigger=PropertyChanged}" />
+          </StackPanel>
+          <StackPanel Style="{StaticResource AccountingFilterField}">
+            <TextBlock Text="Mã liên kết" Style="{StaticResource AccountingFilterLabel}" />
+            <TextBox Style="{StaticResource AccountingFilterTextBox}" Width="180" Text="{Binding CorrelationFilter, UpdateSourceTrigger=PropertyChanged}" />
+          </StackPanel>
+          <StackPanel Style="{StaticResource AccountingFilterField}">
+            <TextBlock Text="Từ ngày" Style="{StaticResource AccountingFilterLabel}" />
+            <DatePicker Style="{StaticResource EnterpriseModuleDatePicker}" SelectedDate="{Binding FromDate}" />
+          </StackPanel>
+          <StackPanel Style="{StaticResource AccountingFilterField}">
+            <TextBlock Text="Đến ngày" Style="{StaticResource AccountingFilterLabel}" />
+            <DatePicker Style="{StaticResource EnterpriseModuleDatePicker}" SelectedDate="{Binding ToDate}" />
+          </StackPanel>
+        </WrapPanel>
+      </controls:EnterpriseFilterPanel.PanelContent>
+    </controls:EnterpriseFilterPanel>
+    <controls:EnterpriseStatePresenter Grid.Row="3" EmptyText="Không có nhật ký phù hợp." IsLoading="{Binding IsBusy}">
+      <controls:EnterpriseStatePresenter.StateContent>
+        <TabControl>
+          <TabItem Header="Dòng thời gian" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2.2*" />
+                <ColumnDefinition Width="1.3*" />
+              </Grid.ColumnDefinitions>
+              <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding AuditItems}" SelectedItem="{Binding SelectedAuditItem}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Thời gian" Width="125" Binding="{Binding CreatedAt, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Mức độ" Width="82" Binding="{Binding Severity}" />
+                  <DataGridTextColumn Header="Mã liên kết" Width="160" Binding="{Binding CorrelationId}" />
+                  <DataGridTextColumn Header="Người dùng" Width="125" Binding="{Binding UserName}" />
+                  <DataGridTextColumn Header="Hành động" Width="140" Binding="{Binding Action}" />
+                  <DataGridTextColumn Header="Đối tượng" Width="130" Binding="{Binding EntityName}" />
+                  <DataGridTextColumn Header="Mã đối tượng" Width="160" Binding="{Binding EntityId}" />
+                  <DataGridTextColumn Header="Chi tiết" Width="*" Binding="{Binding Detail}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <controls:EnterpriseFilterPanel Grid.Column="1" Title="Siêu dữ liệu" Margin="12,0,0,0">
+                <controls:EnterpriseFilterPanel.PanelContent>
+                  <Grid>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="*" />
+                      <RowDefinition Height="*" />
+                      <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBox IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" Text="{Binding SelectedMetadataDisplayJson}" />
+                    <TextBox Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" Margin="0,8,0,0" Text="{Binding SelectedSnapshotDisplayJson}" />
+                    <TextBox Grid.Row="2" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" Margin="0,8,0,0" Text="{Binding SelectedSummaryJson}" />
+                  </Grid>
+                </controls:EnterpriseFilterPanel.PanelContent>
+              </controls:EnterpriseFilterPanel>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Chuỗi liên quan" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.5*" />
+                <ColumnDefinition Width="1.5*" />
+              </Grid.ColumnDefinitions>
+              <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,12,0" ItemsSource="{Binding CorrelationGroups}" SelectedItem="{Binding SelectedCorrelationGroup}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Mã liên kết" Width="170" Binding="{Binding CorrelationId}" />
+                  <DataGridTextColumn Header="Module" Width="130" Binding="{Binding Module}" />
+                  <DataGridTextColumn Header="Hành động" Width="120" Binding="{Binding Action}" />
+                  <DataGridTextColumn Header="Đối tượng" Width="130" Binding="{Binding EntityType}" />
+                  <DataGridTextColumn Header="Mã đối tượng" Width="*" Binding="{Binding EntityId}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <DataGrid Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding ReplayEntries}" SelectedItem="{Binding SelectedReplayEntry}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="#" Width="60" Binding="{Binding SequenceNo}" />
+                  <DataGridTextColumn Header="Thời gian" Width="125" Binding="{Binding TimestampUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Tuyến" Width="120" Binding="{Binding Route}" />
+                  <DataGridTextColumn Header="Module" Width="120" Binding="{Binding Module}" />
+                  <DataGridTextColumn Header="Hành động" Width="120" Binding="{Binding Action}" />
+                  <DataGridTextColumn Header="Đối tượng" Width="120" Binding="{Binding EntityType}" />
+                  <DataGridTextColumn Header="Mã đối tượng" Width="*" Binding="{Binding EntityId}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="So sánh thay đổi" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.1*" />
+                <ColumnDefinition Width="1.1*" />
+                <ColumnDefinition Width="1.1*" />
+              </Grid.ColumnDefinitions>
+              <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,12,0" ItemsSource="{Binding Snapshots}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Đối tượng" Width="120" Binding="{Binding EntityType}" />
+                  <DataGridTextColumn Header="Mã đối tượng" Width="*" Binding="{Binding EntityId}" />
+                  <DataGridTextColumn Header="Mã băm" Width="150" Binding="{Binding SnapshotHash}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <TextBox Grid.Column="1" Margin="0,0,12,0" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" Text="{Binding SelectedSnapshotDisplayJson}" />
+              <TextBox Grid.Column="2" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" Text="{Binding SelectedMetadataDisplayJson}" />
+            </Grid>
+          </TabItem>
+          <TabItem Header="Xuất dữ liệu" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.2*" />
+                <ColumnDefinition Width="1.8*" />
+              </Grid.ColumnDefinitions>
+              <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,12,0" ItemsSource="{Binding ExportHistory}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Thời gian" Width="125" Binding="{Binding CreatedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Loại" Width="90" Binding="{Binding ExportType}" />
+                  <DataGridTextColumn Header="Tệp" Width="*" Binding="{Binding FilePath}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <TextBox Grid.Column="1" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" Text="{Binding SelectedReplayJson}" />
+            </Grid>
+          </TabItem>
+        </TabControl>
+      </controls:EnterpriseStatePresenter.StateContent>
+    </controls:EnterpriseStatePresenter>
+    <TextBlock Grid.Row="4" Style="{StaticResource CaptionTextStyle}" Margin="2,10,0,0" Text="{Binding StatusMessage}" />
+  </Grid>
+</UserControl>

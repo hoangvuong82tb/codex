@@ -1,0 +1,28 @@
+<Window x:Class="ASMILE.BO.App.Views.Dialogs.BanquetContractPreviewDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Xem trước hợp đồng" Width="1040" Height="780" MinWidth="860" MinHeight="620"
+        WindowStartupLocation="CenterOwner" Background="#F4F6F9" FontFamily="Segoe UI">
+  <Grid Margin="16">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <StackPanel>
+        <TextBlock Text="Xem trước hợp đồng dịch vụ tiệc" FontSize="20" FontWeight="SemiBold" Foreground="#102A56"/>
+        <TextBlock Text="Kiểm tra nội dung, bảng chi tiết và thông tin thanh toán trước khi in hoặc xuất Excel." FontSize="12" Foreground="#64748B" Margin="0,4,0,0"/>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+        <Button Content="Lưu Excel" Width="108" Height="38" Margin="0,0,8,0" Click="SaveExcel_Click" Background="#15803D" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+        <Button Content="In hợp đồng" Width="112" Height="38" Margin="0,0,8,0" Click="Print_Click" Background="#2563EB" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+        <Button Content="Đóng" Width="82" Height="38" Click="Close_Click" Background="White" Foreground="#334155" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand"/>
+      </StackPanel>
+    </Grid>
+    <Border Grid.Row="2" Background="#E8EDF3" BorderBrush="#D7E0EC" BorderThickness="1" CornerRadius="8" Padding="16">
+      <ScrollViewer Background="#E8EDF3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Border Width="760" HorizontalAlignment="Center" Background="White" Padding="48,40" BorderBrush="#D7E0EC" BorderThickness="1">
+          <StackPanel x:Name="PreviewPanel"/>
+        </Border>
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</Window>

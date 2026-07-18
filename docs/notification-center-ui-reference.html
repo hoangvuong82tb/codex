@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASMILE BO - Mẫu Trung tâm thông báo</title>
+  <style>
+    :root{
+      --bg:#f4f8fc;
+      --card:#ffffff;
+      --line:#dbe7f3;
+      --line-strong:#cbdff2;
+      --text:#102033;
+      --muted:#6f8198;
+      --blue:#2563eb;
+      --blue-soft:#eaf2ff;
+      --orange:#fb923c;
+      --green:#16a34a;
+      --green-soft:#eafaf0;
+      --red:#dc2626;
+      --red-soft:#fee2e2;
+      --amber:#f59e0b;
+      --amber-soft:#fff7e6;
+      --purple:#7c3aed;
+      --purple-soft:#f1eaff;
+      --shadow:0 10px 28px rgba(15, 35, 65, .07);
+      --radius:16px;
+      font-family:"Segoe UI", Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,#eef5fc,#f8fbff);
+      color:var(--text);
+      font-size:14px;
+    }
+
+    .window{
+      height:100vh;
+      display:grid;
+      grid-template-rows:42px 1fr 34px;
+      overflow:hidden;
+    }
+
+    .titlebar{
+      background:#f8fbff;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 18px;
+      font-weight:700;
+    }
+
+    .titlebar .left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .app-icon{
+      width:24px;height:24px;border-radius:8px;
+      background:#eaf2ff;color:#2563eb;
+      display:grid;place-items:center;font-weight:900;
+    }
+
+    .window-controls{
+      display:flex;gap:16px;color:#334155;font-size:16px;
+    }
+
+    .main{
+      padding:20px 26px 16px 26px;
+      overflow:hidden;
+      display:grid;
+      grid-template-rows:auto auto 1fr;
+      gap:14px;
+    }
+
+    .toolbar{
+      display:grid;
+      grid-template-columns:1fr 170px 170px 170px 120px 140px 110px 46px;
+      gap:12px;
+      align-items:center;
+    }
+
+    .search, select, input, textarea{
+      height:42px;
+      border:1px solid var(--line-strong);
+      border-radius:12px;
+      background:#fff;
+      outline:none;
+      padding:0 14px;
+      color:var(--text);
+      font:inherit;
+    }
+
+    .search{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--muted);
+      box-shadow:var(--shadow);
+    }
+
+    .search input{
+      border:0;box-shadow:none;height:38px;width:100%;padding:0;
+    }
+
+    .btn{
+      height:42px;border:1px solid var(--line-strong);
+      background:#fff;border-radius:12px;
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      cursor:pointer;font-weight:700;color:#334155;
+    }
+    .btn.primary{background:var(--orange);border-color:transparent;color:#fff}
+    .btn.green{background:#16a34a;color:#fff;border-color:transparent}
+    .btn.red{background:#dc2626;color:#fff;border-color:transparent}
+    .btn.blue{background:#2563eb;color:#fff;border-color:transparent}
+    .btn.ghost{background:#fff}
+
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(6,1fr);
+      gap:14px;
+    }
+
+    .kpi{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:18px;
+      box-shadow:var(--shadow);
+      min-height:98px;
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+
+    .kpi .circle{
+      width:54px;height:54px;border-radius:18px;
+      display:grid;place-items:center;font-size:25px;font-weight:900;
+    }
+    .kpi .value{font-size:26px;font-weight:900;line-height:1.1}
+    .kpi .label{font-weight:800;margin-bottom:6px}
+    .kpi .sub{font-size:12px;color:var(--muted)}
+
+    .content{
+      min-height:0;
+      display:grid;
+      grid-template-columns:35% 65%;
+      gap:14px;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .inbox{
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      min-height:0;
+    }
+
+    .panel-header{
+      height:54px;
+      padding:0 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--line);
+      font-weight:900;
+      font-size:18px;
+    }
+
+    .count-pill{
+      font-size:12px;
+      background:#eef3f9;
+      color:#60748c;
+      padding:4px 10px;
+      border-radius:999px;
+      font-weight:800;
+    }
+
+    .inbox-list{
+      overflow:auto;
+    }
+
+    .inbox-item{
+      display:grid;
+      grid-template-columns:54px 1fr auto;
+      gap:12px;
+      padding:14px 16px;
+      border-bottom:1px solid #edf3f9;
+      cursor:pointer;
+      position:relative;
+    }
+
+    .inbox-item:hover{background:#f8fbff}
+    .inbox-item.active{
+      background:#eef6ff;
+      border-left:4px solid var(--blue);
+      padding-left:12px;
+    }
+
+    .item-icon{
+      width:44px;height:44px;border-radius:14px;
+      display:grid;place-items:center;font-size:23px;
+    }
+
+    .item-title{
+      font-weight:900;
+      margin-bottom:5px;
+    }
+
+    .meta{
+      display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;
+      flex-wrap:wrap;
+    }
+
+    .dot{
+      width:8px;height:8px;border-radius:50%;background:#2b7fff;
+      display:inline-block;
+    }
+
+    .item-time{
+      color:#60748c;font-size:12px;text-align:right;white-space:nowrap;
+    }
+
+    .badge{
+      padding:4px 9px;border-radius:999px;font-size:12px;font-weight:900;
+      display:inline-flex;align-items:center;gap:5px;
+    }
+
+    .badge.red{background:var(--red-soft);color:#b91c1c}
+    .badge.orange{background:var(--amber-soft);color:#b45309}
+    .badge.blue{background:var(--blue-soft);color:#1d4ed8}
+    .badge.green{background:var(--green-soft);color:#15803d}
+    .badge.purple{background:var(--purple-soft);color:#6d28d9}
+    .badge.gray{background:#f1f5f9;color:#475569}
+
+    .inbox-footer{
+      height:52px;
+      display:flex;align-items:center;justify-content:center;
+      border-top:1px solid var(--line);
+    }
+
+    .detail{
+      min-height:0;
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:14px;
+      overflow:hidden;
+    }
+
+    .detail-main{
+      padding:22px;
+      overflow:auto;
+    }
+
+    .detail-top{
+      display:grid;
+      grid-template-columns:76px 1fr auto;
+      gap:18px;
+      align-items:start;
+      margin-bottom:18px;
+    }
+
+    .detail-icon{
+      width:76px;height:76px;border-radius:20px;
+      display:grid;place-items:center;font-size:38px;
+      background:var(--red-soft);color:var(--red);
+    }
+
+    .detail-title{
+      font-size:26px;
+      font-weight:900;
+      margin-bottom:10px;
+    }
+
+    .detail-meta{
+      display:flex;gap:12px;flex-wrap:wrap;color:#62758b;font-size:13px;
+    }
+
+    .detail-actions-top{
+      display:flex;gap:10px;
+    }
+
+    .detail-body{
+      display:grid;
+      grid-template-columns:1fr 260px;
+      gap:14px;
+    }
+
+    .section{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      padding:16px;
+    }
+
+    .section-title{
+      font-weight:900;
+      margin-bottom:12px;
+      font-size:16px;
+    }
+
+    .info-box{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#f9fbfe;
+      padding:14px;
+      margin-top:14px;
+    }
+
+    .info-grid{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:12px;
+      font-size:13px;
+    }
+
+    .info-grid .head{color:var(--muted);font-weight:700;margin-bottom:7px}
+    .info-grid .value{font-weight:900}
+    .danger-text{color:var(--red)}
+    .action-panel{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .action-panel .btn{
+      justify-content:flex-start;
+      padding:0 14px;
+    }
+
+    .timeline{
+      margin-top:14px;
+    }
+
+    .timeline-row{
+      display:grid;
+      grid-template-columns:130px 18px 1fr;
+      gap:10px;
+      padding:9px 0;
+      align-items:start;
+    }
+
+    .timeline-dot{
+      width:10px;height:10px;border-radius:50%;background:#2563eb;margin-top:4px;
+      box-shadow:0 0 0 4px #eaf2ff;
+    }
+
+    .timeline-time{color:var(--muted);font-size:12px}
+    .timeline-title{font-weight:800}
+    .timeline-sub{color:var(--muted);font-size:12px;margin-top:3px}
+
+    .footer{
+      background:#f8fbff;
+      border-top:1px solid var(--line);
+      padding:0 26px;
+      display:flex;align-items:center;justify-content:space-between;
+      color:#60748c;font-size:12px;
+    }
+
+    @media(max-width:1200px){
+      .toolbar{grid-template-columns:1fr 150px 150px 130px 110px;grid-auto-rows:42px}
+      .kpis{grid-template-columns:repeat(3,1fr)}
+      .content{grid-template-columns:40% 60%}
+      .detail-body{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="window">
+    <div class="titlebar">
+      <div class="left"><div class="app-icon">🔔</div>Trung tâm thông báo</div>
+      <div class="window-controls"><span>−</span><span>□</span><span>×</span></div>
+    </div>
+
+    <main class="main">
+      <section class="toolbar">
+        <div class="search">🔍 <input placeholder="Tìm thông báo, công việc, module..." /></div>
+        <select><option>Loại: Tất cả</option><option>Thông báo</option><option>Công việc</option><option>Cảnh báo</option><option>Phê duyệt</option></select>
+        <select><option>Trạng thái: Tất cả</option><option>Chưa đọc</option><option>Đang xử lý</option><option>Hoàn tất</option></select>
+        <select><option>Mức độ: Tất cả</option><option>Khẩn cấp</option><option>Cao</option><option>Trung bình</option><option>Thấp</option></select>
+        <button class="btn">⚙ Bộ lọc khác</button>
+        <button class="btn primary">＋ Tạo công việc</button>
+        <button class="btn">⟳ Làm mới</button>
+        <button class="btn">⋮</button>
+      </section>
+
+      <section class="kpis">
+        <div class="kpi"><div class="circle" style="background:var(--purple-soft);color:var(--purple)">🔔</div><div><div class="label">Chưa đọc</div><div class="value">12</div><div class="sub">Thông báo mới</div></div></div>
+        <div class="kpi"><div class="circle" style="background:var(--amber-soft);color:var(--amber)">📅</div><div><div class="label">Cần xử lý hôm nay</div><div class="value">7</div><div class="sub">Việc cần xử lý</div></div></div>
+        <div class="kpi"><div class="circle" style="background:var(--blue-soft);color:var(--blue)">📋</div><div><div class="label">Công việc đang mở</div><div class="value">18</div><div class="sub">Đang thực hiện</div></div></div>
+        <div class="kpi"><div class="circle" style="background:var(--red-soft);color:var(--red)">⏰</div><div><div class="label">Quá hạn</div><div class="value">3</div><div class="sub">Cần xử lý gấp</div></div></div>
+        <div class="kpi"><div class="circle" style="background:var(--amber-soft);color:var(--amber)">⚠</div><div><div class="label">Cảnh báo hệ thống</div><div class="value">5</div><div class="sub">Cảnh báo quan trọng</div></div></div>
+        <div class="kpi"><div class="circle" style="background:var(--green-soft);color:var(--green)">✅</div><div><div class="label">Phê duyệt chờ</div><div class="value">4</div><div class="sub">Chờ phê duyệt</div></div></div>
+      </section>
+
+      <section class="content">
+        <aside class="card inbox">
+          <div class="panel-header">
+            <div>Hộp thư <span class="count-pill">35</span></div>
+            <span class="count-pill">Chưa đọc: 12</span>
+          </div>
+
+          <div class="inbox-list">
+            <div class="inbox-item active">
+              <div class="item-icon" style="background:var(--red-soft);color:var(--red)">⚠</div>
+              <div>
+                <div class="item-title"><span class="dot"></span> Cảnh báo tồn kho thấp</div>
+                <div class="meta">Kho hàng <span>•</span> Cảnh báo <span class="badge red">Cao</span></div>
+              </div>
+              <div class="item-time">08/06/2026 09:30<br><span style="color:#2563eb;font-weight:800">Chưa đọc</span></div>
+            </div>
+
+            <div class="inbox-item">
+              <div class="item-icon" style="background:var(--blue-soft);color:var(--blue)">📋</div>
+              <div>
+                <div class="item-title"><span class="dot"></span> Kiểm tra báo cáo doanh thu ngày</div>
+                <div class="meta">Kế toán <span>•</span> Công việc <span class="badge orange">Trung bình</span></div>
+              </div>
+              <div class="item-time">08/06/2026 09:15<br><span style="color:#2563eb;font-weight:800">Chưa đọc</span></div>
+            </div>
+
+            <div class="inbox-item">
+              <div class="item-icon" style="background:var(--amber-soft);color:var(--amber)">🔔</div>
+              <div>
+                <div class="item-title">Sao lưu dữ liệu hệ thống</div>
+                <div class="meta">Hệ thống <span>•</span> Nhắc việc <span class="badge blue">Thấp</span></div>
+              </div>
+              <div class="item-time">08/06/2026 08:45<br>Đã đọc</div>
+            </div>
+
+            <div class="inbox-item">
+              <div class="item-icon" style="background:var(--green-soft);color:var(--green)">✅</div>
+              <div>
+                <div class="item-title"><span class="dot"></span> Phê duyệt chứng từ thanh toán</div>
+                <div class="meta">Kế toán <span>•</span> Phê duyệt <span class="badge red">Cao</span></div>
+              </div>
+              <div class="item-time">08/06/2026 08:30<br><span style="color:#2563eb;font-weight:800">Chưa đọc</span></div>
+            </div>
+
+            <div class="inbox-item">
+              <div class="item-icon" style="background:#fff1e8;color:#f97316">⚙</div>
+              <div>
+                <div class="item-title">Cập nhật phiên bản hệ thống</div>
+                <div class="meta">Hệ thống <span>•</span> Thông báo <span class="badge blue">Thấp</span></div>
+              </div>
+              <div class="item-time">08/06/2026 07:50<br>Đã đọc</div>
+            </div>
+
+            <div class="inbox-item">
+              <div class="item-icon" style="background:var(--red-soft);color:var(--red)">⚠</div>
+              <div>
+                <div class="item-title"><span class="dot"></span> Hóa đơn đầu ra hết hạn ký</div>
+                <div class="meta">Bán hàng <span>•</span> Cảnh báo <span class="badge red">Cao</span></div>
+              </div>
+              <div class="item-time">07/06/2026 17:20<br><span style="color:#2563eb;font-weight:800">Chưa đọc</span></div>
+            </div>
+          </div>
+
+          <div class="inbox-footer"><button class="btn ghost">Xem tất cả</button></div>
+        </aside>
+
+        <section class="detail">
+          <div class="card detail-main">
+            <div class="detail-top">
+              <div class="detail-icon">⚠</div>
+              <div>
+                <div class="detail-title">Cảnh báo tồn kho thấp</div>
+                <div style="display:flex;gap:8px;margin-bottom:12px">
+                  <span class="badge red">Cảnh báo</span>
+                  <span class="badge red">Cao</span>
+                  <span class="badge blue">Chưa đọc</span>
+                </div>
+                <div class="detail-meta">
+                  <span>🏢 Kho hàng</span>
+                  <span>📅 08/06/2026 09:30</span>
+                  <span>👤 Hệ thống</span>
+                </div>
+              </div>
+              <div class="detail-actions-top">
+                <button class="btn">✉ Đánh dấu đã đọc</button>
+                <button class="btn">⋮</button>
+              </div>
+            </div>
+
+            <div class="detail-body">
+              <div>
+                <div class="section">
+                  <div class="section-title">Nội dung</div>
+                  <p>Sản phẩm <b>“Gạo thơm ST25”</b> tại kho <b>“Kho chính”</b> chỉ còn <b class="danger-text">15kg</b>, thấp hơn mức tồn kho tối thiểu <b>50kg</b>.</p>
+
+                  <div class="info-box">
+                    <div class="info-grid">
+                      <div><div class="head">Sản phẩm</div><div class="value">Gạo thơm ST25</div></div>
+                      <div><div class="head">Kho</div><div class="value">Kho chính</div></div>
+                      <div><div class="head">Tồn kho hiện tại</div><div class="value danger-text">15 kg</div></div>
+                      <div><div class="head">Mức tối thiểu</div><div class="value">50 kg</div></div>
+                      <div><div class="head">Đơn vị tính</div><div class="value">kg</div></div>
+                    </div>
+                    <div style="margin-top:18px">
+                      <button class="btn">📦 Mở quản lý tồn kho</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="section timeline">
+                  <div class="row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <div class="section-title" style="margin:0">Lịch sử xử lý</div>
+                    <button class="btn" style="height:34px">Xem tất cả lịch sử</button>
+                  </div>
+                  <div class="timeline-row">
+                    <div class="timeline-time">08/06/2026 09:30</div>
+                    <div class="timeline-dot" style="background:#ef4444"></div>
+                    <div><div class="timeline-title">Hệ thống tạo cảnh báo</div><div class="timeline-sub">Tự động phát hiện tồn kho thấp</div></div>
+                  </div>
+                  <div class="timeline-row">
+                    <div class="timeline-time">08/06/2026 09:31</div>
+                    <div class="timeline-dot"></div>
+                    <div><div class="timeline-title">Nguyễn Văn A đã đọc</div><div class="timeline-sub">Đã xem thông báo</div></div>
+                  </div>
+                  <div class="timeline-row">
+                    <div class="timeline-time">08/06/2026 09:35</div>
+                    <div class="timeline-dot" style="background:#94a3b8"></div>
+                    <div><div class="timeline-title">Chưa có hành động tiếp theo</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="section action-panel">
+                <div class="section-title">Hành động</div>
+                <button class="btn blue">↗ Mở module liên quan</button>
+                <button class="btn green">🛒 Tạo đơn mua hàng</button>
+                <button class="btn">👤 Giao cho tôi</button>
+                <button class="btn">⏰ Tạm hoãn</button>
+                <button class="btn">⊗ Bỏ qua</button>
+                <button class="btn green">✓ Hoàn tất</button>
+              </aside>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>🔔 Bạn có 12 thông báo chưa đọc</span>
+      <span>Cập nhật: 08/06/2026 10:15 &nbsp;&nbsp; <b style="color:#16a34a">● Trực tuyến</b></span>
+    </footer>
+  </div>
+</body>
+</html>

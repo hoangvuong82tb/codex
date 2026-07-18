@@ -1,0 +1,124 @@
+<UserControl x:Class="ASMILE.BO.App.Views.PayableDebtDetailModuleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             Background="White">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding HeaderSupplier}" FontSize="15" FontWeight="SemiBold" Foreground="#1E3352" />
+                    <TextBlock Text="{Binding HeaderPeriod}" Margin="0,8,0,0" FontSize="13" Foreground="#334D70" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                    <TextBlock Text="{Binding TotalPayable, StringFormat=Phát sinh phải trả: {0:N0}}" FontSize="13" Foreground="#334D70" />
+                    <TextBlock Text="{Binding TotalPaid, StringFormat=Đã trả: {0:N0}}" Margin="0,6,0,0" FontSize="13" Foreground="#334D70" />
+                    <TextBlock Text="{Binding EndingBalance, StringFormat=Còn phải trả: {0:N0}}" Margin="0,6,0,0" FontSize="14" FontWeight="SemiBold" Foreground="#2F65D9" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,10"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <DataGrid Grid.Row="0"
+                      ItemsSource="{Binding Transactions}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      RowHeight="38"
+                      GridLinesVisibility="None"
+                      HeadersVisibility="Column"
+                      Style="{StaticResource FluentDataGridStyle}"
+                      ColumnHeaderStyle="{StaticResource FluentDataGridColumnHeaderStyle}"
+                      RowStyle="{StaticResource FluentListRow}">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="56">
+                        <DataGridTemplateColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <CheckBox HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Command="{Binding DataContext.ToggleSelectAllCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.HeaderTemplate>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding CanSelect}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Ngày" Binding="{Binding TransactionDate, StringFormat=dd/MM/yyyy}" Width="110" IsReadOnly="True" />
+                    <DataGridTextColumn Header="Chứng từ" Binding="{Binding DocumentNo}" Width="140" IsReadOnly="True" />
+                    <DataGridTextColumn Header="Loại" Binding="{Binding DocumentTypeText}" Width="130" IsReadOnly="True" />
+                    <DataGridTextColumn Header="Diễn giải" Binding="{Binding Description}" Width="*" IsReadOnly="True" />
+                    <DataGridTextColumn Header="Phải trả" Binding="{Binding PayableAmount, StringFormat=N0}" Width="120" IsReadOnly="True" />
+                    <DataGridTextColumn Header="Đã trả" Binding="{Binding PaidAmount, StringFormat=N0}" Width="120" IsReadOnly="True" />
+                    <DataGridTextColumn Header="Còn lại" Binding="{Binding LineRemaining, StringFormat=N0}" Width="120" IsReadOnly="True" />
+                    <DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusText}" Width="100" IsReadOnly="True" />
+                </DataGrid.Columns>
+                </DataGrid>
+
+                <DockPanel Grid.Row="1" Margin="0,10,0,0">
+                    <TextBlock DockPanel.Dock="Left"
+                               VerticalAlignment="Center"
+                               FontSize="13"
+                               Foreground="#334D70"
+                               Text="{Binding SelectedCount, StringFormat=Đã chọn: {0} phiếu}" />
+                    <TextBlock DockPanel.Dock="Left"
+                               Margin="16,0,0,0"
+                               VerticalAlignment="Center"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#2F65D9"
+                               Visibility="{Binding HasPaymentAction, Converter={StaticResource BooleanToVisibilityConverter}}"
+                               Text="{Binding SelectedPaymentTotal, StringFormat=Tổng cần thanh toán: {0:N0}}" />
+                    <Button DockPanel.Dock="Right"
+                            Width="130"
+                            Height="34"
+                            Margin="10,0,0,0"
+                            Background="#2F65D9"
+                            Foreground="White"
+                            BorderBrush="#2F65D9"
+                            Visibility="{Binding HasPaymentAction, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Command="{Binding ApplyPaymentCommand}"
+                            Content="Thanh toán" />
+                </DockPanel>
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Width="100" Height="36" Command="{Binding CloseCommand}" Content="Đóng" />
+        </StackPanel>
+    </Grid>
+</UserControl>

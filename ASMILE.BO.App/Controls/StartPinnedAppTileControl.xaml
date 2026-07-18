@@ -1,0 +1,36 @@
+﻿<UserControl x:Class="ASMILE.BO.App.Controls.StartPinnedAppTileControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="96"
+             d:DesignWidth="106">
+    <Button Style="{StaticResource PinnedAppTileButtonStyle}"
+            Command="{Binding OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            CommandParameter="{Binding Module, RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <StackPanel HorizontalAlignment="Center">
+            <Border Width="44"
+                    Height="44"
+                    CornerRadius="12"
+                    Background="#26FFFFFF"
+                    BorderBrush="#35FFFFFF"
+                    BorderThickness="1">
+                <Image Source="{Binding Module.IconImage, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       Width="25"
+                       Height="25"
+                       Stretch="Uniform"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Text="{Binding Module.Title, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       FontSize="11.2"
+                       TextAlignment="Center"
+                       Margin="0,8,0,0"
+                       TextWrapping="Wrap"
+                       MaxWidth="95"
+                       LineHeight="14"
+                       LineStackingStrategy="BlockLineHeight" />
+        </StackPanel>
+    </Button>
+</UserControl>

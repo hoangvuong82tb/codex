@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window x:Class="ASMILE.BO.App.Views.Dialogs.PayablePaymentDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Thanh toán nhà cung cấp" Height="420" Width="460" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" xmlns:dialogs="clr-namespace:ASMILE.BO.App.Views.Dialogs;assembly=ASMILE.BO.App">
+  <Grid Margin="16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="130" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <TextBlock Text="Nhà cung cấp" Margin="0,8" />
+      <ComboBox Grid.Column="1" Margin="0,4" DisplayMemberPath="SupplierName" ItemsSource="{Binding SupplierOptions}" SelectedItem="{Binding SelectedSupplier}" />
+      <TextBlock Grid.Row="1" Text="Ngày thanh toán" Margin="0,8" />
+      <DatePicker Grid.Row="1" Grid.Column="1" Margin="0,4" SelectedDate="{Binding PaymentDate}" />
+      <TextBlock Grid.Row="2" Text="Số tiền" Margin="0,8" />
+      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,4" Text="{Binding AmountText, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBlock Grid.Row="3" Text="Phương thức" Margin="0,8" />
+      <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,4" ItemsSource="{Binding Methods}" SelectedItem="{Binding PaymentMethod}" />
+      <TextBlock Grid.Row="4" Text="Tài khoản" Margin="0,8" />
+      <TextBox Grid.Row="4" Grid.Column="1" Margin="0,4" Text="{Binding BankAccount}" />
+      <TextBlock Grid.Row="5" Text="Ghi chú" Margin="0,8" />
+      <TextBox Grid.Row="5" Grid.Column="1" Margin="0,4" Height="70" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding Note}" />
+    </Grid>
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button Content="Lưu" Width="96" Margin="0,0,8,0" IsDefault="True" Click="OnSave" />
+      <Button Content="Hủy" Width="96" IsCancel="True" />
+    </StackPanel>
+  </Grid>
+</Window>

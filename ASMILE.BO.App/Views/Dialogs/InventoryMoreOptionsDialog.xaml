@@ -1,0 +1,56 @@
+<Window x:Class="ASMILE.BO.App.Views.Dialogs.InventoryMoreOptionsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tùy chọn nâng cao"
+        Width="440"
+        Height="360"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        FontFamily="Segoe UI"
+        Background="#F7FAFF">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Tùy chọn nâng cao" FontSize="22" FontWeight="SemiBold" Foreground="#1F2937"/>
+        <TextBlock Grid.Row="1"
+                   Margin="0,6,0,14"
+                   Text="Chọn tác vụ cần thực hiện cho module Quản lý xuất nhập tồn."
+                   Foreground="#64748B"/>
+
+        <StackPanel Grid.Row="2">
+            <Button Content="Mở vị trí VFC"
+                    Tag="open-vfc"
+                    Click="Action_Click"
+                    Height="38"
+                    Margin="0,0,0,8"/>
+            <Button Content="Khóa kỳ tồn kho"
+                    Tag="lock-period"
+                    Click="Action_Click"
+                    Height="38"
+                    Margin="0,0,0,8"/>
+            <Button Content="Đồng bộ chứng từ"
+                    Tag="sync-docs"
+                    Click="Action_Click"
+                    Height="38"
+                    Margin="0,0,0,8"/>
+            <Button Content="Gửi cảnh báo email"
+                    Tag="send-alert"
+                    Click="Action_Click"
+                    Height="38"/>
+        </StackPanel>
+
+        <Button Grid.Row="3"
+                Content="Đóng"
+                Width="96"
+                Height="34"
+                HorizontalAlignment="Right"
+                Margin="0,14,0,0"
+                IsCancel="True"/>
+    </Grid>
+</Window>

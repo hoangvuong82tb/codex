@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="ASMILE.BO.App.Views.FiscalPeriodManagementView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:controls="clr-namespace:ASMILE.BO.App.Controls" xmlns:views="clr-namespace:ASMILE.BO.App.Views" xmlns:converters="clr-namespace:ASMILE.BO.App.Converters">
+  <UserControl.Resources>
+    <converters:StatusDisplayConverter x:Key="StatusDisplay"/>
+  </UserControl.Resources>
+  <Grid Background="{StaticResource SurfaceBrush}" Margin="18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <controls:EnterpriseCommandToolbar Grid.Row="0" SearchPlaceholder="Tìm kỳ kế toán..." RefreshText="Làm mới" ShowExportImport="False" SearchMinWidth="320" RefreshCommand="{Binding RefreshCommand}">
+      <controls:EnterpriseCommandToolbar.ActionsContent>
+        <StackPanel Orientation="Horizontal">
+          <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Tạo năm" Command="{Binding CreateFiscalYearCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Khóa kỳ" Command="{Binding LockPeriodCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Mở khóa" Command="{Binding UnlockPeriodCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Đóng kỳ" Command="{Binding ClosePeriodCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Mở lại" Command="{Binding ReopenPeriodCommand}" />
+        </StackPanel>
+      </controls:EnterpriseCommandToolbar.ActionsContent>
+    </controls:EnterpriseCommandToolbar>
+    <DockPanel Grid.Row="1" Margin="0,14,0,12">
+      <StackPanel DockPanel.Dock="Left">
+        <TextBlock Text="Kỳ kế toán" Style="{StaticResource AppTitleTextStyle}" />
+        <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" Text="{Binding CurrentScope}" />
+      </StackPanel>
+      <UniformGrid DockPanel.Dock="Right" Columns="3" Width="600">
+        <controls:EnterpriseSummaryCard Title="Năm tài chính" Subtitle="Đã tạo" IconGlyph="&#xE787;" Margin="0,0,10,0" Value="{Binding FiscalYears.Count}" />
+        <controls:EnterpriseSummaryCard Title="Kỳ kế toán" Subtitle="Theo năm đang chọn" IconGlyph="&#xE823;" Margin="0,0,10,0" Value="{Binding Periods.Count}" />
+        <controls:EnterpriseSummaryCard Title="Trạng thái" IconGlyph="&#xE73E;" Value="{Binding SelectedPeriod.Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" Subtitle="{Binding SelectedPeriod.PeriodCode}" />
+      </UniformGrid>
+    </DockPanel>
+    <controls:EnterpriseFilterPanel Grid.Row="2" Title="Tạo năm tài chính">
+      <controls:EnterpriseFilterPanel.PanelContent>
+        <StackPanel Orientation="Horizontal">
+          <StackPanel Style="{StaticResource AccountingFilterField}">
+            <TextBlock Text="Năm tài chính" Style="{StaticResource AccountingFilterLabel}" />
+            <TextBox Style="{StaticResource AccountingFilterTextBox}" Width="120" Text="{Binding FiscalYearToCreate, UpdateSourceTrigger=PropertyChanged}" />
+          </StackPanel>
+          <TextBlock Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Bottom" Margin="6,0,0,10" Text="{Binding StatusMessage}" />
+        </StackPanel>
+      </controls:EnterpriseFilterPanel.PanelContent>
+    </controls:EnterpriseFilterPanel>
+    <controls:EnterpriseStatePresenter Grid.Row="3" EmptyText="Chưa có kỳ kế toán cho năm đang chọn." IsLoading="{Binding IsBusy}">
+      <controls:EnterpriseStatePresenter.StateContent>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,12,0" ItemsSource="{Binding FiscalYears}" SelectedItem="{Binding SelectedFiscalYear}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Năm" Width="80" Binding="{Binding Year}" />
+              <DataGridTextColumn Header="Mã năm" Width="*" Binding="{Binding FiscalYearCode}" />
+              <DataGridTextColumn Header="Trạng thái" Width="100" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+            </DataGrid.Columns>
+          </DataGrid>
+          <DataGrid Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding Periods}" SelectedItem="{Binding SelectedPeriod}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Kỳ" Width="110" Binding="{Binding PeriodCode}" />
+              <DataGridTextColumn Header="Từ ngày" Width="120" Binding="{Binding FromDate, StringFormat=dd/MM/yyyy}" />
+              <DataGridTextColumn Header="Đến ngày" Width="120" Binding="{Binding ToDate, StringFormat=dd/MM/yyyy}" />
+              <DataGridTextColumn Header="Trạng thái" Width="120" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+              <DataGridTextColumn Header="Người khóa" Width="160" Binding="{Binding LockedBy}" />
+              <DataGridTextColumn Header="Thời điểm khóa" Width="160" Binding="{Binding LockedAt, StringFormat=dd/MM/yyyy HH:mm}" />
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </controls:EnterpriseStatePresenter.StateContent>
+    </controls:EnterpriseStatePresenter>
+    <TextBlock Grid.Row="4" Style="{StaticResource CaptionTextStyle}" Margin="2,10,0,0" Text="{Binding StatusMessage}" />
+  </Grid>
+</UserControl>

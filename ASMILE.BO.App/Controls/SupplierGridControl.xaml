@@ -1,0 +1,180 @@
+﻿<UserControl x:Class="ASMILE.BO.App.Controls.SupplierGridControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="clr-namespace:ASMILE.BO.App.Converters"
+             mc:Ignorable="d"
+             d:DesignHeight="620"
+             d:DesignWidth="860">
+    <UserControl.Resources>
+        <conv:SupplierCreatedDateConverter x:Key="SupplierCreatedDateConverter" />
+
+        <Style x:Key="SupplierGridHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F5F8FD" />
+            <Setter Property="BorderBrush" Value="#D5E1F0" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#243A57" />
+            <Setter Property="FontSize" Value="12.8" />
+        </Style>
+
+        <Style x:Key="SupplierGridRowStyle" TargetType="DataGridRow">
+            <Setter Property="Height" Value="52" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#EEF5FF" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E3EEFF" />
+                    <Setter Property="Foreground" Value="#143960" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="#FBFDFF"
+            BorderBrush="#CEDBEB"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="56" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <DataGrid ItemsSource="{Binding Suppliers}"
+                          SelectedItem="{Binding SelectedSupplier}"
+                          AutoGenerateColumns="False"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          BorderThickness="0"
+                          Background="Transparent"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          IsReadOnly="True"
+                          AlternationCount="2"
+                          RowStyle="{StaticResource SupplierGridRowStyle}"
+                          ColumnHeaderStyle="{StaticResource SupplierGridHeaderStyle}"
+                          AlternatingRowBackground="#FAFCFF"
+                          RowBackground="#FFFFFFFF"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          Margin="10,10,10,0">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="Mã NCC" Width="110">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding SupplierCode}" Foreground="#1B47A1" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Tên nhà cung cấp" Binding="{Binding SupplierName}" Width="*" />
+                        <DataGridTextColumn Header="Điện thoại" Binding="{Binding Phone}" Width="130" />
+                        <DataGridTemplateColumn Header="Trạng thái" Width="150">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="StatusBorder"
+                                            CornerRadius="10"
+                                            Padding="10,5"
+                                            HorizontalAlignment="Left"
+                                            Background="#E8F5ED">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#1F9B55" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="StatusText" Text="Kích hoạt" Margin="8,0,0,0" Foreground="#1D7C48" FontSize="12" />
+                                        </StackPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                            <Setter TargetName="StatusBorder" Property="Background" Value="#FCEBEC" />
+                                            <Setter TargetName="StatusDot" Property="Fill" Value="#DE3B3B" />
+                                            <Setter TargetName="StatusText" Property="Text" Value="Không kích hoạt" />
+                                            <Setter TargetName="StatusText" Property="Foreground" Value="#C43737" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Ngày tạo" Width="110">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Id, Converter={StaticResource SupplierCreatedDateConverter}}" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Width="50">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Background="Transparent" BorderThickness="0" Width="28" Height="28" Cursor="Hand">
+                                        <TextBlock Text="&#xE712;" FontFamily="Segoe MDL2 Assets" Foreground="#5B708D" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Button>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Border Background="#EEFFFFFF"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="Đang tải dữ liệu..."
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#00FFFFFF"
+                        Visibility="{Binding HasNoSuppliers, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE719;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="42"
+                                   Foreground="#7E94AE"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="Chưa có nhà cung cấp"
+                                   Margin="0,8,0,0"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="Hãy bấm 'Thêm mới' để tạo bản ghi đầu tiên."
+                                   Margin="0,4,0,0"
+                                   FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="1" BorderBrush="#D9E4F2" BorderThickness="0,1,0,0" Background="#FCFEFF" Padding="14,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Hiển thị 1 - 6 trong 6 bản ghi"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Width="28" Height="28" Margin="0,0,8,0" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" Foreground="#6F829A" />
+                        </Button>
+                        <Border Width="30" Height="30" CornerRadius="15" Background="#2F65D9" Margin="0,0,8,0">
+                            <TextBlock Text="1" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                        </Border>
+                        <Button Width="28" Height="28" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" Foreground="#6F829A" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

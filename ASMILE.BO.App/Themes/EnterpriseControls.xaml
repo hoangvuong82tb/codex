@@ -1,0 +1,556 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework">
+    <Style x:Key="EnterpriseCommandMenuStyle" TargetType="ContextMenu">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="#D4DEEB" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="6" />
+        <Setter Property="HasDropShadow" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="12"
+                            SnapsToDevicePixels="True">
+                        <StackPanel IsItemsHost="True"
+                                    KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseCommandMenuItemStyle" TargetType="MenuItem">
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="Foreground" Value="#223B5A" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Root"
+                            Background="Transparent"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter ContentSource="Header" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#EEF4FF" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseCommandPrimaryButton" TargetType="Button" BasedOn="{StaticResource FluentPrimaryButton}">
+        <Setter Property="Height" Value="46" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <Style x:Key="EnterpriseCommandSecondaryButton" TargetType="Button" BasedOn="{StaticResource FluentSecondaryButton}">
+        <Setter Property="Height" Value="46" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <Style x:Key="EnterpriseFilterPanelCard" TargetType="Border" BasedOn="{StaticResource AccountingFilterCard}" />
+    <Style x:Key="EnterpriseSummaryCardFrame" TargetType="Border" BasedOn="{StaticResource AccountingKpiCard}" />
+    <Style x:Key="EnterprisePanelCard" TargetType="Border" BasedOn="{StaticResource AccountingPanelCard}" />
+
+    <Style x:Key="EnterpriseModulePanelCard" TargetType="Border" BasedOn="{StaticResource AccountingPanelCard}">
+        <Setter Property="Padding" Value="14" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleCmdPrimary" TargetType="Button" BasedOn="{StaticResource AccountingCmdPrimary}">
+        <Setter Property="Height" Value="36" />
+        <Setter Property="MinWidth" Value="96" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleCmdSecondary" TargetType="Button" BasedOn="{StaticResource AccountingCmdSecondary}">
+        <Setter Property="Height" Value="36" />
+        <Setter Property="MinWidth" Value="92" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleCmdSuccess" TargetType="Button" BasedOn="{StaticResource EnterpriseModuleCmdPrimary}">
+        <Setter Property="Background" Value="#16A34A" />
+        <Setter Property="BorderBrush" Value="#16A34A" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleCmdInfo" TargetType="Button" BasedOn="{StaticResource EnterpriseModuleCmdPrimary}">
+        <Setter Property="Background" Value="#2563EB" />
+        <Setter Property="BorderBrush" Value="#2563EB" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleCmdWarning" TargetType="Button" BasedOn="{StaticResource EnterpriseModuleCmdPrimary}">
+        <Setter Property="Background" Value="#F59E0B" />
+        <Setter Property="BorderBrush" Value="#F59E0B" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleCmdDanger" TargetType="Button" BasedOn="{StaticResource EnterpriseModuleCmdPrimary}">
+        <Setter Property="Background" Value="#DC2626" />
+        <Setter Property="BorderBrush" Value="#DC2626" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleDataGrid" TargetType="DataGrid" BasedOn="{StaticResource AccountingDataGrid}">
+        <Setter Property="EnableRowVirtualization" Value="True" />
+        <Setter Property="EnableColumnVirtualization" Value="True" />
+        <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
+        <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+        <Setter Property="SelectionMode" Value="Extended" />
+        <Setter Property="SelectionUnit" Value="FullRow" />
+        <Setter Property="AutoGenerateColumns" Value="False" />
+        <Setter Property="CanUserAddRows" Value="False" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="RowHeight" Value="34" />
+        <Setter Property="ColumnHeaderHeight" Value="34" />
+        <Setter Property="BorderBrush" Value="#DDE7F3" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleTextBox" TargetType="TextBox" BasedOn="{StaticResource FluentTextBox}">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleComboBox" TargetType="ComboBox" BasedOn="{StaticResource FluentComboBox}">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinWidth" Value="145" />
+    </Style>
+
+    <Style x:Key="EnterpriseModuleDatePicker" TargetType="DatePicker">
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Width" Value="136" />
+        <Setter Property="Padding" Value="11,0,36,0" />
+        <Setter Property="Background" Value="White" />
+        <Setter Property="Foreground" Value="#0F2A55" />
+        <Setter Property="BorderBrush" Value="#D5E1EF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type DatePicker}">
+                    <Grid>
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" />
+                        <primitives:DatePickerTextBox x:Name="PART_TextBox"
+                                                       Background="Transparent"
+                                                       BorderThickness="0"
+                                                       Foreground="{TemplateBinding Foreground}"
+                                                       Padding="{TemplateBinding Padding}"
+                                                       VerticalContentAlignment="Center"
+                                                       Focusable="{TemplateBinding Focusable}" />
+                        <primitives:ToggleButton x:Name="PART_Button"
+                                                  Width="32"
+                                                  HorizontalAlignment="Right"
+                                                  Margin="0,2,2,2"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  Focusable="False"
+                                                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       Text="&#xE787;"
+                                       FontSize="14"
+                                       Foreground="#2563EB"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </primitives:ToggleButton>
+                        <Popup x:Name="PART_Popup"
+                               AllowsTransparency="True"
+                               Placement="Bottom"
+                               PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                               StaysOpen="False"
+                               IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                            <Border Background="White"
+                                    BorderBrush="#C7D7EA"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="6">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.14" Color="#62748E" />
+                                </Border.Effect>
+                                <Calendar x:Name="PART_Calendar"
+                                          BorderThickness="0"
+                                          Background="White"
+                                          SelectedDate="{Binding SelectedDate, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          DisplayDate="{Binding DisplayDate, RelativeSource={RelativeSource TemplatedParent}}" />
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#AFCBF7" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#2563EB" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.56" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseLedgerFilterCard" TargetType="Border" BasedOn="{StaticResource AccountingFilterCard}">
+        <Setter Property="Padding" Value="14" />
+    </Style>
+
+    <Style x:Key="EnterpriseDebtKpiCard" TargetType="Border" BasedOn="{StaticResource AccountingKpiCard}">
+        <Setter Property="Height" Value="92" />
+        <Setter Property="Padding" Value="14" />
+    </Style>
+
+    <Style x:Key="EnterpriseReceivableFilterCard" TargetType="Border" BasedOn="{StaticResource AccountingFilterCard}">
+        <Setter Property="Padding" Value="18" />
+    </Style>
+
+    <Style x:Key="EnterpriseDialogIconButton" TargetType="Button" BasedOn="{StaticResource FluentSecondaryButtonStyle}">
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="#FCFEFF" />
+        <Setter Property="BorderBrush" Value="#D4DEE9" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border CornerRadius="8"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#EEF3FA" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseDialogPageButton" TargetType="Button" BasedOn="{StaticResource EnterpriseDialogIconButton}">
+        <Setter Property="Width" Value="30" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="MinWidth" Value="30" />
+        <Setter Property="MaxWidth" Value="30" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#10213F" />
+        <Setter Property="BorderBrush" Value="#D7E4F5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            CornerRadius="15"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#EEF3FA" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#AFCBF7" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseDialogActivePageButton" TargetType="Button" BasedOn="{StaticResource EnterpriseDialogPageButton}">
+        <Setter Property="Background" Value="#FB923C" />
+        <Setter Property="BorderBrush" Value="#FB923C" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <Style x:Key="EnterpriseReconciliationStatusText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="#166534" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsMatched}" Value="False">
+                <Setter Property="Foreground" Value="#991B1B" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="EnterpriseDashedDataGridCell" TargetType="DataGridCell">
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Padding" Value="10,0,10,0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Grid>
+                        <Border Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <Rectangle Stroke="#AFC0D4"
+                                   StrokeThickness="0.8"
+                                   StrokeDashArray="2,2"
+                                   Fill="Transparent" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseDetailDataGridCell" TargetType="DataGridCell">
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Padding" Value="10,0,10,0" />
+    </Style>
+
+    <Style x:Key="EnterpriseDetailGridText" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="4,0,4,0" />
+    </Style>
+
+    <Style x:Key="EnterpriseDetailGridRightText" TargetType="TextBlock" BasedOn="{StaticResource EnterpriseDetailGridText}">
+        <Setter Property="TextAlignment" Value="Right" />
+    </Style>
+
+    <Style x:Key="EnterpriseSettingsDataGridCell" TargetType="DataGridCell">
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="Foreground" Value="#1F3A5F" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter VerticalAlignment="Center"
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseDebtDetailGridHeader" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="#EEF4FB" />
+        <Setter Property="Foreground" Value="#334155" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="BorderBrush" Value="#DDE7F3" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="10,0" />
+    </Style>
+
+    <Style x:Key="EnterpriseDebtDetailGridCell" TargetType="DataGridCell">
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="BorderBrush" Value="#E6EDF7" />
+        <Setter Property="BorderThickness" Value="0,0,1,1" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="EnterpriseReconciliationGridHeader" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="#CDD7E4" />
+        <Setter Property="Foreground" Value="#1F2A44" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="BorderBrush" Value="#BFD0E4" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+
+    <Style x:Key="EnterpriseReconciliationGridCell" TargetType="DataGridCell">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="BorderThickness" Value="0,0,1,0" />
+        <Setter Property="Padding" Value="12,0,14,0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="#1F2937" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Background" Value="White" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter VerticalAlignment="Center"
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseReconciliationGridRow" TargetType="DataGridRow">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="#C6D4E6" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#EAF1FA" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="#C8D3E5" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="EnterpriseDashboardMiniGridCell" TargetType="DataGridCell">
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Foreground" Value="#2E4263" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="BorderBrush" Value="#E1EAF6" />
+        <Setter Property="BorderThickness" Value="0,0,1,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border x:Name="CellRoot"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="CellRoot" Property="Background" Value="#F7FBFF" />
+                            <Setter Property="Foreground" Value="#0F2A55" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsSelected" Value="True" />
+                                <Condition Property="Selector.IsSelectionActive" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="CellRoot" Property="Background" Value="#FAFCFF" />
+                            <Setter Property="Foreground" Value="#0F2A55" />
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseDashboardMiniGridText" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="#2E4263" />
+    </Style>
+
+    <Style x:Key="EnterpriseDashboardMiniGridHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource FluentDataGridColumnHeaderStyle}">
+        <Setter Property="Height" Value="38" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Background" Value="#E4EEF9" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Grid Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                        <Border BorderBrush="#D8E3F1"
+                                BorderThickness="0,0,1,1"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="EnterpriseDashboardMiniGridRow" TargetType="DataGridRow" BasedOn="{StaticResource FluentListRow}">
+        <Setter Property="Height" Value="39" />
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="#F7FBFF" />
+                <Setter Property="Foreground" Value="#0F2A55" />
+                <Setter Property="BorderBrush" Value="#C9DAF6" />
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsSelected" Value="True" />
+                    <Condition Property="Selector.IsSelectionActive" Value="False" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="#FAFCFF" />
+                <Setter Property="Foreground" Value="#0F2A55" />
+            </MultiTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="EnterpriseDashboardMiniGrid" TargetType="DataGrid" BasedOn="{StaticResource FluentDataGridStyle}">
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource EnterpriseDashboardMiniGridHeader}" />
+        <Setter Property="RowStyle" Value="{StaticResource EnterpriseDashboardMiniGridRow}" />
+        <Setter Property="CellStyle" Value="{StaticResource EnterpriseDashboardMiniGridCell}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="HorizontalGridLinesBrush" Value="#E8EFF8" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="VerticalGridLinesBrush" Value="Transparent" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <Style x:Key="EnterpriseDialogFrame" TargetType="Border" BasedOn="{StaticResource WindowCardStyle}">
+        <Setter Property="Padding" Value="18" />
+        <Setter Property="CornerRadius" Value="14" />
+    </Style>
+
+    <Style x:Key="EnterpriseDialogFooter" TargetType="Border">
+        <Setter Property="Background" Value="#F8FBFF" />
+        <Setter Property="BorderBrush" Value="#DDE7F3" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="14,12" />
+    </Style>
+
+    <Style x:Key="EnterpriseStatusText" TargetType="TextBlock" BasedOn="{StaticResource EnterpriseEmptyStateText}">
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="PanelCard" TargetType="Border" BasedOn="{StaticResource EnterprisePanelCard}" />
+    <Style x:Key="KpiCard" TargetType="Border" BasedOn="{StaticResource EnterpriseSummaryCardFrame}" />
+    <Style x:Key="FilterCard" TargetType="Border" BasedOn="{StaticResource EnterpriseFilterPanelCard}" />
+    <Style x:Key="CmdPrimary" TargetType="Button" BasedOn="{StaticResource AccountingCmdPrimary}" />
+    <Style x:Key="CmdSecondary" TargetType="Button" BasedOn="{StaticResource AccountingCmdSecondary}" />
+    <Style x:Key="PageButton" TargetType="Button" BasedOn="{StaticResource AccountingPagerButton}" />
+    <Style x:Key="ActivePageButton" TargetType="Button" BasedOn="{StaticResource AccountingPagerCurrentButton}" />
+    <Style x:Key="StatusTextStyle" TargetType="TextBlock" BasedOn="{StaticResource EnterpriseStatusText}" />
+</ResourceDictionary>

@@ -1,0 +1,2 @@
+namespace ASMILE.BO.Core.Entities.Settings;
+public sealed class SettingValue { public Guid Id { get; set; } = Guid.NewGuid(); public string DefinitionKey { get; set; } = string.Empty; public SettingScope Scope { get; set; } public string? ScopeTarget { get; set; } public string? Value { get; set; } public bool IsEncrypted { get; set; } public DateTime UpdatedAt { get; set; } = DateTime.UtcNow; public string? UpdatedBy { get; set; } }

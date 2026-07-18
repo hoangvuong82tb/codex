@@ -1,0 +1,72 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style x:Key="TaskbarPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="#D7F4F8FE" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Padding" Value="9,6" />
+        <Setter Property="BorderBrush" Value="#A9CBD9EA" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="18"
+                                  ShadowDepth="2"
+                                  Opacity="0.12"
+                                  Color="#203A5A" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="TaskbarItemButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="10"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform ScaleX="1" ScaleY="1" />
+                        </Border.RenderTransform>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#55FFFFFF" />
+                            <Setter TargetName="Root" Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="1.04" ScaleY="1.04" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#6BE8F2FF" />
+                            <Setter TargetName="Root" Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="0.96" ScaleY="0.96" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="TaskbarRootChromeStyle" TargetType="Border">
+        <Setter Property="Background" Value="#99E8F0FA" />
+        <Setter Property="BorderBrush" Value="#70FFFFFF" />
+        <Setter Property="BorderThickness" Value="1,1,1,0" />
+    </Style>
+
+    <Style x:Key="TaskbarTrayPanelStyle" TargetType="Border" BasedOn="{StaticResource TaskbarPanelStyle}">
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="CornerRadius" Value="16" />
+    </Style>
+</ResourceDictionary>

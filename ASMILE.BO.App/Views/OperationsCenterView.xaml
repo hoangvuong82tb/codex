@@ -1,0 +1,664 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="ASMILE.BO.App.Views.OperationsCenterView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:controls="clr-namespace:ASMILE.BO.App.Controls" xmlns:views="clr-namespace:ASMILE.BO.App.Views" xmlns:converters="clr-namespace:ASMILE.BO.App.Converters">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="B2V"/>
+    <converters:StatusDisplayConverter x:Key="StatusDisplay"/>
+  </UserControl.Resources>
+  <Grid Background="{StaticResource SurfaceBrush}" Margin="18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <controls:EnterpriseCommandToolbar Grid.Row="0" ShowSearch="False" RefreshText="L&#224;m m&#7899;i" ShowExportImport="False" RefreshCommand="{Binding RefreshAllCommand}">
+      <controls:EnterpriseCommandToolbar.ActionsContent>
+        <StackPanel Orientation="Horizontal">
+          <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Ch&#7841;y migration" Command="{Binding RunMigrationCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xu&#7845;t ch&#7849;n &#273;o&#225;n" Command="{Binding ExportDiagnosticsCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="M&#7903; log" Command="{Binding OpenLogFolderCommand}" />
+        </StackPanel>
+      </controls:EnterpriseCommandToolbar.ActionsContent>
+    </controls:EnterpriseCommandToolbar>
+    <DockPanel Grid.Row="1" Margin="0,14,0,12">
+      <StackPanel DockPanel.Dock="Left">
+        <TextBlock Text="Trung t&#226;m v&#7853;n h&#224;nh" Style="{StaticResource AppTitleTextStyle}" />
+        <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" Text="{Binding StatusMessage}" />
+      </StackPanel>
+      <UniformGrid DockPanel.Dock="Right" Columns="5" Width="980">
+        <controls:EnterpriseSummaryCard Title="&#272;ang ch&#7841;y" Subtitle="T&#225;c v&#7909; &#273;ang ho&#7841;t &#273;&#7897;ng" IconGlyph="&#xE768;" Margin="0,0,10,0" Value="{Binding Dashboard.RunningJobs}" />
+        <controls:EnterpriseSummaryCard Title="&#272;ang ch&#7901;" Subtitle="Trong h&#224;ng &#273;&#7907;i" IconGlyph="&#xE823;" Margin="0,0,10,0" Value="{Binding Dashboard.QueuedJobs}" />
+        <controls:EnterpriseSummaryCard Title="Th&#7845;t b&#7841;i" Subtitle="C&#7847;n ki&#7875;m tra" IconGlyph="&#xE783;" Margin="0,0,10,0" Value="{Binding Dashboard.FailedJobs}" />
+        <controls:EnterpriseSummaryCard Title="L&#7847;n ch&#7841;y k&#7871;" Subtitle="&#272;&#227; l&#234;n l&#7883;ch" IconGlyph="&#xE81C;" Margin="0,0,10,0" Value="{Binding Dashboard.NextScheduledRuns}" />
+        <controls:EnterpriseSummaryCard Title="Th&#7901;i l&#432;&#7907;ng TB" Subtitle="Mili gi&#226;y" IconGlyph="&#xE916;" Value="{Binding Dashboard.AverageDurationMs}" />
+      </UniformGrid>
+    </DockPanel>
+    <controls:EnterpriseStatePresenter Grid.Row="2" EmptyText="Ch&#432;a c&#243; d&#7919; li&#7879;u v&#7853;n h&#224;nh." IsLoading="{Binding IsBusy}">
+      <controls:EnterpriseStatePresenter.StateContent>
+        <TabControl>
+          <TabItem Header="L&#7883;ch ch&#7841;y" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="630" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" HorizontalAlignment="Right" Margin="0,0,0,8">
+                <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Ch&#7841;y ngay" Command="{Binding RunNowCommand}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="T&#7841;m d&#7915;ng" Command="{Binding PauseScheduleCommand}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Ti&#7871;p t&#7909;c" Command="{Binding ResumeScheduleCommand}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Th&#7917; l&#7841;i" Command="{Binding RetryJobCommand}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="H&#7911;y" Command="{Binding CancelJobCommand}" />
+              </StackPanel>
+              <DataGrid Grid.Row="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,12,0" ItemsSource="{Binding JobDefinitions}" SelectedItem="{Binding SelectedJobDefinition}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="M&#227;" Width="100" Binding="{Binding Code}" />
+                  <DataGridTextColumn Header="T&#234;n t&#225;c v&#7909;" Width="160" Binding="{Binding Name, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                  <DataGridTextColumn Header="L&#7883;ch k&#7871;" Width="120" Binding="{Binding NextRunAtUtc, StringFormat=dd/MM HH:mm}" />
+                  <DataGridTextColumn Header="T&#7841;m d&#7915;ng" Width="80" Binding="{Binding IsPaused}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <DataGrid Grid.Row="1" Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding JobExecutions}" SelectedItem="{Binding SelectedJobExecution}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="V&#224;o h&#224;ng &#273;&#7907;i" Width="125" Binding="{Binding QueuedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="T&#234;n t&#225;c v&#7909;" Width="170" Binding="{Binding JobName, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                  <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="95" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                  <DataGridTextColumn Header="L&#7847;n th&#7917;" Width="70" Binding="{Binding RetryAttempt}" />
+                  <DataGridTextColumn Header="Th&#7901;i l&#432;&#7907;ng" Width="90" Binding="{Binding DurationMs}" />
+                  <DataGridTextColumn Header="Ngu&#7891;n ch&#7841;y" Width="100" Binding="{Binding TriggerSource, Converter={StaticResource StatusDisplay}, ConverterParameter=module}" />
+                  <DataGridTextColumn Header="Th&#244;ng b&#225;o" Width="*" Binding="{Binding ErrorMessage, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="T&#7893;ng quan" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="S&#7913;c kh&#7887;e h&#7879; th&#7889;ng:" FontWeight="SemiBold" Margin="0,0,6,0" />
+                <TextBlock FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding HealthStatus}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Ki&#7875;m tra seed" Margin="18,0,0,0" Command="{Binding ValidateSeedCommand}" />
+              </StackPanel>
+              <Grid Grid.Row="1" MinHeight="240">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Background="White" BorderBrush="#DDE7F3" BorderThickness="1" CornerRadius="12" Padding="20,16" Margin="0,0,8,0">
+                  <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="48" Foreground="#22C55E" HorizontalAlignment="Center"/>
+                    <TextBlock Text="H&#7879; th&#7889;ng kh&#7887;e m&#7841;nh" FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" HorizontalAlignment="Center" Margin="0,12,0,4"/>
+                    <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="#64748B" TextWrapping="Wrap" TextAlignment="Center">
+                      <Run Text="Kh&#244;ng c&#243; t&#225;c v&#7909; th&#7845;t b&#7841;i. T&#7845;t c&#7843; "/>
+                      <Run Text="{Binding Dashboard.RunningJobs, Mode=OneWay}"/>
+                      <Run Text=" t&#225;c v&#7909; &#273;&#7873;u ho&#224;n th&#224;nh b&#236;nh th&#432;&#7901;ng."/>
+                    </TextBlock>
+                    <Border Background="#ECFDF3" CornerRadius="8" Padding="12,8" Margin="0,16,0,0" HorizontalAlignment="Center">
+                      <StackPanel Orientation="Horizontal">
+                        <Border Width="8" Height="8" CornerRadius="4" Background="#22C55E" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock FontWeight="SemiBold" FontSize="13" Foreground="#15803D">
+                          <Run Text="Tr&#7841;ng th&#225;i: "/>
+                          <Run Text="{Binding HealthStatus, Mode=OneWay}"/>
+                        </TextBlock>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Border>
+                <DataGrid Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="8,0,0,0" ItemsSource="{Binding DurationMetadata}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="T&#234;n t&#225;c v&#7909;" Width="180" Binding="{Binding Label}" />
+                    <DataGridTextColumn Header="Th&#7901;i l&#432;&#7907;ng TB" Width="130" Binding="{Binding AverageDurationMs}" />
+                    <DataGridTextColumn Header="S&#7889; l&#7847;n ch&#7841;y" Width="100" Binding="{Binding ExecutionCount}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </Grid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Nh&#7853;t k&#253; t&#225;c v&#7909;" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <TextBlock Grid.Row="0" Margin="0,0,0,8" Text="Ch&#7885;n m&#7897;t t&#225;c v&#7909; &#7903; tab L&#7883;ch ch&#7841;y &#273;&#7875; xem nh&#7853;t k&#253; chi ti&#7871;t" FontSize="12" Foreground="#64748B"/>
+              <DataGrid Grid.Row="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding JobLogs}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Th&#7901;i gian" Width="125" Binding="{Binding TimestampUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="90" Binding="{Binding Severity}" />
+                  <DataGridTextColumn Header="Th&#244;ng b&#225;o" Width="*" Binding="{Binding Message, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="H&#7841; t&#7847;ng" Style="{StaticResource AccountingTabButton}">
+            <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,10,0,0" ItemsSource="{Binding HealthChecks}">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="H&#7841;ng m&#7909;c" Width="180" Binding="{Binding Name, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="110" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                <DataGridTextColumn Header="Th&#244;ng b&#225;o" Width="*" Binding="{Binding Message, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </TabItem>
+          <TabItem Header="C&#244;ng c&#7909;" Style="{StaticResource AccountingTabButton}">
+            <StackPanel Margin="0,14,0,0" Width="380" HorizontalAlignment="Left">
+              <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="X&#243;a b&#7897; nh&#7899; &#273;&#7879;m workspace" Margin="0,0,0,8" Command="{Binding ClearWorkspaceCacheCommand}" />
+              <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="&#272;&#7863;t l&#7841;i l&#7883;ch s&#7917; &#273;i&#7873;u h&#432;&#7899;ng" Margin="0,0,0,8" Command="{Binding ResetNavigationHistoryCommand}" />
+              <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="M&#7903; Trung t&#226;m ki&#7875;m tra" Margin="0,0,0,8" Command="{Binding OpenAuditCenterCommand}" />
+              <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xu&#7845;t ch&#7849;n &#273;o&#225;n" Margin="0,0,0,8" Command="{Binding ExportDiagnosticsCommand}" />
+              <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="M&#7903; th&#432; m&#7909;c log" Margin="0,0,0,8" Command="{Binding OpenLogFolderCommand}" />
+            </StackPanel>
+          </TabItem>
+          <TabItem Header="L&#432;u tr&#7919;" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="Ki&#7875;m tra to&#224;n v&#7865;n l&#432;u tr&#7919; v&#224; retention" Style="{StaticResource CaptionTextStyle}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="L&#224;m m&#7899;i" Margin="12,0,0,0" Command="{Binding RefreshAllCommand}" />
+              </StackPanel>
+              <Grid Grid.Row="1" MinHeight="260">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <DataGrid Grid.Column="0" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,6,0" ItemsSource="{Binding RetentionPreview}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Module" Width="120" Binding="{Binding Module, Converter={StaticResource StatusDisplay}, ConverterParameter=module}" />
+                    <DataGridTextColumn Header="&#272;&#7889;i t&#432;&#7907;ng" Width="140" Binding="{Binding EntityName, Converter={StaticResource StatusDisplay}, ConverterParameter=module}" />
+                    <DataGridTextColumn Header="H&#7871;t h&#7841;n" Width="70" Binding="{Binding ExpiredCount}" />
+                    <DataGridTextColumn Header="Dung l&#432;&#7907;ng" Width="*" Binding="{Binding EstimatedPayloadSizeBytes}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="6,0,6,0" ItemsSource="{Binding ArchiveHistory}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Module" Width="100" Binding="{Binding Module, Converter={StaticResource StatusDisplay}, ConverterParameter=module}" />
+                    <DataGridTextColumn Header="&#272;&#7889;i t&#432;&#7907;ng" Width="120" Binding="{Binding EntityName, Converter={StaticResource StatusDisplay}, ConverterParameter=module}" />
+                    <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="85" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                    <DataGridTextColumn Header="S&#7889; d&#242;ng" Width="60" Binding="{Binding ItemCount}" />
+                    <DataGridTextColumn Header="M&#227; b&#259;m" Width="*" Binding="{Binding Hash}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Column="2" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="6,0,0,0" ItemsSource="{Binding RecoveryTimeline}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Lo&#7841;i" Width="120" Binding="{Binding OperationType}" />
+                    <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="85" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                    <DataGridTextColumn Header="Ng&#224;y t&#7841;o" Width="120" Binding="{Binding CreatedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                    <DataGridTextColumn Header="L&#7895;i" Width="*" Binding="{Binding ErrorMessage, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </Grid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Telemetry" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="6"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+              </Grid.RowDefinitions>
+              <UniformGrid Grid.Row="0" Columns="4" Margin="0,0,0,10">
+                <controls:EnterpriseSummaryCard Title="S&#7921; ki&#7879;n" Subtitle="&#272;&#227; ghi nh&#7853;n" IconGlyph="&#xE7D9;" Margin="0,0,10,0" Value="{Binding TelemetrySummary.TotalEvents}" />
+                <controls:EnterpriseSummaryCard Title="L&#7895;i runtime" Subtitle="Exception h&#7879; th&#7889;ng" IconGlyph="&#xE783;" Margin="0,0,10,0" Value="{Binding TelemetrySummary.ExceptionCount}" />
+                <controls:EnterpriseSummaryCard Title="T&#225;c v&#7909; ch&#7853;m" Subtitle="C&#7847;n t&#7889;i &#432;u" IconGlyph="&#xE916;" Margin="0,0,10,0" Value="{Binding TelemetrySummary.SlowOperationCount}" />
+                <controls:EnterpriseSummaryCard Title="Th&#7901;i l&#432;&#7907;ng TB" Subtitle="Mili gi&#226;y" IconGlyph="&#xE81C;" Value="{Binding TelemetrySummary.AverageDurationMs}" />
+              </UniformGrid>
+              <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="#D6E2F2" ShowsPreview="True"/>
+              <WrapPanel Grid.Row="2" Margin="0,0,0,6">
+                <Button Content="T&#7845;t c&#7843; s&#7921; ki&#7879;n" Command="{Binding NavigateTelemetrySubTabCommand}" CommandParameter="0" Height="30" MinWidth="120" FontSize="12" Margin="0,0,4,4" Padding="12,0" Cursor="Hand" Background="White" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1">
+                  <Button.Style><Style TargetType="Button"><Style.Triggers><DataTrigger Binding="{Binding IsTelemetryTabAll}" Value="True"><Setter Property="Background" Value="#2563EB"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                </Button>
+                <Button Content="T&#225;c v&#7909; ch&#7853;m" Command="{Binding NavigateTelemetrySubTabCommand}" CommandParameter="1" Height="30" MinWidth="120" FontSize="12" Margin="0,0,4,4" Padding="12,0" Cursor="Hand" Background="White" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1">
+                  <Button.Style><Style TargetType="Button"><Style.Triggers><DataTrigger Binding="{Binding IsTelemetryTabSlow}" Value="True"><Setter Property="Background" Value="#2563EB"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                </Button>
+                <Button Content="L&#7895;i runtime" Command="{Binding NavigateTelemetrySubTabCommand}" CommandParameter="2" Height="30" MinWidth="120" FontSize="12" Margin="0,0,4,4" Padding="12,0" Cursor="Hand" Background="White" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1">
+                  <Button.Style><Style TargetType="Button"><Style.Triggers><DataTrigger Binding="{Binding IsTelemetryTabErrors}" Value="True"><Setter Property="Background" Value="#2563EB"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                </Button>
+                <Button Content="Hi&#7879;u n&#259;ng" Command="{Binding NavigateTelemetrySubTabCommand}" CommandParameter="3" Height="30" MinWidth="120" FontSize="12" Margin="0,0,4,4" Padding="12,0" Cursor="Hand" Background="White" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1">
+                  <Button.Style><Style TargetType="Button"><Style.Triggers><DataTrigger Binding="{Binding IsTelemetryTabPerformance}" Value="True"><Setter Property="Background" Value="#2563EB"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                </Button>
+                <Button Content="Khuy&#7871;n ngh&#7883;" Command="{Binding NavigateTelemetrySubTabCommand}" CommandParameter="4" Height="30" MinWidth="120" FontSize="12" Margin="0,0,4,4" Padding="12,0" Cursor="Hand" Background="White" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1">
+                  <Button.Style><Style TargetType="Button"><Style.Triggers><DataTrigger Binding="{Binding IsTelemetryTabRecommendations}" Value="True"><Setter Property="Background" Value="#2563EB"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                </Button>
+              </WrapPanel>
+              <Grid Grid.Row="3" MinHeight="300">
+                <DataGrid Visibility="{Binding IsTelemetryTabAll, Converter={StaticResource B2V}}" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding TelemetryDisplayItems}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Th&#7901;i gian" Width="135" Binding="{Binding TimeText}"/>
+                    <DataGridTextColumn Header="Lo&#7841;i s&#7921; ki&#7879;n" Width="130" Binding="{Binding EventTypeDisplay}"/>
+                    <DataGridTextColumn Header="Module" Width="140" Binding="{Binding ModuleDisplay}"/>
+                    <DataGridTextColumn Header="T&#225;c v&#7909;" Width="160" Binding="{Binding OperationName}"/>
+                    <DataGridTextColumn Header="Th&#7901;i l&#432;&#7907;ng" Width="85" Binding="{Binding DurationDisplay}"/>
+                    <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="100" Binding="{Binding SeverityDisplay}"/>
+                    <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="110" Binding="{Binding StatusDisplay}"/>
+                    <DataGridTextColumn Header="Th&#244;ng b&#225;o" Width="*" Binding="{Binding MessageDisplay}"/>
+                    <DataGridTextColumn Header="M&#227; li&#234;n k&#7871;t" Width="200" Binding="{Binding CorrelationId}"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Visibility="{Binding IsTelemetryTabSlow, Converter={StaticResource B2V}}" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding SlowOperationDisplayItems}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Th&#7901;i gian" Width="135" Binding="{Binding TimeText}"/>
+                    <DataGridTextColumn Header="T&#225;c v&#7909;" Width="200" Binding="{Binding OperationName}"/>
+                    <DataGridTextColumn Header="Th&#7901;i l&#432;&#7907;ng" Width="100" Binding="{Binding DurationDisplay}"/>
+                    <DataGridTextColumn Header="Module" Width="150" Binding="{Binding ModuleDisplay}"/>
+                    <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="100" Binding="{Binding SeverityDisplay}"/>
+                    <DataGridTextColumn Header="Th&#244;ng b&#225;o" Width="*" Binding="{Binding MessageDisplay}"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Visibility="{Binding IsTelemetryTabErrors, Converter={StaticResource B2V}}" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding RuntimeErrorDisplayItems}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Th&#7901;i gian" Width="135" Binding="{Binding TimeText}"/>
+                    <DataGridTextColumn Header="Lo&#7841;i l&#7895;i" Width="180" Binding="{Binding OperationName}"/>
+                    <DataGridTextColumn Header="Module" Width="140" Binding="{Binding ModuleDisplay}"/>
+                    <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="100" Binding="{Binding SeverityDisplay}"/>
+                    <DataGridTextColumn Header="Th&#244;ng b&#225;o" Width="*" Binding="{Binding MessageDisplay}"/>
+                    <DataGridTextColumn Header="M&#227; li&#234;n k&#7871;t" Width="180" Binding="{Binding CorrelationId}"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Visibility="{Binding IsTelemetryTabPerformance, Converter={StaticResource B2V}}" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding PerformanceDisplayItems}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Th&#7901;i gian" Width="135" Binding="{Binding TimeText}"/>
+                    <DataGridTextColumn Header="CPU" Width="120" Binding="{Binding OperationName}"/>
+                    <DataGridTextColumn Header="B&#7897; nh&#7899;" Width="120" Binding="{Binding DurationDisplay}"/>
+                    <DataGridTextColumn Header="Module" Width="130" Binding="{Binding ModuleDisplay}"/>
+                    <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="100" Binding="{Binding SeverityDisplay}"/>
+                    <DataGridTextColumn Header="Th&#244;ng b&#225;o" Width="*" Binding="{Binding MessageDisplay}"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Visibility="{Binding IsTelemetryTabRecommendations, Converter={StaticResource B2V}}" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding RecommendationDisplayItems}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="M&#227;" Width="180" Binding="{Binding OperationName}"/>
+                    <DataGridTextColumn Header="Khuy&#7871;n ngh&#7883;" Width="*" Binding="{Binding MessageDisplay}"/>
+                    <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="100" Binding="{Binding SeverityDisplay}"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+              </Grid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Quy tr&#236;nh th&#7921;c thi" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="2*" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Ph&#225;t l&#7841;i" Command="{Binding ReplayWorkflowCommand}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Th&#7917; l&#7841;i" Command="{Binding RetryWorkflowCommand}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="H&#7911;y" Command="{Binding CancelWorkflowCommand}" />
+              </StackPanel>
+              <DataGrid Grid.Row="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,8,8" ItemsSource="{Binding WorkflowExecutions}" SelectedItem="{Binding SelectedWorkflowExecution}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="B&#7855;t &#273;&#7847;u" Width="130" Binding="{Binding StartedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Lo&#7841;i" Width="150" Binding="{Binding WorkflowType}" />
+                  <DataGridTextColumn Header="Kh&#243;a" Width="180" Binding="{Binding WorkflowKey}" />
+                  <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="90" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                  <DataGridTextColumn Header="Th&#7917; l&#7841;i" Width="60" Binding="{Binding RetryCount}" />
+                  <DataGridTextColumn Header="L&#7895;i" Width="*" Binding="{Binding ErrorMessage, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <DataGrid Grid.Row="1" Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="8,0,0,8" ItemsSource="{Binding WorkflowViolations}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Th&#7901;i gian" Width="130" Binding="{Binding RecordedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="80" Binding="{Binding Severity}" />
+                  <DataGridTextColumn Header="Nh&#243;m" Width="120" Binding="{Binding Category}" />
+                  <DataGridTextColumn Header="Khuy&#7871;n ngh&#7883;" Width="*" Binding="{Binding Recommendation}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <DataGrid Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding WorkflowSteps}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="B&#432;&#7899;c" Width="180" Binding="{Binding StepName}" />
+                  <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="90" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                  <DataGridTextColumn Header="B&#7855;t &#273;&#7847;u" Width="130" Binding="{Binding StartedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Ho&#224;n t&#7845;t" Width="130" Binding="{Binding CompletedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Th&#7917; l&#7841;i" Width="60" Binding="{Binding RetryCount}" />
+                  <DataGridTextColumn Header="L&#7895;i" Width="*" Binding="{Binding ErrorMessage, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Kh&#243;a ph&#226;n t&#225;n" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Gi&#7843;i ph&#243;ng lock qu&#225; h&#7841;n" Command="{Binding ReleaseStaleLocksCommand}" />
+              </StackPanel>
+              <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Padding="40,30" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Style>
+                  <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding WorkflowLeases.Count}" Value="0"/>
+                          <Condition Binding="{Binding DistributedLocks.Count}" Value="0"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Visibility" Value="Visible"/>
+                      </MultiDataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
+                <StackPanel HorizontalAlignment="Center">
+                  <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="36" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
+                  <TextBlock Text="Ch&#432;a c&#243; d&#7919; li&#7879;u kh&#243;a ph&#226;n t&#225;n" FontWeight="SemiBold" FontSize="14" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                  <TextBlock Text="D&#7919; li&#7879;u s&#7869; hi&#7875;n th&#7883; khi c&#243; workflow s&#7917; d&#7909;ng kh&#243;a ph&#226;n t&#225;n" FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                </StackPanel>
+              </Border>
+              <DataGrid Grid.Row="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,8,0" ItemsSource="{Binding WorkflowLeases}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Quy tr&#236;nh" Width="160" Binding="{Binding WorkflowType}" />
+                  <DataGridTextColumn Header="Kh&#243;a" Width="180" Binding="{Binding WorkflowKey}" />
+                  <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="90" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                  <DataGridTextColumn Header="H&#7871;t h&#7841;n" Width="130" Binding="{Binding ExpiresAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <DataGrid Grid.Row="1" Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="8,0,0,0" ItemsSource="{Binding DistributedLocks}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Ph&#7841;m vi" Width="150" Binding="{Binding LockScope}" />
+                  <DataGridTextColumn Header="Kh&#243;a" Width="180" Binding="{Binding LockKey}" />
+                  <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="90" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                  <DataGridTextColumn Header="H&#7871;t h&#7841;n" Width="130" Binding="{Binding ExpiresAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Kh&#244;i ph&#7909;c" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Kh&#244;i ph&#7909;c checkpoint" Command="{Binding RestoreCheckpointCommand}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="L&#224;m m&#7899;i" Command="{Binding RefreshAllCommand}" />
+              </StackPanel>
+              <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Padding="40,30" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Style>
+                  <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding RecoveryCheckpoints.Count}" Value="0"/>
+                          <Condition Binding="{Binding WorkflowMetrics.Count}" Value="0"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Visibility" Value="Visible"/>
+                      </MultiDataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
+                <StackPanel HorizontalAlignment="Center">
+                  <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="36" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
+                  <TextBlock Text="Ch&#432;a c&#243; d&#7919; li&#7879;u kh&#244;i ph&#7909;c" FontWeight="SemiBold" FontSize="14" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                  <TextBlock Text="D&#7919; li&#7879;u s&#7869; hi&#7875;n th&#7883; khi c&#243; checkpoint ho&#7863;c metric kh&#244;i ph&#7909;c" FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                </StackPanel>
+              </Border>
+              <DataGrid Grid.Row="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,8,0" ItemsSource="{Binding RecoveryCheckpoints}" SelectedItem="{Binding SelectedRecoveryCheckpoint}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="&#272;i&#7875;m kh&#244;i ph&#7909;c" Width="160" Binding="{Binding CheckpointName}" />
+                  <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="90" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                  <DataGridTextColumn Header="Ng&#224;y t&#7841;o" Width="130" Binding="{Binding CreatedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="M&#227; b&#259;m" Width="*" Binding="{Binding SnapshotHash}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <DataGrid Grid.Row="1" Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="8,0,0,0" ItemsSource="{Binding WorkflowMetrics}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Ch&#7881; s&#7889;" Width="150" Binding="{Binding MetricName}" />
+                  <DataGridTextColumn Header="Nh&#243;m" Width="120" Binding="{Binding Category}" />
+                  <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="90" Binding="{Binding Severity}" />
+                  <DataGridTextColumn Header="Th&#7901;i l&#432;&#7907;ng" Width="90" Binding="{Binding DurationMs}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="L&#7895;i treo" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,8,0" ItemsSource="{Binding DeadLetters}" SelectedItem="{Binding SelectedDeadLetter}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Th&#7901;i gian" Width="130" Binding="{Binding DeadLetteredAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Quy tr&#236;nh" Width="160" Binding="{Binding WorkflowType}" />
+                  <DataGridTextColumn Header="Kh&#243;a" Width="180" Binding="{Binding WorkflowKey}" />
+                  <DataGridTextColumn Header="L&#253; do" Width="*" Binding="{Binding DeadLetterReason}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <controls:EnterpriseFilterPanel Grid.Column="1" Title="D&#7919; li&#7879;u v&#224; si&#234;u d&#7919; li&#7879;u" Margin="8,0,0,0">
+                <controls:EnterpriseFilterPanel.PanelContent>
+                  <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                      <TextBlock Text="D&#7919; li&#7879;u g&#7889;c" Style="{StaticResource AccountingFilterLabel}" />
+                      <TextBox AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" Height="220" FontFamily="Consolas" Text="{Binding SelectedDeadLetter.PayloadJson}" />
+                      <TextBlock Text="Si&#234;u d&#7919; li&#7879;u" Style="{StaticResource AccountingFilterLabel}" Margin="0,12,0,6" />
+                      <TextBox AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" Height="220" FontFamily="Consolas" Text="{Binding SelectedDeadLetter.MetadataJson}" />
+                    </StackPanel>
+                  </ScrollViewer>
+                </controls:EnterpriseFilterPanel.PanelContent>
+              </controls:EnterpriseFilterPanel>
+            </Grid>
+          </TabItem>
+          <TabItem Header="TT99" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Ki&#7875;m tra TT99" Command="{Binding RunTt99ValidationCommand}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="T&#7841;o snapshot" Command="{Binding CreateTt99SnapshotCommand}" />
+              </StackPanel>
+              <UniformGrid Grid.Row="1" Columns="5" Margin="0,0,0,8">
+                <controls:EnterpriseSummaryCard Title="&#272;i&#7875;m" Subtitle="&#272;i&#7875;m tu&#226;n th&#7911;" IconGlyph="&#xE9D2;" Margin="0,0,10,0" Value="{Binding TT99ValidationSummary.ComplianceScore}" />
+                <controls:EnterpriseSummaryCard Title="V&#7845;n &#273;&#7873;" Subtitle="T&#7893;ng s&#7889;" IconGlyph="&#xE946;" Margin="0,0,10,0" Value="{Binding TT99ValidationSummary.TotalIssues}" />
+                <controls:EnterpriseSummaryCard Title="Nghi&#234;m tr&#7885;ng" Subtitle="Critical" IconGlyph="&#xE783;" Margin="0,0,10,0" Value="{Binding TT99ValidationSummary.CriticalIssues}" />
+                <controls:EnterpriseSummaryCard Title="L&#7895;i" Subtitle="Error" IconGlyph="&#xE711;" Margin="0,0,10,0" Value="{Binding TT99ValidationSummary.ErrorIssues}" />
+                <controls:EnterpriseSummaryCard Title="C&#7843;nh b&#225;o" Subtitle="Warning" IconGlyph="&#xE7BA;" Value="{Binding TT99ValidationSummary.WarningIssues}" />
+              </UniformGrid>
+              <DataGrid Grid.Row="2" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,0,8" ItemsSource="{Binding TT99Issues}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Th&#7901;i gian" Width="130" Binding="{Binding DetectedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Quy t&#7855;c" Width="180" Binding="{Binding RuleCode}" />
+                  <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="90" Binding="{Binding Severity}" />
+                  <DataGridTextColumn Header="Module" Width="120" Binding="{Binding Module}" />
+                  <DataGridTextColumn Header="Th&#244;ng b&#225;o" Width="*" Binding="{Binding Message, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <Grid Row="3">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,8,0" ItemsSource="{Binding TT99Snapshots}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="K&#7923;" Width="100" Binding="{Binding PeriodCode}" />
+                    <DataGridTextColumn Header="&#272;i&#7875;m" Width="70" Binding="{Binding ComplianceScore}" />
+                    <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="100" Binding="{Binding DeclarationStatus}" />
+                    <DataGridTextColumn Header="Ng&#224;y t&#7841;o" Width="130" Binding="{Binding CreatedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                    <DataGridTextColumn Header="M&#227; b&#259;m" Width="*" Binding="{Binding SnapshotHash}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="8,0,0,0" ItemsSource="{Binding TT99ExportManifests}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Lo&#7841;i" Width="100" Binding="{Binding ExportType}" />
+                    <DataGridTextColumn Header="K&#7923;" Width="100" Binding="{Binding PeriodCode}" />
+                    <DataGridTextColumn Header="S&#7889; d&#242;ng" Width="80" Binding="{Binding RowCount}" />
+                    <DataGridTextColumn Header="&#272;&#227; xu&#7845;t" Width="130" Binding="{Binding ExportedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                    <DataGridTextColumn Header="M&#227; b&#259;m" Width="*" Binding="{Binding Hash}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </Grid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="TT200" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Ki&#7875;m tra TT200" Command="{Binding RunTt200ValidationCommand}" />
+                <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="T&#7841;o snapshot" Command="{Binding CreateTt200SnapshotCommand}" />
+              </StackPanel>
+              <UniformGrid Grid.Row="1" Columns="5" Margin="0,0,0,8">
+                <controls:EnterpriseSummaryCard Title="&#272;i&#7875;m" Subtitle="&#272;i&#7875;m tu&#226;n th&#7911;" IconGlyph="&#xE9D2;" Margin="0,0,10,0" Value="{Binding TT200ValidationSummary.ComplianceScore}" />
+                <controls:EnterpriseSummaryCard Title="V&#7845;n &#273;&#7873;" Subtitle="T&#7893;ng s&#7889;" IconGlyph="&#xE946;" Margin="0,0,10,0" Value="{Binding TT200ValidationSummary.TotalIssues}" />
+                <controls:EnterpriseSummaryCard Title="Nghi&#234;m tr&#7885;ng" Subtitle="Critical" IconGlyph="&#xE783;" Margin="0,0,10,0" Value="{Binding TT200ValidationSummary.CriticalIssues}" />
+                <controls:EnterpriseSummaryCard Title="L&#7895;i" Subtitle="Error" IconGlyph="&#xE711;" Margin="0,0,10,0" Value="{Binding TT200ValidationSummary.ErrorIssues}" />
+                <controls:EnterpriseSummaryCard Title="C&#7843;nh b&#225;o" Subtitle="Warning" IconGlyph="&#xE7BA;" Value="{Binding TT200ValidationSummary.WarningIssues}" />
+              </UniformGrid>
+              <DataGrid Grid.Row="2" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,0,8" ItemsSource="{Binding TT200Issues}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Th&#7901;i gian" Width="130" Binding="{Binding DetectedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Quy t&#7855;c" Width="180" Binding="{Binding RuleCode}" />
+                  <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="90" Binding="{Binding Severity}" />
+                  <DataGridTextColumn Header="Module" Width="120" Binding="{Binding Module}" />
+                  <DataGridTextColumn Header="Th&#244;ng b&#225;o" Width="*" Binding="{Binding Message, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <Grid Row="3">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,8,0" ItemsSource="{Binding TT200Snapshots}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="K&#7923;" Width="100" Binding="{Binding PeriodCode}" />
+                    <DataGridTextColumn Header="&#272;i&#7875;m" Width="70" Binding="{Binding ComplianceScore}" />
+                    <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="100" Binding="{Binding DeclarationStatus}" />
+                    <DataGridTextColumn Header="Ng&#224;y t&#7841;o" Width="130" Binding="{Binding CreatedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                    <DataGridTextColumn Header="M&#227; b&#259;m" Width="*" Binding="{Binding SnapshotHash}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="8,0,0,0" ItemsSource="{Binding TT200ExportManifests}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Lo&#7841;i" Width="100" Binding="{Binding ExportType}" />
+                    <DataGridTextColumn Header="K&#7923;" Width="100" Binding="{Binding PeriodCode}" />
+                    <DataGridTextColumn Header="S&#7889; d&#242;ng" Width="80" Binding="{Binding RowCount}" />
+                    <DataGridTextColumn Header="&#272;&#227; xu&#7845;t" Width="130" Binding="{Binding ExportedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                    <DataGridTextColumn Header="M&#227; b&#259;m" Width="*" Binding="{Binding Hash}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </Grid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Ph&#234; duy&#7879;t" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="N&#226;ng c&#7845;p qu&#225; h&#7841;n" Command="{Binding EscalateApprovalTimeoutCommand}" />
+              </StackPanel>
+              <DataGrid Grid.Row="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding ApprovalWorkflows}" SelectedItem="{Binding SelectedApprovalWorkflow}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="G&#7917;i l&#250;c" Width="140" Binding="{Binding SubmittedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Module" Width="120" Binding="{Binding Module}" />
+                  <DataGridTextColumn Header="&#272;&#7889;i t&#432;&#7907;ng" Width="160" Binding="{Binding EntityId}" />
+                  <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="90" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                  <DataGridTextColumn Header="C&#7845;p" Width="60" Binding="{Binding CurrentLevel}" />
+                  <DataGridTextColumn Header="Ti&#234;u &#273;&#7873;" Width="*" Binding="{Binding Title}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <Grid Grid.Row="2" Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,8,0" ItemsSource="{Binding ApprovalSteps}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="C&#7845;p" Width="60" Binding="{Binding Level}" />
+                    <DataGridTextColumn Header="B&#432;&#7899;c" Width="160" Binding="{Binding StepName}" />
+                    <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="90" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                    <DataGridTextColumn Header="H&#7841;n x&#7917; l&#253;" Width="120" Binding="{Binding DueAtUtc, StringFormat=dd/MM HH:mm}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Column="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="8,0,8,0" ItemsSource="{Binding ApprovalHistory}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Th&#7901;i gian" Width="130" Binding="{Binding OccurredAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                    <DataGridTextColumn Header="H&#224;nh &#273;&#7897;ng" Width="90" Binding="{Binding Action}" />
+                    <DataGridTextColumn Header="Ghi ch&#250;" Width="*" Binding="{Binding Comment}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Column="2" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="8,0,0,0" ItemsSource="{Binding ApprovalSnapshots}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Th&#7901;i gian" Width="130" Binding="{Binding CapturedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                    <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="90" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                    <DataGridTextColumn Header="C&#7845;p" Width="60" Binding="{Binding CurrentLevel}" />
+                    <DataGridTextColumn Header="M&#227; b&#259;m" Width="*" Binding="{Binding SnapshotHash}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </Grid>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Ph&#225;t l&#7841;i phi&#234;n" Style="{StaticResource AccountingTabButton}">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <StackPanel Orientation="Vertical" Margin="0,0,0,8">
+                <TextBlock FontWeight="SemiBold" Text="{Binding SelectedWorkflowReplaySession.WorkflowType, StringFormat=Lo&#7841;i: {0}}" />
+                <TextBlock Style="{StaticResource CaptionTextStyle}" Text="{Binding SelectedWorkflowReplaySession.WorkflowKey, StringFormat=Kh&#243;a: {0}}" />
+                <TextBlock Style="{StaticResource CaptionTextStyle}" Text="{Binding SelectedWorkflowReplaySession.StepCount, StringFormat=S&#7889; b&#432;&#7899;c: {0}}" />
+                <TextBlock Style="{StaticResource CaptionTextStyle}" Text="{Binding SelectedWorkflowReplaySession.MetricCount, StringFormat=S&#7889; metric: {0}}" />
+                <TextBlock Style="{StaticResource CaptionTextStyle}" Text="{Binding SelectedWorkflowReplaySession.DeadLetterCount, StringFormat=L&#7895;i treo: {0}}" />
+              </StackPanel>
+              <DataGrid Grid.Row="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" Margin="0,0,0,8" ItemsSource="{Binding SelectedWorkflowReplaySession.Steps}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="B&#432;&#7899;c" Width="180" Binding="{Binding StepName}" />
+                  <DataGridTextColumn Header="Tr&#7841;ng th&#225;i" Width="90" Binding="{Binding Status, Converter={StaticResource StatusDisplay}, ConverterParameter=status}" />
+                  <DataGridTextColumn Header="B&#7855;t &#273;&#7847;u" Width="130" Binding="{Binding StartedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="Ho&#224;n t&#7845;t" Width="130" Binding="{Binding CompletedAtUtc, StringFormat=dd/MM HH:mm:ss}" />
+                  <DataGridTextColumn Header="L&#7895;i" Width="*" Binding="{Binding ErrorMessage, Converter={StaticResource StatusDisplay}, ConverterParameter=message}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <DataGrid Grid.Row="2" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding SelectedWorkflowReplaySession.Metrics}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Ch&#7881; s&#7889;" Width="180" Binding="{Binding MetricName}" />
+                  <DataGridTextColumn Header="Nh&#243;m" Width="120" Binding="{Binding Category}" />
+                  <DataGridTextColumn Header="M&#7913;c &#273;&#7897;" Width="90" Binding="{Binding Severity}" />
+                  <DataGridTextColumn Header="Th&#7901;i l&#432;&#7907;ng" Width="90" Binding="{Binding DurationMs}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Grid>
+          </TabItem>
+        </TabControl>
+      </controls:EnterpriseStatePresenter.StateContent>
+    </controls:EnterpriseStatePresenter>
+    <TextBlock Grid.Row="3" Style="{StaticResource CaptionTextStyle}" Margin="2,10,0,0" Text="{Binding StatusMessage}" />
+  </Grid>
+</UserControl>

@@ -1,0 +1,2 @@
+namespace ASMILE.BO.Core.Entities.Settings;
+public sealed class SettingChangeLog { public Guid Id { get; set; } = Guid.NewGuid(); public string SettingKey { get; set; } = string.Empty; public SettingScope Scope { get; set; } public string? ScopeTarget { get; set; } public string? OldValue { get; set; } public string? NewValue { get; set; } public string ChangedBy { get; set; } = string.Empty; public DateTime ChangedAt { get; set; } = DateTime.UtcNow; public string? Reason { get; set; } }

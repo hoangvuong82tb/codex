@@ -1,0 +1,21 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style x:Key="FluentCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SupplierCardBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SupplierBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="22" />
+        <Setter Property="Padding" Value="24" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect Color="#1A0E1D38"
+                                  BlurRadius="16"
+                                  ShadowDepth="1"
+                                  Direction="315"
+                                  Opacity="0.17" />
+            </Setter.Value>
+        </Setter>
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+    </Style>
+</ResourceDictionary>

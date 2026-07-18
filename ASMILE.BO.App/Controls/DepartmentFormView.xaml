@@ -1,0 +1,128 @@
+﻿<UserControl x:Class="ASMILE.BO.App.Controls.DepartmentFormView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="560"
+             d:DesignWidth="620">
+    <UserControl.Resources>
+        <Style x:Key="FormLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Foreground" Value="#2E4561" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="ValidationTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#C43E3E" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="2,-8,0,8" />
+            <Setter Property="Visibility" Value="Visible" />
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+                <Trigger Property="Text" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource FluentCardStyle}" Width="620" Padding="22" MaxHeight="640">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Thông tin bộ phận"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="#223A58"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Width="28"
+                        Height="28"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Command="{Binding CloseDepartmentFormCommand}">
+                    <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" Foreground="#6A809F" />
+                </Button>
+            </Grid>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0">
+                    <TextBlock Style="{StaticResource FormLabelStyle}"><Run Text="Mã bộ phận" /><Run Text=" *" Foreground="#D04747" /></TextBlock>
+                    <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding EditingDepartment.DepartmentCode, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource ValidationTextStyle}" Text="{Binding DepartmentCodeError}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="0" Grid.Column="2">
+                    <TextBlock Style="{StaticResource FormLabelStyle}"><Run Text="Tên bộ phận" /><Run Text=" *" Foreground="#D04747" /></TextBlock>
+                    <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding EditingDepartment.DepartmentName, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource ValidationTextStyle}" Text="{Binding DepartmentNameError}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="0">
+                    <TextBlock Style="{StaticResource FormLabelStyle}" Text="Bộ phận cha" />
+                    <ComboBox Height="44"
+                              Style="{StaticResource FluentComboBox}"
+                              Margin="0,0,0,12"
+                              ItemsSource="{Binding DepartmentParentLookup}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Id"
+                              SelectedValue="{Binding EditingDepartment.ParentDepartmentId, TargetNullValue=0}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="2">
+                    <TextBlock Style="{StaticResource FormLabelStyle}" Text="Cấp" />
+                    <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding EditingDepartment.Level, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3">
+                    <TextBlock Style="{StaticResource FormLabelStyle}" Text="Ghi chú" />
+                    <TextBox Style="{StaticResource FluentTextBox}"
+                             Height="110"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalContentAlignment="Top"
+                             VerticalScrollBarVisibility="Auto"
+                             Text="{Binding EditingDepartment.Note, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="2" BorderBrush="#D4E0EF" BorderThickness="0,1,0,0" Padding="0,12,0,0" Margin="0,12,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource FluentSecondaryButton}" Command="{Binding CloseDepartmentFormCommand}" Margin="0,0,10,0">
+                        <TextBlock Text="Hủy" Foreground="#243B5D" />
+                    </Button>
+                    <Button Style="{StaticResource FluentPrimaryButton}" Command="{Binding SaveDepartmentCommand}" Margin="0,0,10,0">
+                        <TextBlock Text="Lưu bộ phận" Foreground="White" />
+                    </Button>
+                    <Button Style="{StaticResource FluentDangerButton}" Command="{Binding DeleteDepartmentCommand}">
+                        <TextBlock Text="Xóa" Foreground="White" />
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

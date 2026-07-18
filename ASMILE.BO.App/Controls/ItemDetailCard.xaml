@@ -1,0 +1,315 @@
+﻿<UserControl x:Class="ASMILE.BO.App.Controls.ItemDetailCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="620"
+             d:DesignWidth="520">
+    <UserControl.Resources>
+        <Style x:Key="FormLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Foreground" Value="#2E4561" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="LookupActionButtonStyle" TargetType="Button" BasedOn="{StaticResource FluentSecondaryButton}">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="MinWidth" Value="128" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="FontSize" Value="13.5" />
+        </Style>
+
+        <Style x:Key="LookupListItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid Background="Transparent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="1" />
+                            </Grid.RowDefinitions>
+                            <Border x:Name="ItemRoot"
+                                    Grid.Row="0"
+                                    Padding="10,8"
+                                    Background="Transparent">
+                                <ContentPresenter />
+                            </Border>
+                            <Line Grid.Row="1"
+                                  X1="0"
+                                  Y1="0"
+                                  X2="1"
+                                  Y2="0"
+                                  Stretch="Fill"
+                                  Stroke="#BFD0E6"
+                                  StrokeThickness="1"
+                                  StrokeDashArray="2,2" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemRoot" Property="Background" Value="#EEF4FF" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemRoot" Property="Background" Value="#F4F8FF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <controls:RoundedClipBorder Style="{StaticResource FluentCardStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="1" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="&#xECAA;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="17"
+                                   Foreground="#2F65D9"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2"
+                                   Text="Thông tin hàng hóa"
+                                   FontSize="19"
+                                   FontWeight="SemiBold"
+                                   Foreground="#223A58"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                    <Border Grid.Row="2" BorderBrush="#D5E1F0" BorderThickness="0,1,0,0" />
+                </Grid>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0">
+                            <TextBlock Style="{StaticResource FormLabelStyle}"><Run Text="Mã hàng" /><Run Text=" *" Foreground="#D04747" /></TextBlock>
+                            <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.ItemCode, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="0" Grid.Column="2">
+                            <TextBlock Style="{StaticResource FormLabelStyle}"><Run Text="Tên hàng" /><Run Text=" *" Foreground="#D04747" /></TextBlock>
+                            <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.ItemName, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Grid.Column="0">
+                            <TextBlock Style="{StaticResource FormLabelStyle}" Text="Đơn vị tính" />
+                            <ComboBox Style="{StaticResource FluentComboBox}"
+                                      ItemsSource="{Binding UnitOptions}"
+                                      IsEditable="True"
+                                      IsTextSearchEnabled="True"
+                                      TextSearch.TextPath="."
+                                      StaysOpenOnEdit="True"
+                                      Text="{Binding Editing.Unit, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Grid.Column="2">
+                            <TextBlock Style="{StaticResource FormLabelStyle}" Text="Nhóm hàng" />
+                            <ComboBox Style="{StaticResource FluentComboBox}"
+                                      ItemsSource="{Binding GroupOptions}"
+                                      IsEditable="True"
+                                      IsTextSearchEnabled="True"
+                                      TextSearch.TextPath="."
+                                      StaysOpenOnEdit="True"
+                                      Text="{Binding Editing.GroupName, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="0">
+                            <TextBlock Style="{StaticResource FormLabelStyle}" Text="Mã nhà cung cấp" />
+                            <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.SupplierCode, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="2">
+                            <TextBlock Style="{StaticResource FormLabelStyle}" Text="Tên nhà cung cấp" />
+                            <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.SupplierName, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="Trạng thái"
+                                       Style="{StaticResource FormLabelStyle}"
+                                       Margin="0,0,10,0"
+                                       VerticalAlignment="Center" />
+                            <CheckBox Grid.Column="1"
+                                      IsChecked="{Binding Editing.IsActive}"
+                                      Style="{StaticResource FluentToggleSwitchStyle}"
+                                      VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2"
+                                       Text="Kích hoạt"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="#273E5A" />
+
+                            <Button Grid.Column="4"
+                                    Style="{StaticResource LookupActionButtonStyle}"
+                                    Command="{Binding OpenUnitManagerCommand}"
+                                    Content="Quản lý ĐVT" />
+                            <Button Grid.Column="6"
+                                    Style="{StaticResource LookupActionButtonStyle}"
+                                    Command="{Binding OpenGroupManagerCommand}"
+                                    Content="Quản lý Nhóm" />
+                        </Grid>
+                    </Grid>
+                </ScrollViewer>
+
+                <Border Grid.Row="2" BorderBrush="#D4E0EF" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,12,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,12,0">
+                        <Button Style="{StaticResource FluentSecondaryButton}" Command="{Binding NewCommand}" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#243B5D" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Mới" Foreground="#243B5D" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource FluentPrimaryButton}" Command="{Binding SaveCommand}" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Lưu" Foreground="White" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource FluentDangerButton}" Command="{Binding DeleteCommand}" IsEnabled="{Binding CanDelete}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Xóa" Foreground="White" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </controls:RoundedClipBorder>
+
+        <Grid Panel.ZIndex="50"
+              Visibility="{Binding IsLookupEditorOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border Background="#05000000" />
+
+            <Border Style="{StaticResource FluentCardStyle}"
+                    Width="460"
+                    Padding="18"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    BorderBrush="#CBD8EA"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="170" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding LookupEditorTitle}"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="#223A58"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Width="28"
+                                Height="28"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Command="{Binding CloseLookupManagerCommand}">
+                            <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" Foreground="#6A809F" />
+                        </Button>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Height="44" VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Style="{StaticResource FluentTextBox}"
+                                 Margin="0"
+                                 VerticalAlignment="Center"
+                                 Text="{Binding NewLookupValue, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="2"
+                                Style="{StaticResource FluentPrimaryButton}"
+                                Height="44"
+                                MinWidth="96"
+                                VerticalAlignment="Center"
+                                Command="{Binding AddLookupValueCommand}">
+                            <TextBlock Text="Thêm" Foreground="White" />
+                        </Button>
+                    </Grid>
+
+                    <ListBox Grid.Row="4"
+                             ItemsSource="{Binding CurrentLookupOptions}"
+                             SelectedItem="{Binding SelectedLookupValue, Mode=TwoWay}"
+                             ItemContainerStyle="{StaticResource LookupListItemStyle}"
+                             BorderBrush="#D2DEEE"
+                             BorderThickness="1"
+                             Background="White"
+                             Padding="4"
+                             FontSize="14"
+                             FocusVisualStyle="{x:Null}" />
+
+                    <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource FluentDangerButton}"
+                                Height="36"
+                                MinWidth="96"
+                                Command="{Binding RemoveLookupValueCommand}">
+                            <TextBlock Text="Xóa chọn" Foreground="White" />
+                        </Button>
+                        <Button Style="{StaticResource FluentSecondaryButton}"
+                                Height="36"
+                                MinWidth="88"
+                                Margin="10,0,0,0"
+                                Content="Đóng"
+                                Command="{Binding CloseLookupManagerCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,298 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+    <Style x:Key="StartMenuCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="#EEF3F8FC" />
+        <Setter Property="BorderBrush" Value="#D3E0EF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Padding" Value="18,16,18,12" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="26" ShadowDepth="6" Opacity="0.2" Color="#284F78" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ShellNavigationFlyoutCardStyle" TargetType="Border" BasedOn="{StaticResource StartMenuCardStyle}">
+        <Setter Property="Background" Value="#EAF7FAFE" />
+        <Setter Property="BorderBrush" Value="#BFE0EAF6" />
+        <Setter Property="CornerRadius" Value="24" />
+        <Setter Property="Padding" Value="18,16,18,12" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="34"
+                                  ShadowDepth="8"
+                                  Opacity="0.22"
+                                  Color="#213A5C" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ShellNavigationFlyoutHostStyle" TargetType="ContentControl">
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,1" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform Y="22" />
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsStartMenuOpen}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             To="1"
+                                             Duration="0:0:0.16"
+                                             DecelerationRatio="0.8" />
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                             To="0"
+                                             Duration="0:0:0.18"
+                                             DecelerationRatio="0.88" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+                <Setter Property="Opacity" Value="1" />
+                <Setter Property="RenderTransform">
+                    <Setter.Value>
+                        <TranslateTransform Y="0" />
+                    </Setter.Value>
+                </Setter>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ShellNavigationSectionCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="#32FFFFFF" />
+        <Setter Property="BorderBrush" Value="#86C2D8EE" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Padding" Value="12,10" />
+    </Style>
+
+    <Style x:Key="ShellNavigationCaptionTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="StartSearchBoxStyle" TargetType="TextBox">
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Padding" Value="36,0,12,0" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Tag" Value="Tìm kiếm ứng dụng, chức năng..." />
+        <Setter Property="Background" Value="#F8FBFF" />
+        <Setter Property="BorderBrush" Value="#CCD9EA" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="10">
+                        <Grid>
+                            <TextBlock Text="&#xE721;"
+                                       Margin="12,0,0,0"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Foreground="#71849C"
+                                       IsHitTestVisible="False" />
+                            <TextBlock x:Name="Placeholder"
+                                       Text="{TemplateBinding Tag}"
+                                       Margin="36,0,12,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="#7D8EA6"
+                                       FontSize="12.5"
+                                       IsHitTestVisible="False"
+                                       Visibility="Collapsed" />
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="0"
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#8FB3DF" />
+                            <Setter TargetName="Root" Property="Background" Value="#FCFEFF" />
+                            <Setter TargetName="Placeholder" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#FBFDFF" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#BFCFE4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PinnedAppTileButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Tile"
+                            CornerRadius="10"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Background="{TemplateBinding Background}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Tile" Property="Background" Value="#2BF5F9FF" />
+                            <Setter TargetName="Tile" Property="BorderBrush" Value="#95C2E5" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Tile" Property="Background" Value="#40DCEBFF" />
+                            <Setter TargetName="Tile" Property="BorderBrush" Value="#7EB0DB" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="StartSectionHeaderTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="StartAllAppsButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="#2AF2F7FF" />
+        <Setter Property="BorderBrush" Value="#A6C4E3" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="#274567" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8">
+                        <DockPanel LastChildFill="False">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xE76C;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="10"
+                                       Margin="0,0,8,0"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       VerticalAlignment="Center" />
+                        </DockPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#45EEF5FF" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#8DB2D7" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RecommendedItemButtonStyle" TargetType="Button">
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="Padding" Value="10,9" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            CornerRadius="10"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#33F4F8FF" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#A8C4DF" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#46E5EEFB" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="StartMenuFooterStyle" TargetType="Border">
+        <Setter Property="Background" Value="#86EEF3FB" />
+        <Setter Property="CornerRadius" Value="0,0,14,14" />
+        <Setter Property="BorderBrush" Value="#C9D8EA" />
+        <Setter Property="BorderThickness" Value="1,1,1,0" />
+        <Setter Property="Padding" Value="14,10" />
+    </Style>
+
+    <Style x:Key="ShellNavigationListButtonStyle" TargetType="Button" BasedOn="{StaticResource RecommendedItemButtonStyle}">
+        <Setter Property="Margin" Value="0,0,0,7" />
+        <Setter Property="Padding" Value="9,8" />
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+
+    <Style x:Key="ShellNavigationFooterStyle" TargetType="Border" BasedOn="{StaticResource StartMenuFooterStyle}">
+        <Setter Property="Background" Value="#82EEF5FB" />
+        <Setter Property="CornerRadius" Value="0,0,20,20" />
+        <Setter Property="Padding" Value="14,10" />
+    </Style>
+
+    <Style x:Key="PowerButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            CornerRadius="8"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#2DE5ECF8" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#A2BEDA" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#48D7E2F3" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

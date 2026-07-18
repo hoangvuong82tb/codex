@@ -1,0 +1,119 @@
+<UserControl x:Class="ASMILE.BO.App.Views.DesktopWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:model="clr-namespace:ASMILE.BO.App.Models"
+             xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="860"
+             d:DesignWidth="1540"
+             SizeChanged="WorkspaceHost_SizeChanged">
+    <Grid x:Name="WorkspaceRoot" Background="{StaticResource DesktopWallpaperBrush}">
+        <Grid.ContextMenu>
+            <ContextMenu Style="{StaticResource DesktopContextMenuStyle}"
+                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                <MenuItem Header="Làm mới"
+                          Command="{Binding RefreshDesktopCommand}"
+                          Style="{StaticResource DesktopContextMenuItemStyle}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Sắp xếp biểu tượng"
+                          Command="{Binding ArrangeDesktopIconsCommand}"
+                          Style="{StaticResource DesktopContextMenuItemStyle}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Ẩn/hiện biểu tượng desktop"
+                          Command="{Binding ToggleDesktopIconsCommand}"
+                          Style="{StaticResource DesktopContextMenuItemStyle}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator Style="{StaticResource DesktopContextMenuSeparatorStyle}" />
+                <MenuItem Header="Mở Start"
+                          Command="{Binding ToggleStartMenuCommand}"
+                          Style="{StaticResource DesktopContextMenuItemStyle}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Mở Virtual File Center"
+                          Command="{Binding OpenModuleKeyCommand}"
+                          CommandParameter="virtual-file-center"
+                          Style="{StaticResource DesktopContextMenuItemStyle}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator Style="{StaticResource DesktopContextMenuSeparatorStyle}" />
+                <MenuItem Header="Cài đặt giao diện"
+                          Command="{Binding OpenAppearanceSettingsCommand}"
+                          Style="{StaticResource DesktopContextMenuItemStyle}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE790;" FontFamily="Segoe MDL2 Assets" />
+                    </MenuItem.Icon>
+                </MenuItem>
+            </ContextMenu>
+        </Grid.ContextMenu>
+        <Ellipse Width="520" Height="520" Fill="#22FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-180,-140,0" IsHitTestVisible="False" />
+        <Ellipse Width="640" Height="640" Fill="#160A2350" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-220,0,0,-240" IsHitTestVisible="False" />
+
+        <ItemsControl ItemsSource="{Binding DesktopModules}"
+                      Margin="0"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      Panel.ZIndex="5">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="Canvas.Left" Value="{Binding DesktopLeft}" />
+                    <Setter Property="Canvas.Top" Value="{Binding DesktopTop}" />
+                    <Setter Property="Width" Value="104" />
+                    <Setter Property="Height" Value="96" />
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type model:AppModuleInfo}">
+                    <controls:DesktopIconControl Module="{Binding}"
+                                                 OpenCommand="{Binding DataContext.DesktopIconClickCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <ItemsControl ItemsSource="{Binding OpenWindows}" Margin="0,8,0,8" Panel.ZIndex="10">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                    <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                    <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
+                    <Setter Property="Width" Value="{Binding Width}" />
+                    <Setter Property="Height" Value="{Binding Height}" />
+                    <Setter Property="Visibility" Value="{Binding WindowVisibility}" />
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type model:AppWindowViewModel}">
+                    <controls:AppWindowControl Window="{Binding}"
+                                               ActivateCommand="{Binding DataContext.ActivateWindowCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               MinimizeCommand="{Binding DataContext.MinimizeWindowCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               ToggleMaximizeCommand="{Binding DataContext.ToggleMaximizeWindowCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               CloseCommand="{Binding DataContext.CloseWindowCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>

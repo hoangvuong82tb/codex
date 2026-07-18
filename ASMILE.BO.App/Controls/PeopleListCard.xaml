@@ -1,0 +1,187 @@
+﻿<UserControl x:Class="ASMILE.BO.App.Controls.PeopleListCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="620"
+             d:DesignWidth="980">
+    <UserControl.Resources>
+        <Style x:Key="ActionButtonStyle" TargetType="Button" BasedOn="{StaticResource EnterpriseDialogIconButton}">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinWidth" Value="28" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
+        <Style x:Key="PeopleCellTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="#2E4263" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="PeopleCodeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource PeopleCellTextStyle}">
+            <Setter Property="Foreground" Value="#123A92" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </UserControl.Resources>
+
+    <controls:RoundedClipBorder Style="{StaticResource FluentCardStyle}" Padding="0" Background="#FFFFFF">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="64" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="18,16,18,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Text="{Binding PeopleTitle}"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="#223A58" />
+
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="#F6FAFF" BorderBrush="#D8E4F3" BorderThickness="1" CornerRadius="12" Padding="10,8">
+                        <StackPanel>
+                            <TextBlock Text="Tổng nhân sự" FontSize="12.5" Foreground="#5F7696" />
+                            <TextBlock Text="{Binding TotalPeople}" FontSize="20" FontWeight="SemiBold" Foreground="#1E3554" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Background="#EEF9F1" BorderBrush="#D9EEDF" BorderThickness="1" CornerRadius="12" Padding="10,8">
+                        <StackPanel>
+                            <TextBlock Text="Đang làm" FontSize="12.5" Foreground="#5F7696" />
+                            <TextBlock Text="{Binding ActivePeople}" FontSize="20" FontWeight="SemiBold" Foreground="#1F8C52" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="4" Background="#FDF1F1" BorderBrush="#F1DCDC" BorderThickness="1" CornerRadius="12" Padding="10,8">
+                        <StackPanel>
+                            <TextBlock Text="Đã nghỉ" FontSize="12.5" Foreground="#5F7696" />
+                            <TextBlock Text="{Binding InactivePeople}" FontSize="20" FontWeight="SemiBold" Foreground="#C24D4D" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <Grid Grid.Row="1" Margin="18,0,18,0">
+                <DataGrid ItemsSource="{Binding PeoplePager.Items}"
+                          SelectedItem="{Binding SelectedPerson}"
+                          Style="{StaticResource FluentDataGridStyle}"
+                          ColumnHeaderStyle="{StaticResource FluentDataGridColumnHeaderStyle}"
+                          RowStyle="{StaticResource FluentListRow}"
+                          Background="Transparent"
+                          HorizontalGridLinesBrush="#E8EFF8"
+                          VerticalGridLinesBrush="Transparent">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="MNS" Binding="{Binding PersonCode}" Width="92">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource PeopleCodeTextStyle}" />
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="Tên nhân sự" Binding="{Binding FullName}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource PeopleCellTextStyle}" />
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="Chức vụ" Binding="{Binding Position}" Width="140">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource PeopleCellTextStyle}" />
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="Điện thoại" Binding="{Binding Phone}" Width="130">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource PeopleCellTextStyle}" />
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTemplateColumn Header="Trạng thái" Width="150">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="StatePill" Style="{StaticResource FluentBadge}" MinWidth="112">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Ellipse x:Name="Dot" Width="8" Height="8" Fill="#1C9650" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="StateText"
+                                                       Text="Đang làm"
+                                                       Margin="8,0,0,0"
+                                                       Foreground="#1E7C48"
+                                                       FontSize="13"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                            <Setter TargetName="StatePill" Property="Background" Value="#FCEDEF" />
+                                            <Setter TargetName="Dot" Property="Fill" Value="#DB4747" />
+                                            <Setter TargetName="StateText" Property="Text" Value="Đã nghỉ" />
+                                            <Setter TargetName="StateText" Property="Foreground" Value="#C74343" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="Ngày tạo" Binding="{Binding CreatedAt, StringFormat=dd/MM/yyyy}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource PeopleCellTextStyle}" />
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTemplateColumn Header="Hành động" Width="90">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource ActionButtonStyle}"
+                                                Command="{Binding DataContext.OpenEditPersonCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" Foreground="#5A7091" />
+                                        </Button>
+                                        <Button Style="{StaticResource ActionButtonStyle}"
+                                                Margin="8,0,0,0"
+                                                Command="{Binding DataContext.TogglePersonStatusCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE8D8;" FontFamily="Segoe MDL2 Assets" Foreground="#5A7091" />
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+
+            <Grid Grid.Row="2">
+                <Rectangle Height="1" Fill="#D7E2F0" VerticalAlignment="Top" />
+                <Grid Margin="18,0,18,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock VerticalAlignment="Center"
+                               Foreground="#546B89"
+                               FontSize="13.5"
+                               Text="{Binding PeoplePager.PageText}" />
+
+                    <controls:TablePagerControl Grid.Column="1" DataContext="{Binding PeoplePager}" />
+                </Grid>
+            </Grid>
+        </Grid>
+    </controls:RoundedClipBorder>
+</UserControl>

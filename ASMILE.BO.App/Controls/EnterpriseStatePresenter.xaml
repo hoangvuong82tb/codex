@@ -1,0 +1,70 @@
+<UserControl x:Class="ASMILE.BO.App.Controls.EnterpriseStatePresenter"
+             x:Name="Root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="220"
+             d:DesignWidth="600">
+    <Grid>
+        <ContentPresenter Content="{Binding StateContent, ElementName=Root}" />
+
+        <Border Panel.ZIndex="10">
+            <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource EnterpriseLoadingOverlay}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsLoading, ElementName=Root}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding LoadingText, ElementName=Root}"
+                       Style="{StaticResource EnterpriseEmptyStateText}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+        </Border>
+
+        <Border Background="#00FFFFFF"
+                Panel.ZIndex="9">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsEmpty, ElementName=Root}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding EmptyText, ElementName=Root}"
+                       Style="{StaticResource EnterpriseEmptyStateText}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+        </Border>
+
+        <Border Background="#FFF7ED"
+                BorderBrush="#FED7AA"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="12"
+                Panel.ZIndex="11">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasError, ElementName=Root}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding ErrorText, ElementName=Root}"
+                       Foreground="#B45309"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
+        </Border>
+    </Grid>
+</UserControl>

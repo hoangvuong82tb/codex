@@ -1,0 +1,155 @@
+﻿<UserControl x:Class="ASMILE.BO.App.Views.MenuRecipe.Screens.MenuItemsScreen"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:panels="clr-namespace:ASMILE.BO.App.Views.MenuRecipe.Panels"
+             xmlns:tabs="clr-namespace:ASMILE.BO.App.Views.MenuRecipe.Tabs"
+             mc:Ignorable="d"
+             FontFamily="Segoe UI"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ASMILE.BO.App;component/Views/MenuRecipe/MenuRecipeStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+                <Grid Visibility="{Binding IsSectionMenuItems, Converter={StaticResource B2V}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="280" MaxWidth="340"/>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="*" MinWidth="220" MaxWidth="280"/>
+                    </Grid.ColumnDefinitions>
+                    <panels:MenuListPanel Grid.Column="0" />
+                    <Grid Grid.Column="1" Background="#F0F4F8">
+                        <!-- No categories -->
+                        <Border Style="{StaticResource AccountingPanelCard}" Margin="12,12,4,12" Visibility="{Binding ShowNoFoodCategoryState, Converter={StaticResource B2V}}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="Ch&#x1B0;a c&#xF3; nh&#xF3;m m&#xF3;n" FontSize="20" FontWeight="SemiBold" Foreground="#0F172A" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Vui l&#xF2;ng t&#x1EA1;o nh&#xF3;m m&#xF3;n tr&#x1B0;&#x1EDB;c t&#x1EA1;i m&#xE0;n Nh&#xF3;m m&#xF3;n." FontSize="14" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,8,0,20"/>
+                                <Button Content="Nh&#xF3;m m&#xF3;n" Tag="&#xE8A9;" Command="{Binding NavigateSectionCommand}" CommandParameter="2" Style="{StaticResource EnterpriseModuleCmdPrimary}" MinWidth="180" Height="40" FontSize="14" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- No selection -->
+                        <Border Style="{StaticResource AccountingPanelCard}" Margin="12,12,4,12" Visibility="{Binding ShowEmptyState, Converter={StaticResource B2V}}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding EmptyStateTitle}" FontSize="18" Foreground="#475569" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding EmptyStateDescription}" FontSize="13" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,6,0,16"/>
+                                <Button Content="{Binding EmptyStateCreateButtonText}" Tag="&#xE710;" Command="{Binding CreateNewMenuCommand}" Style="{StaticResource EnterpriseModuleCmdPrimary}" MinWidth="150" Height="34" FontSize="12" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- Detail -->
+                        <Grid Visibility="{Binding HasSelectedMenu, Converter={StaticResource B2V}}" Margin="12,8,4,8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <!-- HEADER -->
+                            <Border Grid.Row="0" Style="{StaticResource AccountingPanelCard}" Padding="18,14" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding SelectedMenuTitle}" FontSize="22" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                        <WrapPanel Margin="0,4,0,0" Visibility="{Binding ShowFoodWorkspace, Converter={StaticResource B2V}}">
+                                            <TextBlock Text="M&#xE3;: " FontSize="12" Foreground="#94A3B8"/>
+                                            <TextBlock Text="{Binding EditingItem.Code}" FontSize="12" Foreground="#475569" Margin="0,0,12,0"/>
+                                            <TextBlock Text="Nh&#xF3;m: " FontSize="12" Foreground="#94A3B8"/>
+                                            <TextBlock Text="{Binding SelectedCategoryCard.Name,Mode=OneWay}" FontSize="12" Foreground="#475569" Margin="0,0,12,0"/>
+                                            <TextBlock Text="&#x110;VT: " FontSize="12" Foreground="#94A3B8"/>
+                                            <TextBlock Text="{Binding EditingItem.UnitName}" FontSize="12" Foreground="#475569" Margin="0,0,12,0"/>
+                                            <TextBlock Text="VAT: " FontSize="12" Foreground="#94A3B8"/>
+                                            <TextBlock Text="{Binding FormattedVatRate,Mode=OneWay}" FontSize="12" Foreground="#475569"/>
+                                        </WrapPanel>
+                                        <WrapPanel Margin="0,4,0,0" Visibility="{Binding ShowServiceWorkspace, Converter={StaticResource B2V}}">
+                                            <TextBlock Text="Mã DV: " FontSize="12" Foreground="#94A3B8"/>
+                                            <TextBlock Text="{Binding EditingService.Code}" FontSize="12" Foreground="#475569" Margin="0,0,12,0"/>
+                                            <TextBlock Text="Loại: " FontSize="12" Foreground="#94A3B8"/>
+                                            <TextBlock Text="{Binding SelectedServiceTypeDisplay}" FontSize="12" Foreground="#475569" Margin="0,0,12,0"/>
+                                            <TextBlock Text="Đơn giá: " FontSize="12" Foreground="#94A3B8"/>
+                                            <TextBlock Text="{Binding SelectedServicePriceDisplay}" FontSize="12" Foreground="#475569" Margin="0,0,12,0"/>
+                                            <TextBlock Text="VAT: " FontSize="12" Foreground="#94A3B8"/>
+                                            <TextBlock Text="{Binding EditingService.VatRate, StringFormat={}{0:P0}}" FontSize="12" Foreground="#475569"/>
+                                        </WrapPanel>
+                                        <Border CornerRadius="10" Padding="10,4" Margin="0,8,0,0" Background="{Binding StatusBannerBrush,Mode=OneWay}" HorizontalAlignment="Left">
+                                            <TextBlock Text="{Binding CurrentStatusPillText,Mode=OneWay}" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <WrapPanel Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Right">
+                                        <Button Content="{Binding CurrentActiveStatusButtonText,Mode=OneWay}" Command="{Binding ToggleCurrentCatalogItemCommand}" Style="{StaticResource EnterpriseModuleCmdWarning}" Tag="&#xE7BA;" Height="34" Margin="0,0,8,8" Padding="8,0" ToolTip="Bật/tắt kinh doanh"/>
+                                        <Button Content="{Binding CurrentActionButtonText}" Command="{Binding SaveCurrentCatalogItemCommand}" Style="{StaticResource EnterpriseModuleCmdInfo}" Tag="&#xE8EC;" Height="34" Margin="0,0,8,8" Padding="8,0" ToolTip="Lưu dữ liệu hiện tại"/>
+                                        <Button Content="{Binding CurrentDuplicateButtonText}" Command="{Binding DuplicateCurrentCatalogItemCommand}" Style="{StaticResource EnterpriseModuleCmdSecondary}" Tag="&#xE8C8;" Height="34" Margin="0,0,8,8" Padding="8,0" ToolTip="Sao chép dữ liệu hiện tại"/>
+                                        <Button Content="{Binding CurrentDeleteButtonText}" Command="{Binding DeleteCurrentCatalogItemCommand}" IsEnabled="{Binding CanDeleteMenu}" Style="{StaticResource EnterpriseModuleCmdDanger}" Tag="&#xE74D;" Height="34" Margin="0,0,8,8" Padding="8,0" ToolTip="Ngưng bán hoặc xử lý xóa dữ liệu hiện tại"/>
+                                        <Button Content="L&#xE0;m m&#x1EDB;i" Command="{Binding RefreshAllCommand}" Style="{StaticResource EnterpriseModuleCmdSecondary}" Tag="&#xE72C;" Height="34" Margin="0,0,0,8" Padding="8,0" ToolTip="L&#xE0;m m&#x1EDB;i d&#x1EEF; li&#x1EC7;u"/>
+                                    </WrapPanel>
+                                </Grid>
+                            </Border>
+                            <!-- TABS -->
+                            <Border Grid.Row="1" Style="{StaticResource AccountingPanelCard}" Padding="0">
+                                <Grid>
+                                    <Border BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="0,0,0,14" Visibility="{Binding ShowFoodWorkspace, Converter={StaticResource B2V}}">
+                                        <TabControl SelectedIndex="{Binding SelectedWorkspaceTab}" Background="Transparent" BorderThickness="0">
+                                            <TabControl.Resources>
+                                                <Style TargetType="TabItem" BasedOn="{StaticResource RecipeTabButton}"/>
+                                            </TabControl.Resources>
+
+                                            <TabItem Header="Thông tin chung" Tag="&#xE946;"><tabs:MenuGeneralTab/></TabItem>
+                                            <TabItem Header="Định lượng" Tag="&#xE9D2;"><tabs:MenuRecipeTab/></TabItem>
+                                            <TabItem Header="Giá vốn" Tag="&#xE8EC;"><tabs:MenuCostTab/></TabItem>
+                                            <TabItem Header="Lịch sử" Tag="&#xE81C;"><tabs:MenuHistoryTab/></TabItem>
+                                        </TabControl>
+                                    </Border>
+                                    <tabs:ServiceGeneralTab Visibility="{Binding ShowServiceWorkspace, Converter={StaticResource B2V}}"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+
+                    <Border Grid.Column="2" Background="#F0F4F8">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,8,8">
+                            <StackPanel>
+                                <StackPanel Visibility="{Binding ShowFoodSidebarState, Converter={StaticResource B2V}}">
+                                    <panels:CostSummaryPanel />
+                                    <panels:WarningSummaryPanel />
+                                </StackPanel>
+                                <Border Style="{StaticResource AccountingPanelCard}" Padding="14" Visibility="{Binding ShowServiceSidebarState, Converter={StaticResource B2V}}">
+                                    <StackPanel>
+                                        <TextBlock Text="Quy tắc dịch vụ" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,10"/>
+                                        <TextBlock Text="• Dịch vụ là hạng mục mua ngoài, thuê ngoài hoặc phụ thu." FontSize="12" Foreground="#475569" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                                        <TextBlock Text="• Không khai báo định lượng nguyên liệu, không đưa vào bếp/bar." FontSize="12" Foreground="#475569" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                                        <TextBlock Text="• Dùng trực tiếp cho báo giá/đơn như MC, Ca sĩ, Màn LED, Cổng hoa..." FontSize="12" Foreground="#475569" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="12">
+                                            <StackPanel>
+                                                <TextBlock Text="Tóm tắt hiện tại" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Loại dịch vụ" FontSize="12" Foreground="#64748B"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding SelectedServiceTypeDisplay}" FontSize="12" Foreground="#0F172A" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Row="1" Text="Đơn giá chuẩn" FontSize="12" Foreground="#64748B" Margin="0,6,0,0"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedServicePriceDisplay}" FontSize="12" Foreground="#0F172A" FontWeight="SemiBold" Margin="0,6,0,0"/>
+                                                    <TextBlock Grid.Row="2" Text="Trạng thái" FontSize="12" Foreground="#64748B" Margin="0,6,0,0"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CurrentStatusPillText}" FontSize="12" Foreground="#16A34A" FontWeight="SemiBold" Margin="0,6,0,0"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+</UserControl>
+
+

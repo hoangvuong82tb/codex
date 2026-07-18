@@ -1,0 +1,117 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style x:Key="DesktopIconButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="104" />
+        <Setter Property="Height" Value="96" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Padding" Value="6,5" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="IconTile" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="IconTile" Property="Background" Value="#26FFFFFF" />
+                            <Setter TargetName="IconTile" Property="BorderBrush" Value="#59FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="IconTile" Property="Background" Value="#3ECFE1FA" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                            <Setter TargetName="IconTile" Property="Background" Value="#26FFFFFF" />
+                            <Setter TargetName="IconTile" Property="BorderBrush" Value="#66D5E7FF" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                            <Setter TargetName="IconTile" Property="BorderBrush" Value="#9ACBE8FF" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DesktopContextMenuStyle" TargetType="ContextMenu">
+        <Setter Property="Background" Value="#FAFAFA" />
+        <Setter Property="BorderBrush" Value="#D7DDE8" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="6" />
+        <Setter Property="HasDropShadow" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="10"
+                            Padding="{TemplateBinding Padding}">
+                        <StackPanel IsItemsHost="True"
+                                    KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DesktopContextMenuItemStyle" TargetType="MenuItem">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinWidth" Value="220" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Foreground" Value="#1F2937" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Root"
+                            Background="Transparent"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="26" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter Grid.Column="0"
+                                              ContentSource="Icon"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center" />
+                            <ContentPresenter Grid.Column="1"
+                                              ContentSource="Header"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#EEF2F8" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.48" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DesktopContextMenuSeparatorStyle" TargetType="Separator">
+        <Setter Property="Margin" Value="8,5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Background="#E5E7EB" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

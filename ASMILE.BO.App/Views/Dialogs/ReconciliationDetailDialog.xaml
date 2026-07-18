@@ -1,0 +1,293 @@
+<Window x:Class="ASMILE.BO.App.Views.Dialogs.ReconciliationDetailDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Chi tiết đối chiếu công nợ"
+        Width="1220"
+        Height="520"
+        MinWidth="1100"
+        MinHeight="500"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F8FC"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed">
+    <Window.Resources>
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#DDE7F3"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
+        <Style x:Key="TinyIconButton" TargetType="Button" BasedOn="{StaticResource EnterpriseDialogIconButton}">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+        </Style>
+
+        <Style x:Key="PageButton" TargetType="Button" BasedOn="{StaticResource EnterpriseDialogPageButton}">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="MinWidth" Value="30"/>
+            <Setter Property="MaxWidth" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+        </Style>
+
+        <Style x:Key="ActivePageButton" TargetType="Button" BasedOn="{StaticResource EnterpriseDialogActivePageButton}"/>
+
+        <Style x:Key="MiniGridHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F3F6FA"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="BorderBrush" Value="#E5EDF7"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        </Style>
+
+        <Style x:Key="MiniGridRowStyle" TargetType="DataGridRow">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#EEF2F7"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F8FBFF"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E8F1FF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="MiniGridCellStyle" TargetType="DataGridCell">
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#1F2937"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        </Style>
+
+        <Style x:Key="NumberTextStyle" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Foreground" Value="#1F2937"/>
+        </Style>
+
+        <Style x:Key="DocTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#2563EB"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="0.85*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0" MinHeight="340" MaxHeight="390">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="1. Số liệu của công ty (ASMILE ERP)" FontSize="14" FontWeight="SemiBold" Foreground="#1F2937"/>
+                        <TextBlock Grid.Column="1" Text="520,000,000" Foreground="#2563EB" FontWeight="SemiBold" FontSize="13"/>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,10,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="30"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0">
+                            <TextBox Height="32" Padding="28,0,8,0" VerticalContentAlignment="Center" BorderBrush="#DDE7F3" BorderThickness="1" Background="White" FontSize="12" Text=""/>
+                            <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" Foreground="#94A3B8" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Tìm chứng từ..." Foreground="#94A3B8" Margin="28,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        </Grid>
+                        <Button Grid.Column="1" Style="{StaticResource TinyIconButton}" Margin="8,0,0,0"><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets"/></Button>
+                        <Button Grid.Column="2" Style="{StaticResource TinyIconButton}" Margin="6,0,0,0"><TextBlock Text="..." FontWeight="SemiBold"/></Button>
+                    </Grid>
+
+                    <DataGrid Grid.Row="2"
+                              ItemsSource="{Binding CompanyReconciliationRows}"
+                              AutoGenerateColumns="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="None"
+                              BorderThickness="0"
+                              Background="Transparent"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              RowHeight="30"
+                              ColumnHeaderHeight="32"
+                              AlternatingRowBackground="#FAFCFF"
+                              RowStyle="{StaticResource MiniGridRowStyle}"
+                              CellStyle="{StaticResource MiniGridCellStyle}"
+                              ColumnHeaderStyle="{StaticResource MiniGridHeaderStyle}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Ngày" Binding="{Binding DateText}" Width="76"/>
+                            <DataGridTextColumn Header="Chứng từ" Binding="{Binding DocumentNo}" Width="80" ElementStyle="{StaticResource DocTextStyle}"/>
+                            <DataGridTextColumn Header="Diễn giải" Binding="{Binding Description}" Width="*"/>
+                            <DataGridTextColumn Header="Phát sinh nợ" Binding="{Binding DebitText}" Width="88">
+                                <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource NumberTextStyle}"/></DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Phát sinh có" Binding="{Binding CreditText}" Width="88">
+                                <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource NumberTextStyle}"/></DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Số dư" Binding="{Binding BalanceText}" Width="88">
+                                <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource NumberTextStyle}"/></DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Grid Grid.Row="3" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Hiển thị" FontSize="11.5" Foreground="#64748B"/>
+                            <ComboBox Width="64" Height="28" Margin="6,0,6,0" SelectedIndex="0"><ComboBoxItem Content="10"/></ComboBox>
+                            <TextBlock Text="trên tổng số 8 bản ghi" FontSize="11.5" Foreground="#64748B"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Style="{StaticResource PageButton}"><TextBlock Text="&#xE74A;" FontFamily="Segoe MDL2 Assets"/></Button>
+                            <Button Style="{StaticResource PageButton}" Margin="4,0,0,0"><TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets"/></Button>
+                            <Button Style="{StaticResource ActivePageButton}" Margin="4,0,0,0"><TextBlock Text="1"/></Button>
+                            <Button Style="{StaticResource PageButton}" Margin="4,0,0,0"><TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets"/></Button>
+                            <Button Style="{StaticResource PageButton}" Margin="4,0,0,0"><TextBlock Text="&#xE74B;" FontFamily="Segoe MDL2 Assets"/></Button>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,8,0" MinHeight="340" MaxHeight="390">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="2. Số liệu của khách hàng" FontSize="14" FontWeight="SemiBold" Foreground="#1F2937"/>
+                        <TextBlock Grid.Column="1" Text="520,000,000" Foreground="#2563EB" FontWeight="SemiBold" FontSize="13"/>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,10,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="30"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0">
+                            <TextBox Height="32" Padding="28,0,8,0" VerticalContentAlignment="Center" BorderBrush="#DDE7F3" BorderThickness="1" Background="White" FontSize="12" Text=""/>
+                            <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" Foreground="#94A3B8" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Tìm chứng từ..." Foreground="#94A3B8" Margin="28,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        </Grid>
+                        <Button Grid.Column="1" Style="{StaticResource TinyIconButton}" Margin="8,0,0,0"><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets"/></Button>
+                        <Button Grid.Column="2" Style="{StaticResource TinyIconButton}" Margin="6,0,0,0"><TextBlock Text="..." FontWeight="SemiBold"/></Button>
+                    </Grid>
+
+                    <DataGrid Grid.Row="2"
+                              ItemsSource="{Binding CustomerReconciliationRows}"
+                              AutoGenerateColumns="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="None"
+                              BorderThickness="0"
+                              Background="Transparent"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              RowHeight="30"
+                              ColumnHeaderHeight="32"
+                              AlternatingRowBackground="#FAFCFF"
+                              RowStyle="{StaticResource MiniGridRowStyle}"
+                              CellStyle="{StaticResource MiniGridCellStyle}"
+                              ColumnHeaderStyle="{StaticResource MiniGridHeaderStyle}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Ngày" Binding="{Binding DateText}" Width="76"/>
+                            <DataGridTextColumn Header="Chứng từ" Binding="{Binding DocumentNo}" Width="80" ElementStyle="{StaticResource DocTextStyle}"/>
+                            <DataGridTextColumn Header="Diễn giải" Binding="{Binding Description}" Width="*"/>
+                            <DataGridTextColumn Header="Nợ" Binding="{Binding DebitText}" Width="88">
+                                <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource NumberTextStyle}"/></DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Có" Binding="{Binding CreditText}" Width="88">
+                                <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource NumberTextStyle}"/></DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Số dư" Binding="{Binding BalanceText}" Width="88">
+                                <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource NumberTextStyle}"/></DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Grid Grid.Row="3" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Hiển thị" FontSize="11.5" Foreground="#64748B"/>
+                            <ComboBox Width="64" Height="28" Margin="6,0,6,0" SelectedIndex="0"><ComboBoxItem Content="10"/></ComboBox>
+                            <TextBlock Text="trên tổng số 8 bản ghi" FontSize="11.5" Foreground="#64748B"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Style="{StaticResource PageButton}"><TextBlock Text="&#xE74A;" FontFamily="Segoe MDL2 Assets"/></Button>
+                            <Button Style="{StaticResource PageButton}" Margin="4,0,0,0"><TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets"/></Button>
+                            <Button Style="{StaticResource ActivePageButton}" Margin="4,0,0,0"><TextBlock Text="1"/></Button>
+                            <Button Style="{StaticResource PageButton}" Margin="4,0,0,0"><TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets"/></Button>
+                            <Button Style="{StaticResource PageButton}" Margin="4,0,0,0"><TextBlock Text="&#xE74B;" FontFamily="Segoe MDL2 Assets"/></Button>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="8,0,0,0" MinHeight="340" MaxHeight="390">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="3. Chênh lệch (chưa khớp)" FontSize="14" FontWeight="SemiBold" Foreground="#1F2937"/>
+                        <Border Grid.Column="1" Background="#DCFCE7" Padding="8,3" CornerRadius="999"><TextBlock Text="0 bản ghi" FontSize="11" FontWeight="SemiBold" Foreground="#166534"/></Border>
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Border Width="72" Height="72" CornerRadius="14" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" HorizontalAlignment="Center">
+                            <Grid>
+                                <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="30" Foreground="#94A3B8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Border Width="22" Height="22" CornerRadius="11" Background="#22C55E" BorderBrush="White" BorderThickness="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,8,8">
+                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <TextBlock Text="Không có chênh lệch" Margin="0,14,0,0" HorizontalAlignment="Center" FontSize="17" FontWeight="SemiBold" Foreground="#1F2A44"/>
+                        <TextBlock Text="Số liệu giữa công ty và khách hàng đã khớp" Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="12" Foreground="#64748B" TextAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Button Grid.Column="0" Grid.ColumnSpan="2" Width="28" Height="28" HorizontalAlignment="Right" Margin="0,0,-14,0" VerticalAlignment="Center" Style="{StaticResource TinyIconButton}" Background="#E8F1FF" BorderBrush="#BFD6FF">
+                <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets" Foreground="#2563EB" FontSize="12"/>
+            </Button>
+        </Grid>
+
+        <Border Grid.Row="1" Background="Transparent" Margin="0,10,0,0">
+            <Button Content="Đóng" Width="100" Height="34" HorizontalAlignment="Right" IsCancel="True" Background="White" BorderBrush="#DDE7F3" BorderThickness="1"/>
+        </Border>
+    </Grid>
+</Window>

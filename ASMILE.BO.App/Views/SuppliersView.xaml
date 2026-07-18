@@ -1,0 +1,93 @@
+<UserControl x:Class="ASMILE.BO.App.Views.SuppliersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ASMILE.BO.App.Controls">
+    <UserControl.Resources>
+        <Style x:Key="ToolbarSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EnterpriseCommandSecondaryButton}">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="14,0" />
+        </Style>
+
+        <Style x:Key="ToolbarPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EnterpriseCommandPrimaryButton}">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="14,0" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="2">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+            <Border Width="22" Height="22" CornerRadius="11" Background="#2F65D9" VerticalAlignment="Center">
+                <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" Foreground="White" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Text="Quản lý nhà cung cấp"
+                       Margin="10,0,0,0"
+                       VerticalAlignment="Center"
+                       Foreground="#223B5A"
+                       FontWeight="SemiBold"
+                       FontSize="14" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                <TextBlock Text="Nhà cung cấp"
+                           FontSize="23"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="Quản lý thông tin đối tác cung ứng, trạng thái hoạt động và dữ liệu giao dịch liên quan."
+                           Margin="0,4,0,0"
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <controls:SearchBoxControl Grid.Column="1"
+                                       Width="320"
+                                       Margin="0,0,10,0"
+                                       VerticalAlignment="Center"
+                                       Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}"
+                                       Placeholder="Tìm theo mã, tên, điện thoại..." />
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource ToolbarPrimaryButtonStyle}"
+                        Margin="0,0,8,0"
+                        Command="{Binding NewCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" />
+                        <TextBlock Text="Thêm mới" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ToolbarSecondaryButtonStyle}"
+                        Background="#FFFFFF"
+                        BorderBrush="#C7D6E8"
+                        Command="{Binding SearchCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" />
+                        <TextBlock Text="Làm mới" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.75*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="1.05*" />
+            </Grid.ColumnDefinitions>
+
+            <controls:SupplierGridControl Grid.Column="0" />
+            <controls:SupplierFormControl Grid.Column="2" />
+        </Grid>
+    </Grid>
+</UserControl>

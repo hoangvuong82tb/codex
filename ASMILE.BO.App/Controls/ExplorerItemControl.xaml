@@ -1,0 +1,51 @@
+<UserControl x:Class="ASMILE.BO.App.Controls.ExplorerItemControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="116"
+             d:DesignWidth="138">
+    <Border x:Name="CardRoot"
+            CornerRadius="12"
+            Padding="10,8"
+            BorderThickness="1"
+            BorderBrush="#CAD8EB"
+            Background="#FAFDFF">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Background" Value="#FAFDFF" />
+                <Setter Property="BorderBrush" Value="#CAD8EB" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                        <Setter Property="Background" Value="#EAF2FF" />
+                        <Setter Property="BorderBrush" Value="#8EAEE2" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding Node.IconGlyph, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       FontFamily="Segoe MDL2 Assets"
+                       FontSize="26"
+                       Foreground="#2A4F85"
+                       HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding Node.DisplayName, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       Margin="0,8,0,0"
+                       FontSize="12.5"
+                       FontWeight="SemiBold"
+                       Foreground="#1F3657"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="116" />
+            <TextBlock Text="{Binding Node.VirtualPath, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       Margin="0,4,0,0"
+                       FontSize="11"
+                       Foreground="#5E7596"
+                       TextTrimming="CharacterEllipsis"
+                       HorizontalAlignment="Center"
+                       MaxWidth="116"
+                       Visibility="{Binding ShowSubPath, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+    </Border>
+</UserControl>

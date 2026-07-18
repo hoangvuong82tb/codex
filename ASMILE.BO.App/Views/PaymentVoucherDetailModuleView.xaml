@@ -1,0 +1,85 @@
+<UserControl x:Class="ASMILE.BO.App.Views.PaymentVoucherDetailModuleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             Background="White">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                           Text="{Binding SupplierName, StringFormat=Nhà cung cấp: {0}}"
+                           FontSize="15" FontWeight="SemiBold" Foreground="#1E3352" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,8,10,0"
+                           Text="{Binding DocumentNo, StringFormat=Số phiếu: {0}}"
+                           FontSize="14" Foreground="#334D70" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"
+                           Text="{Binding VoucherDate, StringFormat=Ngày chứng từ: {0:dd/MM/yyyy}}"
+                           FontSize="14" Foreground="#334D70" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,8,10,0"
+                           Text="{Binding Status, StringFormat=Trạng thái: {0}}"
+                           FontSize="14" Foreground="#334D70" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,8,0,0"
+                           Text="{Binding TotalAmount, StringFormat=Tổng tiền: {0:N0}}"
+                           FontSize="14" FontWeight="SemiBold" Foreground="#2F65D9" />
+                <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                           Text="{Binding AccountPairDisplay, Mode=OneWay, StringFormat=Tài khoản nợ/có: {0}}"
+                           FontSize="14" Foreground="#334D70" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,10"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="10">
+            <DataGrid ItemsSource="{Binding Details}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      RowHeight="38"
+                      GridLinesVisibility="None"
+                      HeadersVisibility="Column"
+                      CellStyle="{StaticResource EnterpriseDashedDataGridCell}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="STT" Binding="{Binding LineNo}" Width="64" ElementStyle="{StaticResource EnterpriseDetailGridText}" />
+                    <DataGridTextColumn Header="Chứng từ" Binding="{Binding DocumentNo}" Width="180" ElementStyle="{StaticResource EnterpriseDetailGridText}" />
+                    <DataGridTextColumn Header="Diễn giải" Binding="{Binding Description}" Width="*" ElementStyle="{StaticResource EnterpriseDetailGridText}" />
+                    <DataGridTextColumn Header="Phương thức" Binding="{Binding Method}" Width="160" ElementStyle="{StaticResource EnterpriseDetailGridText}" />
+                    <DataGridTextColumn Header="Thành tiền" Binding="{Binding Amount, StringFormat=N0}" Width="150" ElementStyle="{StaticResource EnterpriseDetailGridRightText}" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Width="132" Height="36" Margin="0,0,10,0" Command="{Binding ShowPreviewCommand}" Content="Xem trước in" />
+            <Button Width="92" Height="36" Command="{Binding CloseCommand}" Content="Đóng" />
+        </StackPanel>
+    </Grid>
+</UserControl>

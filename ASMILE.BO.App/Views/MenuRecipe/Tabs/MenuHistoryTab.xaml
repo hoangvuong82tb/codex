@@ -1,0 +1,57 @@
+<UserControl x:Class="ASMILE.BO.App.Views.MenuRecipe.Tabs.MenuHistoryTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             FontFamily="Segoe UI"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ASMILE.BO.App;component/Views/MenuRecipe/MenuRecipeStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="28,30,28,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+            <TextBlock Text="L&#x1ECB;ch s&#x1EED; thay &#x111;&#x1ED5;i" FontSize="16" FontWeight="SemiBold" Foreground="#0F172A"/>
+            <TextBlock Text="Ghi nh&#x1EAD;n c&#xE1;c thao t&#xE1;c l&#x1B0;u th&#xF4;ng tin, &#x111;&#x1ECB;nh l&#x1B0;&#x1EE3;ng, gi&#xE1; v&#x1ED1;n v&#xE0; tr&#x1EA1;ng th&#xE1;i trong phi&#xEA;n l&#xE0;m vi&#x1EC7;c n&#xE0;y." FontSize="12" Foreground="#64748B" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding MenuHistoryEntries}"
+                  Style="{StaticResource EnterpriseModuleDataGrid}"
+                  Visibility="{Binding HasMenuHistory, Converter={StaticResource B2V}}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  RowHeaderWidth="0"
+                  RowHeight="36"
+                  ColumnHeaderHeight="36"
+                  BorderBrush="#E5E7EB"
+                  BorderThickness="1">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Th&#x1EDD;i gian" Binding="{Binding TimeDisplay}" Width="150"/>
+                <DataGridTextColumn Header="Thao t&#xE1;c" Binding="{Binding Action}" Width="160"/>
+                <DataGridTextColumn Header="N&#x1ED9;i dung" Binding="{Binding Detail}" Width="*"/>
+                <DataGridTextColumn Header="Ng&#x1B0;&#x1EDD;i th&#x1EF1;c hi&#x1EC7;n" Binding="{Binding UserName}" Width="130"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="1"
+                    Visibility="{Binding NoMenuHistory, Converter={StaticResource B2V}}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+            <TextBlock Text="Ch&#x1B0;a c&#xF3; l&#x1ECB;ch s&#x1EED; thay &#x111;&#x1ED5;i cho m&#xF3;n n&#xE0;y." FontSize="14" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+            <TextBlock Text="Sau khi b&#x1EA5;m L&#x1B0;u, L&#x1B0;u &amp; GV, L&#x1B0;u &#x111;&#x1ECB;nh l&#x1B0;&#x1EE3;ng ho&#x1EB7;c &#x111;&#x1ED5;i tr&#x1EA1;ng th&#xE1;i, l&#x1ECB;ch s&#x1EED; s&#x1EBD; hi&#x1EC3;n th&#x1ECB; t&#x1EA1;i &#x111;&#xE2;y." FontSize="12" Foreground="#CBD5E1" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

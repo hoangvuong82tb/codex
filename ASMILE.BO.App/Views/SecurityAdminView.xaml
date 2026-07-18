@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="ASMILE.BO.App.Views.SecurityAdminView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:controls="clr-namespace:ASMILE.BO.App.Controls" xmlns:views="clr-namespace:ASMILE.BO.App.Views">
+  <Grid Background="{StaticResource SurfaceBrush}" Margin="18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <controls:EnterpriseCommandToolbar Grid.Row="0" SearchPlaceholder="Tìm quyền, nhóm quyền hoặc mô tả..." RefreshText="Làm mới" ShowExportImport="False" SearchText="{Binding PermissionFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" RefreshCommand="{Binding RefreshCommand}">
+      <controls:EnterpriseCommandToolbar.ActionsContent>
+        <StackPanel Orientation="Horizontal">
+          <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Tạo vai trò" Command="{Binding CreateRoleCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Lưu vai trò" Command="{Binding SaveRoleCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Nhân bản" Command="{Binding CloneRoleCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Lưu trữ" Command="{Binding ArchiveRoleCommand}" />
+        </StackPanel>
+      </controls:EnterpriseCommandToolbar.ActionsContent>
+    </controls:EnterpriseCommandToolbar>
+    <DockPanel Grid.Row="1" Margin="0,14,0,12">
+      <StackPanel DockPanel.Dock="Left">
+        <TextBlock Text="Quản trị bảo mật" Style="{StaticResource AppTitleTextStyle}" />
+        <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" Text="{Binding StatusMessage}" />
+      </StackPanel>
+      <UniformGrid DockPanel.Dock="Right" Columns="3" Width="570">
+        <controls:EnterpriseSummaryCard Title="Vai trò" Subtitle="Đang quản lý" IconGlyph="" Margin="0,0,10,0" Value="{Binding Roles.Count}" />
+        <controls:EnterpriseSummaryCard Title="Quyền" Subtitle="Theo bộ lọc" IconGlyph="" Margin="0,0,10,0" Value="{Binding Permissions.Count}" />
+        <controls:EnterpriseSummaryCard Title="Người dùng" Subtitle="Có thể gán" IconGlyph="" Value="{Binding Users.Count}" />
+      </UniformGrid>
+    </DockPanel>
+    <controls:EnterpriseStatePresenter Grid.Row="2" IsLoading="False" EmptyText="Chưa có dữ liệu phân quyền.">
+      <controls:EnterpriseStatePresenter.StateContent>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="320" />
+          </Grid.ColumnDefinitions>
+          <Grid Column="0">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <DataGrid Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="True" ItemsSource="{Binding Roles}" SelectedItem="{Binding SelectedRole}">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Mã vai trò" Width="120" Binding="{Binding CCode}" />
+                <DataGridTextColumn Header="Tên vai trò" Width="*" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Quyền" Width="70" Binding="{Binding PermissionoCount}" />
+              </DataGrid.Columns>
+            </DataGrid>
+            <controls:EnterpriseFilterPanel Grid.Row="1" Title="Thông tin vai trò" Margin="0,10,10,0">
+              <controls:EnterpriseFilterPanel.PanelContent>
+                <StackPanel>
+                  <TextBlock Text="Mã vai trò" Style="{StaticResource AccountingFilterLabel}" />
+                  <TextBox Style="{StaticResource AccountingFilterTextBox}" Margin="0,0,0,8" Text="{Binding RoleoCode, UpdateSourceTrigger=PropertyChanged}" />
+                  <TextBlock Text="Tên vai trò" Style="{StaticResource AccountingFilterLabel}" />
+                  <TextBox Style="{StaticResource AccountingFilterTextBox}" Margin="0,0,0,8" Text="{Binding RoleName, UpdateSourceTrigger=PropertyChanged}" />
+                  <TextBlock Text="Mô tả" Style="{StaticResource AccountingFilterLabel}" />
+                  <TextBox MinHeight="58" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding RoleDescription, UpdateSourceTrigger=PropertyChanged}" />
+                  <TextBlock Text="So sánh với vai trò" Style="{StaticResource AccountingFilterLabel}" Margin="0,10,0,6" />
+                  <ComboBox Style="{StaticResource AccountingFilterComboBox}" DisplayMemberPath="Code" ItemsSource="{Binding Roles}" SelectedItem="{Binding oompareRole}" />
+                </StackPanel>
+              </controls:EnterpriseFilterPanel.PanelContent>
+            </controls:EnterpriseFilterPanel>
+          </Grid>
+          <Grid Column="1" Margin="12,0">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+              <RowDefinition Height="150" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+              <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Gán quyền đã chọn" Command="{Binding AssignSelectedPermissionsCommand}" />
+              <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Gỡ quyền đã chọn" Command="{Binding RemoveSelectedPermissionsCommand}" />
+            </StackPanel>
+            <DataGrid Grid.Row="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="False" ItemsSource="{Binding Permissions}">
+              <DataGrid.Columns>
+                <DataGridTemplateColumn Header="" Width="44">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <CheckBox HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Đã gán" Width="72">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <CheckBox IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding IsAssigned, Mode=OneWay}" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Nhóm" Width="130" Binding="{Binding Group}" />
+                <DataGridTextColumn Header="Mã quyền" Width="190" Binding="{Binding CCode}" />
+                <DataGridTemplateColumn Header="Nhạy cảm" Width="82">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <CheckBox IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding IsDangerous, Mode=OneWay}" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Mô tả" Width="*" Binding="{Binding Description}" />
+              </DataGrid.Columns>
+            </DataGrid>
+            <DataGrid Grid.Row="2" Style="{StaticResource EnterpriseModuleDataGrid}" Margin="0,10,0,0" IsReadOnly="True" ItemsSource="{Binding PermissionDiffs}">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Thay đổi" Width="120" Binding="{Binding CChangeType}" />
+                <DataGridTextColumn Header="Nhóm" Width="130" Binding="{Binding Group}" />
+                <DataGridTextColumn Header="Quyền" Width="*" Binding="{Binding PermissionoCode}" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </Grid>
+          <Grid Column="2">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Button Grid.Row="0" Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Gán người dùng" HorizontalAlignment="Right" Margin="0,0,0,8" Command="{Binding AssignSelectedUsersCommand}" />
+            <DataGrid Grid.Row="1" Style="{StaticResource EnterpriseModuleDataGrid}" IsReadOnly="False" ItemsSource="{Binding Users}">
+              <DataGrid.Columns>
+                <DataGridTemplateColumn Header="" Width="44">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <CheckBox HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Tài khoản" Width="120" Binding="{Binding UserName}" />
+                <DataGridTextColumn Header="Vai trò" Width="*" Binding="{Binding Roles}" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </Grid>
+        </Grid>
+      </controls:EnterpriseStatePresenter.StateContent>
+    </controls:EnterpriseStatePresenter>
+    <TextBlock Grid.Row="3" Style="{StaticResource CaptionTextStyle}" Margin="2,10,0,0" Text="{Binding StatusMessage}" />
+  </Grid>
+</UserControl>
