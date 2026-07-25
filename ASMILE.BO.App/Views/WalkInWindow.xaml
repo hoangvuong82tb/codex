@@ -1,0 +1,410 @@
+<Window x:Class="ASMILE.BO.App.Views.WalkInWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="Walk-In" Width="1280" Height="900"
+        MinWidth="1120" MinHeight="760"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis"/>
+
+        <!-- ═══ CONTROL STYLES ═══ -->
+        <Style x:Key="ModTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="40"/><Setter Property="Padding" Value="12,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="14"/><Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D8E2F0"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" SnapsToDevicePixels="True">
+                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/><Setter TargetName="Bd" Property="BorderThickness" Value="1.5"/></Trigger>
+                    <Trigger Property="IsReadOnly" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F4F6FA"/><Setter Property="Foreground" Value="#5F6F85"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+
+        <Style x:Key="ModCombo" TargetType="ComboBox">
+            <Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="14"/><Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D8E2F0"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+                <Grid><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" SnapsToDevicePixels="True">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
+                        <ContentPresenter Grid.Column="0" Margin="12,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
+                        <Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7B8DA6" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="6" Stretch="Uniform"/>
+                    </Grid>
+                </Border>
+                <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                    <Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="9" Margin="0,2" SnapsToDevicePixels="True"><ScrollViewer MaxHeight="220"><ItemsPresenter/></ScrollViewer></Border>
+                </Popup></Grid>
+                <ControlTemplate.Triggers><Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+
+        <Style x:Key="ModDatePicker" TargetType="DatePicker">
+            <Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="14"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DatePicker">
+                <Grid>
+                    <Border x:Name="Root" Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="9" SnapsToDevicePixels="True"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions>
+                        <DatePickerTextBox x:Name="PART_TextBox" Grid.Column="0" BorderThickness="0" Background="Transparent" Padding="12,0" VerticalContentAlignment="Center" FontSize="14" FontFamily="Segoe UI" Foreground="#17365D"/>
+                        <ToggleButton x:Name="PART_Button" Grid.Column="1" Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Focusable="False" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                            <Border Width="28" Height="28" CornerRadius="7" Background="#F2F6FD">
+                                <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#2F6BFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ToggleButton>
+                    </Grid>
+                    <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" StaysOpen="False" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                        <Border Background="White" BorderBrush="#DCE5F1" BorderThickness="1" CornerRadius="14" Padding="0">
+                            <Border.Effect><DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.16" Color="#62748E"/></Border.Effect>
+                            <Calendar x:Name="PART_Calendar" Style="{StaticResource FoModernCalendarStyle}" Language="vi-VN" BorderThickness="0" Background="White" SelectedDate="{Binding SelectedDate, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" DisplayDate="{Binding DisplayDate, RelativeSource={RelativeSource TemplatedParent}}"/>
+                        </Border>
+                    </Popup>
+                </Grid>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#AFCBF7"/></Trigger>
+                    <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#2F6BFF"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+
+        <Style x:Key="NumericBox" TargetType="TextBox">
+            <Setter Property="Height" Value="40"/><Setter Property="Width" Value="80"/><Setter Property="Padding" Value="8,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="14"/><Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D8E2F0"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" SnapsToDevicePixels="True">
+                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers><Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+
+        <!-- VAT ToggleSwitch -->
+        <Style x:Key="VatToggle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="46"/><Setter Property="Height" Value="24"/><Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+                <Border x:Name="Track" Width="46" Height="24" CornerRadius="12" Background="#D8E2F0" SnapsToDevicePixels="True">
+                    <Border x:Name="Thumb" Width="20" Height="20" CornerRadius="10" Background="White" HorizontalAlignment="Left" Margin="2,0,0,0" SnapsToDevicePixels="True">
+                        <Border.Effect><DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.15" Color="#000000"/></Border.Effect>
+                    </Border>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsChecked" Value="True"><Setter TargetName="Track" Property="Background" Value="#2F6BFF"/><Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/><Setter TargetName="Thumb" Property="Margin" Value="0,0,2,0"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+
+        <!-- Buttons -->
+        <Style x:Key="BlueBtn" TargetType="Button">
+            <Setter Property="Height" Value="40"/><Setter Property="Background" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="22,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Background" Value="#94A3B8"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="GreenBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="Background" Value="#16A34A"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="22,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="GrayBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="Background" Value="#F3F6FA"/><Setter Property="Foreground" Value="#52657D"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="14"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="LookupBtn" TargetType="Button"><Setter Property="Width" Value="38"/><Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="16"/><Setter Property="Foreground" Value="#2F6BFF"/><Setter Property="Background" Value="#F2F6FD"/><Setter Property="BorderBrush" Value="#D8E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" SnapsToDevicePixels="True"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E8F0FF"/><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="SegBtn" TargetType="RadioButton"><Setter Property="Height" Value="38"/><Setter Property="MinWidth" Value="140"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#52657D"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="BorderBrush" Value="#D8E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True"><Setter TargetName="Bd" Property="Background" Value="#2F6BFF"/><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <!-- Fluent Action Button Styles -->
+        <Style x:Key="ScanActionBtn" TargetType="Button">
+            <Setter Property="Height" Value="38"/><Setter Property="Width" Value="110"/>
+            <Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#2563EB"/><Setter Property="Background" Value="#F8FAFF"/>
+            <Setter Property="BorderBrush" Value="#D7E3FF"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#EAF2FF"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.45"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="ScanDeleteBtn" TargetType="Button">
+            <Setter Property="Height" Value="38"/><Setter Property="Width" Value="110"/>
+            <Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#DC2626"/><Setter Property="Background" Value="#FFF5F5"/>
+            <Setter Property="BorderBrush" Value="#FECACA"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#FEE2E2"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.45"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="ScanApplyBtn" TargetType="Button">
+            <Setter Property="Height" Value="40"/><Setter Property="MinWidth" Value="140"/>
+            <Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="22,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Background" Value="#94A3B8"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <!-- HEADER -->
+        <Border Padding="24,18" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="46" Height="46" CornerRadius="12"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#0EA5E9" Offset="0"/><GradientStop Color="#0284C7" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE1D3;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0"><TextBlock Text="Walk-In" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Tạo hồ sơ lưu trú cho khách không có đặt phòng trước" FontSize="13" Foreground="#64748B" Margin="0,3,0,0"/></StackPanel>
+                <Button Grid.Column="2" Content="Làm mới" Click="OnRefreshClick" Style="{StaticResource GrayBtn}"/>
+            </Grid>
+        </Border>
+
+        <!-- STEP BAR -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Border x:Name="StepScanBox" Width="148" Height="64" CornerRadius="10" Margin="0,0,4,0" Background="#EFF6FF" BorderBrush="#3B82F6" BorderThickness="1.5" Cursor="Hand" Padding="12,8" MouseLeftButtonDown="OnStepClick" Tag="0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="32" Height="32" CornerRadius="8" Background="#2563EB" VerticalAlignment="Center"><TextBlock Text="A" FontSize="15" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"><TextBlock Text="Quét giấy tờ" FontSize="12" FontWeight="SemiBold" Foreground="#1E40AF"/><TextBlock x:Name="StepScanLabel" Text="Đang nhập" FontSize="10" Foreground="#1E40AF" Opacity="0.7"/></StackPanel></Grid></Border>
+                <TextBlock Text="▸" FontSize="16" Foreground="#CBD5E1" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <Border x:Name="StepABox" Width="148" Height="64" CornerRadius="10" Margin="0,0,4,0" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand" Padding="12,8" MouseLeftButtonDown="OnStepClick" Tag="1"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="32" Height="32" CornerRadius="8" Background="#F1F5F9" VerticalAlignment="Center"><TextBlock Text="B" FontSize="15" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"><TextBlock Text="Khách &amp; lưu trú" FontSize="12" FontWeight="SemiBold" Foreground="#64748B"/><TextBlock x:Name="StepALabel" Text="Chưa bắt đầu" FontSize="10" Foreground="#64748B"/></StackPanel></Grid></Border>
+                <TextBlock Text="▸" FontSize="16" Foreground="#CBD5E1" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <Border x:Name="StepBBox" Width="148" Height="64" CornerRadius="10" Margin="0,0,4,0" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand" Padding="12,8" MouseLeftButtonDown="OnStepClick" Tag="2"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="32" Height="32" CornerRadius="8" Background="#F1F5F9" VerticalAlignment="Center"><TextBlock Text="C" FontSize="15" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"><TextBlock Text="Phòng &amp; dịch vụ" FontSize="12" FontWeight="SemiBold" Foreground="#64748B"/><TextBlock x:Name="StepBLabel" Text="Chưa bắt đầu" FontSize="10" Foreground="#64748B"/></StackPanel></Grid></Border>
+                <TextBlock Text="▸" FontSize="16" Foreground="#CBD5E1" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <Border x:Name="StepCBox" Width="148" Height="64" CornerRadius="10" Margin="0,0,4,0" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand" Padding="12,8" MouseLeftButtonDown="OnStepClick" Tag="3"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="32" Height="32" CornerRadius="8" Background="#F1F5F9" VerticalAlignment="Center"><TextBlock Text="D" FontSize="15" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"><TextBlock Text="Giá &amp; Folio" FontSize="12" FontWeight="SemiBold" Foreground="#64748B"/><TextBlock x:Name="StepCLabel" Text="Chưa bắt đầu" FontSize="10" Foreground="#64748B"/></StackPanel></Grid></Border>
+                <TextBlock Text="▸" FontSize="16" Foreground="#CBD5E1" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <Border x:Name="StepDBox" Width="148" Height="64" CornerRadius="10" Margin="0,0,4,0" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand" Padding="12,8" MouseLeftButtonDown="OnStepClick" Tag="4"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="32" Height="32" CornerRadius="8" Background="#F1F5F9" VerticalAlignment="Center"><TextBlock Text="E" FontSize="15" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"><TextBlock Text="Xác nhận" FontSize="12" FontWeight="SemiBold" Foreground="#64748B"/><TextBlock x:Name="StepDLabel" Text="Chưa bắt đầu" FontSize="10" Foreground="#64748B"/></StackPanel></Grid></Border>
+            </StackPanel>
+        </Border>
+
+        <!-- MAIN: 2-column -->
+        <Grid Grid.Row="2" Margin="24,16">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="65*" MinWidth="440"/><ColumnDefinition Width="20"/><ColumnDefinition Width="35*" MinWidth="330"/></Grid.ColumnDefinitions>
+
+            <!-- LEFT INPUT CARD -->
+            <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="16" Padding="26,22">
+                <Border.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.04" Color="#000000"/></Border.Effect>
+                <Grid>
+                <!-- STEP A: DOCUMENT SCAN (optional, can skip) -->
+                <StackPanel x:Name="StepAContent">
+                    <TextBlock Text="Quét giấy tờ" FontSize="18" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Margin="0,0,0,14"/>
+
+                    <!-- Row 1: Chọn khách + Loại giấy tờ -->
+                    <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Chọn khách" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="1"><ComboBoxItem Content="Khách chính" IsSelected="True"/></ComboBox>
+                        </Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Loại giấy tờ" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="2"><ComboBoxItem Content="CCCD" IsSelected="True"/><ComboBoxItem Content="Hộ chiếu"/><ComboBoxItem Content="CMND"/><ComboBoxItem Content="Khác"/></ComboBox>
+                        </Grid>
+                    </Grid>
+
+                    <Border Height="1" Background="#E2E8F0" Margin="0,2,0,10"/>
+
+                    <!-- Action Bar -->
+                    <Border Background="White" Padding="14,12" BorderBrush="#EEF2F7" BorderThickness="0,0,0,1" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Quét CCCD" Style="{StaticResource ScanActionBtn}" TabIndex="3" IsEnabled="False" ToolTip="Chức năng quét giấy tờ chưa được kết nối."/>
+                            <Button Content="Passport" Style="{StaticResource ScanActionBtn}" Margin="10,0,0,0" TabIndex="4" IsEnabled="False" ToolTip="Chức năng quét giấy tờ chưa được kết nối."/>
+                            <Button Content="Nạp ảnh" Style="{StaticResource ScanActionBtn}" Margin="10,0,0,0" TabIndex="5" IsEnabled="False"/>
+                            <Button Content="Khách cũ" Style="{StaticResource ScanActionBtn}" Margin="10,0,0,0" TabIndex="6" Click="OnFindGuestClick"/>
+                            <Button Content="Xóa" Style="{StaticResource ScanDeleteBtn}" Margin="10,0,0,0" TabIndex="7" Click="OnClearScanClick"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Height="1" Background="#E2E8F0" Margin="0,2,0,10"/>
+
+                    <!-- Row 3+: Identity fields -->
+                    <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Họ và tên" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <TextBox Grid.Column="1" x:Name="ScanFullName" Style="{StaticResource ModTextBox}" TabIndex="8"/>
+                        </Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Giới tính" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="9"><ComboBoxItem Content="Nam"/><ComboBoxItem Content="Nữ"/></ComboBox>
+                        </Grid>
+                    </Grid>
+                    <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Ngày sinh" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <TextBox Grid.Column="1" x:Name="ScanDob" Style="{StaticResource ModTextBox}" TabIndex="10"/>
+                        </Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Quốc tịch" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="11"><ComboBoxItem Content="Việt Nam"/><ComboBoxItem Content="Khác"/></ComboBox>
+                        </Grid>
+                    </Grid>
+                    <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Số CCCD" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <TextBox Grid.Column="1" x:Name="ScanDocNumber" Style="{StaticResource ModTextBox}" TabIndex="12"/>
+                        </Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Ngày cấp" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <TextBox Grid.Column="1" x:Name="ScanIssueDate" Style="{StaticResource ModTextBox}" TabIndex="13"/>
+                        </Grid>
+                    </Grid>
+                    <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Nơi cấp" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <TextBox Grid.Column="1" x:Name="ScanIssuePlace" Style="{StaticResource ModTextBox}" TabIndex="14"/>
+                        </Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Quê quán" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <TextBox Grid.Column="1" x:Name="ScanBirthPlace" Style="{StaticResource ModTextBox}" TabIndex="15"/>
+                        </Grid>
+                    </Grid>
+                    <Grid Margin="0,0,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="Địa chỉ" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                        <TextBox Grid.Column="1" x:Name="ScanAddress" Style="{StaticResource ModTextBox}" TabIndex="16"/>
+                    </Grid>
+
+                    <Border Height="1" Background="#E2E8F0" Margin="0,8,0,12"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Background="#F1F5F9" CornerRadius="8" Padding="10,5"><TextBlock x:Name="ScanStatus" Text="Chưa quét" FontSize="12" Foreground="#94A3B8"/></Border>
+                            <Button Content="Xóa kết quả" Style="{StaticResource ScanDeleteBtn}" Margin="16,0,0,0" Click="OnClearScanClick"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="Bỏ qua bước này" Height="40" MinWidth="140" FontSize="13" FontFamily="Segoe UI" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" Padding="16,0" Cursor="Hand" Click="OnSkipScanClick"/>
+                            <Button Content="Áp dụng dữ liệu" Style="{StaticResource ScanApplyBtn}" Margin="12,0,0,0" Click="OnApplyScanClick" IsEnabled="False"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <!-- STEP B: GUEST & STAY -->
+                <StackPanel x:Name="StepGuestContent" Visibility="Collapsed">
+                    <TextBlock Text="Thông tin khách" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Họ và tên *" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="GuestName" Style="{StaticResource ModTextBox}" TabIndex="1"/></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Điện thoại" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="GuestPhone" Style="{StaticResource ModTextBox}" TabIndex="2"/></Grid>
+                    </Grid>
+                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Loại giấy tờ" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="3"><ComboBoxItem Content="CCCD"/><ComboBoxItem Content="Hộ chiếu"/><ComboBoxItem Content="CMND"/><ComboBoxItem Content="Khác"/></ComboBox></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Số giấy tờ" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="DocNumber" Style="{StaticResource ModTextBox}" TabIndex="4"/></Grid>
+                    </Grid>
+                    <Grid Margin="0,0,0,20"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Quốc tịch" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="5"><ComboBoxItem Content="Việt Nam"/><ComboBoxItem Content="Khác"/></ComboBox></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Ngày sinh" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><DatePicker Grid.Column="1" x:Name="Dob" Style="{StaticResource ModDatePicker}" TabIndex="6"/></Grid>
+                    </Grid>
+                    <TextBlock Text="Thông tin lưu trú" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="150"/><ColumnDefinition Width="8"/><ColumnDefinition Width="75"/></Grid.ColumnDefinitions><TextBlock Text="Ngày đến" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><DatePicker Grid.Column="1" x:Name="ArrivalDate" SelectedDate="{x:Static sys:DateTime.Today}" Style="{StaticResource ModDatePicker}" TabIndex="7"/><TextBox Grid.Column="3" Text="14:00" Style="{StaticResource ModTextBox}" TextAlignment="Center" TabIndex="8"/></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="150"/><ColumnDefinition Width="8"/><ColumnDefinition Width="75"/></Grid.ColumnDefinitions><TextBlock Text="Ngày đi" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><DatePicker Grid.Column="1" x:Name="DepartureDate" Style="{StaticResource ModDatePicker}" TabIndex="9"/><TextBox Grid.Column="3" Text="12:00" Style="{StaticResource ModTextBox}" TextAlignment="Center" TabIndex="10"/></Grid>
+                    </Grid>
+                    <Grid Margin="0,0,0,14"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Số đêm" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><Border Background="#EFF6FF" CornerRadius="8" Padding="10,4" Margin="0,0,0,0"><TextBlock x:Name="NightsDisplay" FontSize="18" FontWeight="SemiBold" Foreground="#2F6BFF" Text="1"/></Border></Grid>
+                    <Grid Margin="0,0,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Số khách" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><StackPanel Grid.Column="1"><TextBlock Text="Người lớn" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/><TextBox x:Name="Adults" Text="1" Style="{StaticResource NumericBox}" TabIndex="11"/></StackPanel><StackPanel Grid.Column="3"><TextBlock Text="Trẻ em" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/><TextBox x:Name="Children" Text="0" Style="{StaticResource NumericBox}" TabIndex="12"/></StackPanel><StackPanel Grid.Column="5"><TextBlock Text="Sơ sinh" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/><TextBox Text="0" Style="{StaticResource NumericBox}" TabIndex="13"/></StackPanel><StackPanel Grid.Column="7"><TextBlock Text="Giường thêm" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/><TextBox Text="0" Style="{StaticResource NumericBox}" TabIndex="14"/></StackPanel></Grid>
+                </StackPanel>
+
+                <!-- STEP B -->
+                <StackPanel x:Name="StepBContent" Visibility="Collapsed">
+                    <TextBlock Text="Phòng &amp; dịch vụ" FontSize="18" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Margin="0,0,0,18"/>
+                    <TextBlock Text="Chọn phòng" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="38"/></Grid.ColumnDefinitions><TextBlock Text="Hạng phòng" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ComboBox Grid.Column="1" x:Name="RoomTypeB" Style="{StaticResource ModCombo}" TabIndex="15" SelectionChanged="OnRoomTypeBChanged"/><Button Grid.Column="3" Content="…" Style="{StaticResource LookupBtn}" TabIndex="16"/></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="38"/></Grid.ColumnDefinitions><TextBlock Text="Số phòng" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ComboBox Grid.Column="1" x:Name="RoomB" Style="{StaticResource ModCombo}" TabIndex="17"/><Button Grid.Column="3" Content="…" Style="{StaticResource LookupBtn}" TabIndex="18"/></Grid>
+                    </Grid>
+                    <Grid Margin="0,0,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Tầng" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" Style="{StaticResource ModTextBox}" IsReadOnly="True" Text="Chưa chọn"/></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Trạng thái" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" Style="{StaticResource ModTextBox}" IsReadOnly="True" Text="—"/></Grid>
+                    </Grid>
+                    <Border Background="#EFF6FF" CornerRadius="10" Padding="14,12" Margin="0,0,0,16" Visibility="Collapsed" x:Name="SelectedRoomCard"><StackPanel><TextBlock Text="Phòng được chọn" FontSize="13" FontWeight="SemiBold" Foreground="#1E40AF" Margin="0,0,0,4"/><TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#17365D" x:Name="RoomDetailB" Text="—"/><TextBlock FontSize="12" Foreground="#6F8198" x:Name="RoomFloorB" Margin="0,2,0,0"/></StackPanel></Border>
+                    <TextBlock Text="Dịch vụ" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Meal Code" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="20"><ComboBoxItem Content="RO"/><ComboBoxItem Content="BB"/><ComboBoxItem Content="HB"/><ComboBoxItem Content="FB"/></ComboBox></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Nguồn" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="21"><ComboBoxItem Content="Walk-In"/><ComboBoxItem Content="Direct"/></ComboBox></Grid>
+                    </Grid>
+                </StackPanel>
+
+                <!-- STEP C -->
+                <StackPanel x:Name="StepCContent" Visibility="Collapsed">
+                    <TextBlock Text="Giá &amp; Folio" FontSize="18" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Margin="0,0,0,18"/>
+                    <TextBlock Text="Nguồn giá" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <RadioButton Content="Dùng Rate Code" GroupName="PriceSrc" IsChecked="True" Style="{StaticResource SegBtn}" Margin="0,0,8,0" TabIndex="22"/>
+                        <RadioButton Content="Giá thỏa thuận" GroupName="PriceSrc" Style="{StaticResource SegBtn}" TabIndex="23"/>
+                    </StackPanel>
+                    <TextBlock Text="Giá phòng" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Rate Code" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" Text="RACK" Style="{StaticResource ModTextBox}" TabIndex="24"/></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Room Rate" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="RoomRate" Style="{StaticResource ModTextBox}" TabIndex="25"/></Grid>
+                    </Grid>
+                    <Grid Margin="0,0,0,20"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Tiền tệ" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="26"><ComboBoxItem Content="VND"/><ComboBoxItem Content="USD"/></ComboBox></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="VAT" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ToggleButton Grid.Column="2" x:Name="VatToggle" IsChecked="True" Style="{StaticResource VatToggle}" TabIndex="27"/><TextBlock Grid.Column="4" VerticalAlignment="Center" FontSize="13" Foreground="#17365D" x:Name="VatLabel" Text="Đã gồm VAT"/></Grid>
+                    </Grid>
+                    <TextBlock Text="Đặt cọc" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Tiền đặt cọc" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="DepositAmt" Text="0" Style="{StaticResource ModTextBox}" TabIndex="28"/></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Hình thức" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="29"><ComboBoxItem Content="Tiền mặt"/><ComboBoxItem Content="Chuyển khoản"/><ComboBoxItem Content="Thẻ"/></ComboBox></Grid>
+                    </Grid>
+                    <TextBlock Text="Giảm giá" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Giảm giá %" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="DiscountPct" Text="0" Style="{StaticResource ModTextBox}" TabIndex="30"/></Grid>
+                        <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Giảm giá tiền" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="DiscountAmt" Text="0" Style="{StaticResource ModTextBox}" TabIndex="31"/></Grid>
+                    </Grid>
+                </StackPanel>
+
+                <!-- STEP D -->
+                <StackPanel x:Name="StepDContent" Visibility="Collapsed">
+                    <TextBlock Text="Xác nhận Walk-In" FontSize="18" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Margin="0,0,0,4"/>
+                    <TextBlock Text="Kiểm tra thông tin trước khi tạo hồ sơ và nhận phòng." FontSize="13" Foreground="#64748B" Margin="0,0,0,18"/>
+                    <WrapPanel Orientation="Horizontal">
+                        <Border Width="290" Background="#FAFBFD" CornerRadius="10" Padding="16,14" Margin="0,0,12,12"><StackPanel><TextBlock Text="👤 Khách" FontSize="14" FontWeight="SemiBold" Foreground="#17365D" Margin="0,0,0,8"/><TextBlock FontSize="13" x:Name="ConfirmGuest" Text="—" FontWeight="SemiBold" Foreground="#17365D"/><TextBlock FontSize="12" Foreground="#6F8198" x:Name="ConfirmPhone" Text="—" Margin="0,2,0,0"/><TextBlock FontSize="12" Foreground="#6F8198" x:Name="ConfirmDoc" Text="—" Margin="0,2,0,0"/></StackPanel></Border>
+                        <Border Width="290" Background="#FAFBFD" CornerRadius="10" Padding="16,14" Margin="0,0,12,12"><StackPanel><TextBlock Text="🏨 Phòng" FontSize="14" FontWeight="SemiBold" Foreground="#17365D" Margin="0,0,0,8"/><TextBlock FontSize="13" x:Name="ConfirmRoom" Text="—" FontWeight="SemiBold" Foreground="#17365D"/><TextBlock FontSize="12" Foreground="#6F8198" x:Name="ConfirmRoomTypeB" Text="—" Margin="0,2,0,0"/></StackPanel></Border>
+                        <Border Width="290" Background="#FAFBFD" CornerRadius="10" Padding="16,14" Margin="0,0,12,12"><StackPanel><TextBlock Text="📅 Lưu trú" FontSize="14" FontWeight="SemiBold" Foreground="#17365D" Margin="0,0,0,8"/><TextBlock FontSize="13" x:Name="ConfirmStay" Text="—" FontWeight="SemiBold" Foreground="#17365D"/><TextBlock FontSize="13" x:Name="ConfirmNights" Text="—" Foreground="#2563EB" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel></Border>
+                        <Border Width="290" Background="#FAFBFD" CornerRadius="10" Padding="16,14" Margin="0,0,12,12"><StackPanel><TextBlock Text="💰 Giá" FontSize="14" FontWeight="SemiBold" Foreground="#17365D" Margin="0,0,0,8"/><TextBlock FontSize="13" x:Name="ConfirmPrice" Text="—" FontWeight="SemiBold" Foreground="#17365D"/></StackPanel></Border>
+                    </WrapPanel>
+                    <Border Background="#EFF6FF" CornerRadius="10" Padding="16,14" Margin="0,12,0,0" BorderBrush="#93C5FD" BorderThickness="1">
+                        <TextBlock Text="Sẵn sàng thực hiện Walk-In" FontSize="14" TextAlignment="Center" Foreground="#1E40AF" FontWeight="SemiBold"/>
+                    </Border>
+                </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- RIGHT SUMMARY -->
+            <Border Grid.Column="2" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="16" Padding="20,18">
+                <Border.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.04" Color="#000000"/></Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="Chi tiết Walk-In" FontSize="16" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Margin="0,0,0,14"/>
+                    <Border Background="#FAFBFD" CornerRadius="8" Padding="14,12" Margin="0,0,0,6"><StackPanel><TextBlock Text="Khách" FontSize="12" Foreground="#7B8DA6" Margin="0,0,0,6"/><TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#17365D" x:Name="SumGuest" Text="—"/><TextBlock FontSize="13" Foreground="#6F8198" x:Name="SumPhone" Text="—"/></StackPanel></Border>
+                    <Border Background="#FAFBFD" CornerRadius="8" Padding="14,12" Margin="0,0,0,6"><StackPanel><TextBlock Text="Lưu trú" FontSize="12" Foreground="#7B8DA6" Margin="0,0,0,6"/><TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#17365D" x:Name="SumStay" Text="—"/><TextBlock FontSize="13" Foreground="#6F8198" x:Name="SumNights" Text="—"/></StackPanel></Border>
+                    <Border Background="#FAFBFD" CornerRadius="8" Padding="14,12" Margin="0,0,0,6"><StackPanel><TextBlock Text="Phòng" FontSize="12" Foreground="#7B8DA6" Margin="0,0,0,6"/><TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#17365D" x:Name="SumRoom" Text="—"/><TextBlock FontSize="13" Foreground="#6F8198" x:Name="SumRoomType" Text="—"/></StackPanel></Border>
+                    <Border Background="#EEF4FF" BorderBrush="#CFE0FF" BorderThickness="1" CornerRadius="8" Padding="14,10"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="●" Foreground="#2F6BFF" FontSize="10" VerticalAlignment="Center"/><TextBlock Grid.Column="1" Text="Đang nhập dữ liệu" FontSize="13" Foreground="#1E40AF" Margin="8,0,0,0"/></Grid></Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- FOOTER -->
+        <Border Grid.Row="3" Padding="20,14" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Foreground="#DC2626" TextWrapping="Wrap" x:Name="ErrorText" Text="" MaxHeight="40"/><TextBlock x:Name="StepLabel" Text="Bước A/5" FontSize="13" Foreground="#64748B"/></StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Đóng" Click="OnCloseClick" Style="{StaticResource GrayBtn}"/>
+                    <Button Content="← Quay lại" Click="OnBackClick" x:Name="BackBtn" Style="{StaticResource GrayBtn}" Margin="10,0,0,0" Visibility="Collapsed"/>
+                    <Button Content="Tiếp theo →" Click="OnNextClick" x:Name="NextBtn" Style="{StaticResource BlueBtn}" Margin="10,0,0,0"/>
+                    <Button Content="Thực hiện Walk-In" Click="OnExecuteClick" x:Name="ExecuteBtn" Style="{StaticResource GreenBtn}" Margin="10,0,0,0" Visibility="Collapsed"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

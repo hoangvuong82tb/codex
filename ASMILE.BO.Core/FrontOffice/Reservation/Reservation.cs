@@ -3,7 +3,9 @@ using ASMILE.BO.Core.FrontOffice.Foundation.Identifiers;
 
 namespace ASMILE.BO.Core.FrontOffice.Reservation;
 
-public enum ReservationStatus { Draft, Tentative, Confirmed, Cancelled, NoShow }
+public enum ReservationStatus { Draft, Tentative, Confirmed, Guaranteed, CheckedIn, Cancelled, NoShow, Completed }
+public enum GuaranteeType { None, CreditCard, CashDeposit, CompanyGuarantee, Prepayment, TravelAgencyGuarantee }
+public enum DepositStatus { NotRequired, Pending, Partial, Received, Forfeited, Refunded }
 public readonly record struct StayPeriod(DateOnly ArrivalDate, DateOnly DepartureDate)
 {
     public int Nights => DepartureDate.DayNumber - ArrivalDate.DayNumber;
@@ -51,6 +53,18 @@ public sealed class Reservation : IHasFrontOfficeDomainEvents
     public DateTime? ConfirmedAtUtc { get; private set; }
     public DateTime? CancelledAtUtc { get; private set; }
     public DateTime? NoShowAtUtc { get; private set; }
+    public bool IsVip { get; private set; }
+    public string? MarketSegment { get; private set; }
+    public string? CompanyName { get; private set; }
+    public string? TravelAgentName { get; private set; }
+    public DateTime? GuaranteedAtUtc { get; private set; }
+    public GuaranteeType GuaranteeType { get; private set; }
+    public DateTime? GuaranteeExpiryDate { get; private set; }
+    public decimal DepositAmount { get; private set; }
+    public DateOnly? DepositDueDate { get; private set; }
+    public DepositStatus DepositStatus { get; private set; }
+    public DateTime? CheckedInAtUtc { get; private set; }
+    public DateTime? CompletedAtUtc { get; private set; }
     public byte[]? RowVersion { get; private set; }
     public IReadOnlyCollection<IFrontOfficeDomainEvent> DomainEvents => _events;
     public bool IsTerminal => Status is ReservationStatus.Cancelled or ReservationStatus.NoShow;
@@ -67,8 +81,22 @@ public sealed class Reservation : IHasFrontOfficeDomainEvents
     public void UnassignRoom(DateTime nowUtc, ActorId? actor) { EnsureMutable(); AssignedRoomId = null; Touch(nowUtc, actor); Add("FrontOffice.Reservation.RoomUnassigned", nowUtc); }
     public void MarkTentative(DateTime nowUtc, ActorId? actor) { Require(ReservationStatus.Draft); Status = ReservationStatus.Tentative; Touch(nowUtc, actor); Add("FrontOffice.Reservation.Tentative", nowUtc); }
     public void Confirm(DateTime nowUtc, ActorId? actor) { Require(ReservationStatus.Tentative); if (GuestId is null || string.IsNullOrWhiteSpace(GuestNameSnapshot)) throw new ArgumentException("RESERVATION_GUEST_REQUIRED"); if (RoomTypeId is null) throw new ArgumentException("RESERVATION_ROOM_TYPE_REQUIRED"); Status = ReservationStatus.Confirmed; ConfirmedAtUtc = nowUtc; Touch(nowUtc, actor); Add("FrontOffice.Reservation.Confirmed", nowUtc); }
-    public void Cancel(string reason, DateTime nowUtc, ActorId? actor) { if (IsTerminal || Status is not (ReservationStatus.Draft or ReservationStatus.Tentative or ReservationStatus.Confirmed)) throw new InvalidOperationException("RESERVATION_INVALID_STATE"); if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("RESERVATION_CANCEL_REASON_REQUIRED"); Status = ReservationStatus.Cancelled; CancellationReason = reason.Trim(); CancelledAtUtc = nowUtc; Touch(nowUtc, actor); Add("FrontOffice.Reservation.Cancelled", nowUtc); }
+    public void Cancel(string reason, DateTime nowUtc, ActorId? actor) { if (IsTerminal || Status is not (ReservationStatus.Draft or ReservationStatus.Tentative or ReservationStatus.Confirmed or ReservationStatus.Guaranteed)) throw new InvalidOperationException("RESERVATION_INVALID_STATE"); if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("RESERVATION_CANCEL_REASON_REQUIRED"); Status = ReservationStatus.Cancelled; CancellationReason = reason.Trim(); CancelledAtUtc = nowUtc; Touch(nowUtc, actor); Add("FrontOffice.Reservation.Cancelled", nowUtc); }
     public void MarkNoShow(DateTime nowUtc, ActorId? actor) { Require(ReservationStatus.Confirmed); Status = ReservationStatus.NoShow; NoShowAtUtc = nowUtc; Touch(nowUtc, actor); Add("FrontOffice.Reservation.NoShow", nowUtc); }
+    public void Guarantee(GuaranteeType type, DateTime nowUtc, ActorId? actor, DateTime? expiryDate = null)
+    {
+        if (!IsTerminal && Status is not (ReservationStatus.Tentative or ReservationStatus.Confirmed or ReservationStatus.Guaranteed)) throw new InvalidOperationException("RESERVATION_INVALID_STATE");
+        if (type == GuaranteeType.None) throw new ArgumentException("RESERVATION_GUARANTEE_TYPE_REQUIRED");
+        Status = ReservationStatus.Guaranteed; GuaranteeType = type; GuaranteedAtUtc = nowUtc; GuaranteeExpiryDate = expiryDate; Touch(nowUtc, actor); Add("FrontOffice.Reservation.Guaranteed", nowUtc);
+    }
+    public void RecordDeposit(decimal amount, DateOnly dueDate, DateTime nowUtc, ActorId? actor)
+    {
+        EnsureMutable(); if (amount <= 0) throw new ArgumentException("RESERVATION_DEPOSIT_AMOUNT_REQUIRED");
+        if (dueDate < ArrivalDate.AddDays(-90)) throw new ArgumentException("RESERVATION_DEPOSIT_DUE_DATE_INVALID");
+        DepositAmount = amount; DepositDueDate = dueDate; DepositStatus = amount >= (amount > 0 ? amount : 0) ? DepositStatus.Pending : DepositStatus.NotRequired;
+        if (DepositAmount > 0) DepositStatus = DepositStatus.Pending;
+        Touch(nowUtc, actor); Add("FrontOffice.Reservation.DepositRecorded", nowUtc);
+    }
     public void ClearDomainEvents() => _events.Clear();
     private void EnsureMutable() { if (IsTerminal) throw new InvalidOperationException("RESERVATION_TERMINAL"); }
     private void Require(ReservationStatus status) { if (Status != status) throw new InvalidOperationException("RESERVATION_INVALID_STATE"); }

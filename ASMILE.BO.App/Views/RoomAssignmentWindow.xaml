@@ -1,0 +1,159 @@
+<Window x:Class="ASMILE.BO.App.Views.RoomAssignmentWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Phân phòng"
+        Width="1200" Height="740"
+        MinWidth="1050" MinHeight="640"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        Background="#F8FAFC"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis" />
+        <Style x:Key="DetLabel" TargetType="TextBlock"><Setter Property="FontSize" Value="12"/><Setter Property="Foreground" Value="#7B8DA6"/><Setter Property="FontFamily" Value="Segoe UI"/></Style>
+        <Style x:Key="DetValue" TargetType="TextBlock"><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="FontFamily" Value="Segoe UI"/></Style>
+        <Style x:Key="RoomDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="CanUserAddRows" Value="False"/><Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
+            <Setter Property="Background" Value="Transparent"/><Setter Property="RowBackground" Value="Transparent"/>
+            <Setter Property="AlternatingRowBackground" Value="#FAFBFD"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="ColumnHeaderHeight" Value="36"/><Setter Property="RowHeight" Value="36"/>
+            <Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value><Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="#F2F6FC"/><Setter Property="Foreground" Value="#475569"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="12"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/><Setter Property="Padding" Value="10,0"/></Style></Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="BlueBtn" TargetType="Button">
+            <Setter Property="Height" Value="38"/><Setter Property="Background" Value="#2563EB"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="18,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Background" Value="#94A3B8"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="GrayBtn" TargetType="Button">
+            <Setter Property="Height" Value="38"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="13"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="RedBtn" TargetType="Button">
+            <Setter Property="Height" Value="38"/><Setter Property="Background" Value="#DC2626"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#B91C1C"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <!-- HEADER -->
+        <Border Padding="22,16" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="42" Height="42" CornerRadius="10" Background="#F3E8FF"><TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#7C3AED" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#102E5A"><Run Text="Phân phòng"/><Run Text=" — " FontWeight="Normal" Foreground="#64748B"/><Run Text="{Binding SelectedReservation.ReservationNumber, Mode=OneWay, FallbackValue=—}"/></TextBlock>
+                    <TextBlock Text="Chọn phòng phù hợp cho đặt phòng" FontSize="13" Foreground="#64748B" Margin="0,2,0,0"/>
+                </StackPanel>
+                <Button Grid.Column="2" Content="✕" Click="OnCloseClick" Background="Transparent" BorderThickness="0" FontSize="16" Foreground="#64748B" Cursor="Hand" Width="32" Height="32"/>
+            </Grid>
+        </Border>
+
+        <!-- MAIN CONTENT -->
+        <Grid Grid.Row="1" Margin="16,12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="340"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+            <!-- LEFT: Reservation Info + Filters -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Reservation Summary -->
+                    <Border Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Thông tin đặt phòng" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,10"/>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource DetLabel}" Text="Khách"/><TextBlock Style="{StaticResource DetValue}" Text="{Binding SelectedReservation.GuestName, Mode=OneWay, FallbackValue=—}"/>
+                                <TextBlock Style="{StaticResource DetLabel}" Margin="0,8,0,0" Text="Ngày đến"/>
+                                <TextBlock Style="{StaticResource DetValue}" Text="{Binding SelectedReservation.ArrivalDate, Mode=OneWay, StringFormat=dd/MM/yyyy, FallbackValue=—}"/>
+                                <TextBlock Style="{StaticResource DetLabel}" Margin="0,6,0,0" Text="Ngày đi"/>
+                                <TextBlock Style="{StaticResource DetValue}" Text="{Binding SelectedReservation.DepartureDate, Mode=OneWay, StringFormat=dd/MM/yyyy, FallbackValue=—}"/>
+                                <TextBlock Margin="0,6,0,0" FontSize="13" Foreground="#2563EB" FontWeight="SemiBold"><Run Text="Số đêm: "/><Run Text="{Binding SelectedReservation.Nights, Mode=OneWay}"/></TextBlock>
+                                <TextBlock Style="{StaticResource DetLabel}" Margin="0,8,0,0" Text="Người lớn / Trẻ em"/>
+                                <TextBlock Style="{StaticResource DetValue}"><Run Text="{Binding SelectedReservation.AdultCount, Mode=OneWay}"/><Run Text=" người lớn, "/><Run Text="{Binding SelectedReservation.ChildCount, Mode=OneWay}"/><Run Text=" trẻ em"/></TextBlock>
+                                <TextBlock Style="{StaticResource DetLabel}" Margin="0,8,0,0" Text="Nguồn"/>
+                                <TextBlock Style="{StaticResource DetValue}" Text="{Binding SelectedReservation.Source, Mode=OneWay, FallbackValue=—}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Current Room -->
+                    <Border Background="#EFF6FF" CornerRadius="10" BorderBrush="#BFDBFE" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Phòng hiện tại" FontSize="13" FontWeight="SemiBold" Foreground="#1E40AF" Margin="0,0,0,6"/>
+                            <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#1E40AF" Text="{Binding RoomText, Mode=OneWay}"/>
+                            <Button Content="Hủy phân phòng" Click="OnUnassignClick" Style="{StaticResource RedBtn}" Margin="0,10,0,0" Width="140"
+                                    Visibility="{Binding CanUnassignRoom, Converter={StaticResource BoolVis}}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Room Type Filter -->
+                    <Border Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1" Padding="14,12">
+                        <StackPanel>
+                            <TextBlock Text="Bộ lọc phòng" FontSize="13" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,8"/>
+                            <TextBlock Text="Loại phòng" FontSize="12" Foreground="#64748B" Margin="0,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding RoomTypes}" SelectedItem="{Binding SelectedRoomType}" DisplayMemberPath="Name" Height="36" BorderBrush="#D8E2F0" FontSize="13" Margin="0,0,0,10"/>
+                            <Button Content="Tải phòng khả dụng" Click="OnLoadRoomsClick" Style="{StaticResource BlueBtn}" Width="160"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- RIGHT: Room List + Detail -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+                <!-- Room DataGrid -->
+                <Border Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1" Padding="0">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <Border Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Phòng khả dụng" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A"/>
+                                <TextBlock Grid.Column="1" FontSize="12" Foreground="#94A3B8" Text="{Binding AssignableRooms.Count, StringFormat={}{0} phòng}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Empty -->
+                        <Border Grid.Row="1" Visibility="{Binding IsRoomPanelOpen, Converter={StaticResource BoolVis}}">
+                            <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers><DataTrigger Binding="{Binding AssignableRooms.Count}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                            </Style></Border.Style>
+                            <TextBlock Text="Nhấn Tải phòng khả dụng để xem danh sách." FontSize="13" Foreground="#94A3B8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding AssignableRooms}" SelectedItem="{Binding SelectedRoom}" Style="{StaticResource RoomDataGrid}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Số phòng" Binding="{Binding RoomNumber}" Width="100"/>
+                                <DataGridTextColumn Header="Loại phòng" Binding="{Binding RoomTypeName}" Width="140"/>
+                                <DataGridTextColumn Header="Tầng" Binding="{Binding Floor}" Width="60"/>
+                                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="110"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+
+                <!-- Bottom: Selected Room Detail + Actions -->
+                <Border Grid.Row="1" Margin="0,10,0,0" Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1" Padding="14,12">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#102E5A">
+                                <Run Text="Đã chọn: "/><Run Text="{Binding SelectedRoom.RoomNumber, Mode=OneWay, FallbackValue=—}" Foreground="#2563EB"/>
+                            </TextBlock>
+                            <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0">
+                                <Run Text="{Binding SelectedRoom.RoomTypeName, Mode=OneWay, FallbackValue=—}"/><Run Text=" · Tầng "/><Run Text="{Binding SelectedRoom.Floor, Mode=OneWay, FallbackValue=—}"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}" Foreground="#DC2626" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="{Binding HasError, Converter={StaticResource BoolVis}}"/>
+                            <TextBlock Text="{Binding InfoMessage, Mode=OneWay}" Foreground="#16A34A" FontSize="12" Margin="0,4,0,0" Visibility="{Binding HasInfo, Converter={StaticResource BoolVis}}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="Xác nhận phân phòng" Click="OnAssignClick" Style="{StaticResource BlueBtn}" IsEnabled="{Binding CanAssignRoom}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

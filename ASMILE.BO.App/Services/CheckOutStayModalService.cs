@@ -1,0 +1,4 @@
+using ASMILE.BO.App.ViewModels; using CommunityToolkit.Mvvm.ComponentModel; using Microsoft.Extensions.DependencyInjection;
+namespace ASMILE.BO.App.Services;
+public sealed partial class CheckOutStayModalService(IServiceScopeFactory scopes) : ObservableObject, ICheckOutStayModalService
+{ private IServiceScope? scope; [ObservableProperty] private CheckOutStayModalViewModel? activeModal; public bool IsOpen => ActiveModal is not null; public async Task<bool> OpenAsync(string sourceCardId, CancellationToken ct = default) { if (IsOpen) return false; scope = scopes.CreateScope(); try { ActiveModal = scope.ServiceProvider.GetRequiredService<CheckOutStayModalViewModel>(); OnPropertyChanged(nameof(IsOpen)); await ActiveModal.InitializeAsync(Close, ct); return true; } catch { Close(); throw; } } public void Close() { ActiveModal = null; scope?.Dispose(); scope = null; OnPropertyChanged(nameof(IsOpen)); } public void Dispose() => Close(); }

@@ -39,6 +39,8 @@
                 <ResourceDictionary Source="Themes/ModuleModern.xaml" />
                 <ResourceDictionary Source="Themes/RestaurantModuleTheme.xaml" />
                 <ResourceDictionary Source="Themes/BanquetTheme.xaml" />
+                <ResourceDictionary Source="Themes/FrontOfficeDesignSystem.xaml" />
+                <ResourceDictionary Source="Themes/HubCardStyles.xaml" />
                 <ResourceDictionary Source="Themes/LoginTheme.xaml" />
                 <ResourceDictionary Source="Themes/DataTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>

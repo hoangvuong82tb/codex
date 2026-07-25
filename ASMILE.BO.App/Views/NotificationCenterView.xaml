@@ -1,0 +1,48 @@
+<UserControl x:Class="ASMILE.BO.App.Views.NotificationCenterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ASMILE.BO.App.ViewModels"
+             xmlns:converters="clr-namespace:ASMILE.BO.App.Converters"
+             UseLayoutRounding="True" Loaded="OnLoaded">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:StatusToColorConverter x:Key="StatusToColor"/>
+        <converters:SeverityToColorConverter x:Key="SeverityToColor"/>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="340"/></Grid.ColumnDefinitions>
+        <Border Grid.ColumnSpan="2" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="20,14">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="Trung Tam Thong Bao (Notification Center)" FontSize="23" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/><StackPanel Orientation="Horizontal" Margin="0,6,0,0"><TextBlock Text="{Binding TotalUnread, StringFormat='Chua doc: {}{0}'}" Margin="0,0,12,0" Foreground="#DC2626" FontWeight="SemiBold"/><TextBlock Text="{Binding TotalCritical, StringFormat='Khan: {}{0}'}" Foreground="#DC2626" FontWeight="SemiBold"/></StackPanel></StackPanel>
+            </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="12,8">
+            <ItemsControl ItemsSource="{Binding Notifications}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:AlertNotificationDto}">
+                <Border Padding="12,10" Margin="0,0,0,4" CornerRadius="8" Background="White" BorderBrush="#DDE7F3" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="OnClick" Tag="{Binding}">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="4" CornerRadius="2" Background="{Binding Severity, Converter={StaticResource SeverityToColor}}" Margin="0,0,8,0"/>
+                        <StackPanel Grid.Column="1">
+                            <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Type}" FontWeight="SemiBold" Margin="0,0,8,0"/><Border CornerRadius="3" Padding="4,1" Background="{Binding Status, Converter={StaticResource StatusToColor}}"><TextBlock Text="{Binding Status}" FontSize="10" Foreground="White"/></Border></StackPanel>
+                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                            <TextBlock Text="{Binding Message}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="{Binding CreatedAt, StringFormat='{}{0:HH:mm}'}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Grid>
+                </Border>
+            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        </ScrollViewer>
+        <Border Grid.Row="1" Grid.Column="1" Background="White" BorderBrush="#DDE7F3" BorderThickness="1,0,0,0" Padding="16" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <TextBlock Text="CHI TIET" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+                <TextBlock Text="{Binding Selected.Title}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding Selected.Message}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                <Separator Margin="0,8"/>
+                <WrapPanel><Button Content="Da doc" Command="{Binding MarkReadCommand}" Style="{StaticResource FluentPrimaryButton}" Padding="8,4" Margin="0,0,4,4"/><Button Content="Xac nhan" Command="{Binding AcknowledgeCommand}" Style="{StaticResource FluentSecondaryButton}" Padding="8,4" Margin="0,0,4,4"/><Button Content="Bo qua" Command="{Binding DismissCommand}" Style="{StaticResource FluentSecondaryButton}" Padding="8,4"/></WrapPanel>
+                <Separator Margin="0,8"/>
+                <ItemsControl ItemsSource="{Binding Selected.History}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            </StackPanel>
+        </Border>
+        <Border Grid.RowSpan="2" Grid.ColumnSpan="2" Background="#80000000" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"><TextBlock Text="Dang tai..." Foreground="White" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+    </Grid>
+</UserControl>

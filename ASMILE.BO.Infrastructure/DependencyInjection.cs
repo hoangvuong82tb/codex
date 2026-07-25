@@ -17,8 +17,12 @@ using ASMILE.BO.Application.FrontOffice.Foundation.Persistence;
 using ASMILE.BO.Application.FrontOffice.ProcessManager;
 using ASMILE.BO.Application.FrontOffice.Reservation;
 using ASMILE.BO.Application.FrontOffice.HotelMasterData;
+using ASMILE.BO.Application.FrontOffice.Stay;
+using ASMILE.BO.Application.FrontOffice.Folio;
 using ASMILE.BO.Infrastructure.FrontOffice.ProcessManager;
 using ASMILE.BO.Infrastructure.FrontOffice.Reservation;
+using ASMILE.BO.Infrastructure.FrontOffice.Stay;
+using ASMILE.BO.Infrastructure.FrontOffice.Folio;
 using ASMILE.BO.Infrastructure.FrontOffice.HotelMasterData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -95,6 +99,13 @@ public static class DependencyInjection
         services.AddScoped<EfHotelRoomMasterDataRepository>();
         services.AddScoped<IHotelRoomMasterDataRepository>(sp => sp.GetRequiredService<EfHotelRoomMasterDataRepository>());
         services.AddScoped<IHotelReservationReferenceReader>(sp => sp.GetRequiredService<EfHotelRoomMasterDataRepository>());
+        services.AddScoped<EfHotelStayRepository>();
+        services.AddScoped<IHotelStayRepository>(sp => sp.GetRequiredService<EfHotelStayRepository>());
+        services.AddScoped<IHotelStayOccupancyReader>(sp => sp.GetRequiredService<EfHotelStayRepository>());
+        services.AddScoped<IHotelStayNumberGenerator, SqlHotelStayNumberGenerator>();
+        services.AddScoped<HotelStayApplicationService>();
+        services.AddScoped<PrepareStayFromReservationCommandHandler>(); services.AddScoped<CheckInHotelStayCommandHandler>(); services.AddScoped<CheckOutHotelStayCommandHandler>(); services.AddScoped<ConfirmPreArrivalCommandHandler>(); services.AddScoped<PreCheckInHotelStayCommandHandler>(); services.AddScoped<ExtendStayCommandHandler>(); services.AddScoped<MoveRoomCommandHandler>(); services.AddScoped<CompleteStayCommandHandler>(); services.AddScoped<ReopenStayCommandHandler>(); services.AddScoped<CancelStayCommandHandler>(); services.AddScoped<ToggleDoNotDisturbCommandHandler>(); services.AddScoped<RequestWakeUpCallCommandHandler>(); services.AddScoped<LogComplaintCommandHandler>(); services.AddScoped<AddStayTagCommandHandler>(); services.AddScoped<RemoveStayTagCommandHandler>(); services.AddScoped<MarkVipServiceCommandHandler>();
+        services.AddScoped<GetStayByIdQueryHandler>(); services.AddScoped<GetStayByNumberQueryHandler>(); services.AddScoped<SearchStaysQueryHandler>(); services.AddScoped<GetCurrentInHouseStaysQueryHandler>(); services.AddScoped<GetTodayExpectedArrivalsQueryHandler>(); services.AddScoped<GetTodayExpectedDeparturesQueryHandler>(); services.AddScoped<GetStayTimelineQueryHandler>();
         services.AddScoped<HotelRoomMasterDataApplicationService>();
         services.AddScoped<CreateHotelRoomTypeCommandHandler>(); services.AddScoped<UpdateHotelRoomTypeCommandHandler>(); services.AddScoped<ActivateHotelRoomTypeCommandHandler>(); services.AddScoped<DeactivateHotelRoomTypeCommandHandler>();
         services.AddScoped<CreateHotelRoomCommandHandler>(); services.AddScoped<UpdateHotelRoomCommandHandler>(); services.AddScoped<ChangeHotelRoomTypeCommandHandler>(); services.AddScoped<ChangeHotelRoomOperationalStatusCommandHandler>(); services.AddScoped<ActivateHotelRoomCommandHandler>(); services.AddScoped<DeactivateHotelRoomCommandHandler>();
@@ -102,9 +113,19 @@ public static class DependencyInjection
         services.AddScoped<GetHotelRoomTypeByIdQueryHandler>(); services.AddScoped<GetHotelRoomTypeByCodeQueryHandler>(); services.AddScoped<SearchHotelRoomTypesQueryHandler>(); services.AddScoped<GetActiveHotelRoomTypesQueryHandler>();
         services.AddScoped<GetHotelRoomByIdQueryHandler>(); services.AddScoped<GetHotelRoomByNumberQueryHandler>(); services.AddScoped<SearchHotelRoomsQueryHandler>(); services.AddScoped<GetAssignableHotelRoomsQueryHandler>();
         services.AddScoped<ReservationApplicationService>();
-        services.AddScoped<CreateReservationCommandHandler>(); services.AddScoped<UpdateReservationDetailsCommandHandler>(); services.AddScoped<ChangeReservationStayCommandHandler>(); services.AddScoped<ChangeReservationGuestCountCommandHandler>(); services.AddScoped<AssignReservationRoomCommandHandler>(); services.AddScoped<UnassignReservationRoomCommandHandler>(); services.AddScoped<MarkReservationTentativeCommandHandler>(); services.AddScoped<ConfirmReservationCommandHandler>(); services.AddScoped<CancelReservationCommandHandler>(); services.AddScoped<MarkReservationNoShowCommandHandler>();
+        services.AddScoped<CreateReservationCommandHandler>(); services.AddScoped<UpdateReservationDetailsCommandHandler>(); services.AddScoped<ChangeReservationStayCommandHandler>(); services.AddScoped<ChangeReservationGuestCountCommandHandler>(); services.AddScoped<AssignReservationRoomCommandHandler>(); services.AddScoped<UnassignReservationRoomCommandHandler>(); services.AddScoped<MarkReservationTentativeCommandHandler>(); services.AddScoped<ConfirmReservationCommandHandler>(); services.AddScoped<CancelReservationCommandHandler>(); services.AddScoped<MarkReservationNoShowCommandHandler>(); services.AddScoped<GuaranteeReservationCommandHandler>(); services.AddScoped<RecordReservationDepositCommandHandler>();
+        services.AddScoped<IOverbookingChecker>(sp => sp.GetRequiredService<EfReservationRepository>());
         services.AddScoped<GetReservationByIdQueryHandler>(); services.AddScoped<GetReservationByNumberQueryHandler>(); services.AddScoped<SearchReservationsQueryHandler>(); services.AddScoped<CheckRoomReservationConflictQueryHandler>();
         services.AddHostedService<ProcessTimeoutHostedService>();
+
+        // === Financial Engine (M3) ===
+        services.AddScoped<EfHotelFolioRepository>();
+        services.AddScoped<IHotelFolioRepository>(sp => sp.GetRequiredService<EfHotelFolioRepository>());
+        services.AddScoped<IHotelFolioNumberGenerator, SqlHotelFolioNumberGenerator>();
+        services.AddScoped<HotelFolioApplicationService>();
+        services.AddScoped<CreateFolioCommandHandler>(); services.AddScoped<AddFolioRoomChargeCommandHandler>(); services.AddScoped<AddFolioRestaurantChargeCommandHandler>(); services.AddScoped<AddFolioTaxCommandHandler>(); services.AddScoped<AddFolioServiceChargeCommandHandler>(); services.AddScoped<AddFolioDiscountCommandHandler>(); services.AddScoped<AddFolioPaymentCommandHandler>(); services.AddScoped<AddFolioDepositCommandHandler>(); services.AddScoped<AddFolioAdjustmentCommandHandler>(); services.AddScoped<AddFolioCorrectionCommandHandler>(); services.AddScoped<AddFolioManualChargeCommandHandler>(); services.AddScoped<AddFolioManualCreditCommandHandler>(); services.AddScoped<AddFolioRefundCommandHandler>(); services.AddScoped<AddFolioTransferCommandHandler>(); services.AddScoped<ReverseFolioEntryCommandHandler>();
+        services.AddScoped<SuspendFolioCommandHandler>(); services.AddScoped<ResumeFolioCommandHandler>(); services.AddScoped<CloseFolioCommandHandler>(); services.AddScoped<SettleFolioCommandHandler>(); services.AddScoped<ReopenFolioCommandHandler>();
+        services.AddScoped<GetFolioQueryHandler>(); services.AddScoped<GetFolioByStayQueryHandler>(); services.AddScoped<GetFolioLedgerQueryHandler>(); services.AddScoped<SearchFoliosQueryHandler>();
 
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<IItemRepository, ItemRepository>();

@@ -1,0 +1,172 @@
+<Window x:Class="ASMILE.BO.App.Views.RoomMoveConfirmationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Xác nhận đổi phòng"
+        Width="590"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+    <Window.Resources>
+        <Style x:Key="DialogButton" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinWidth" Value="112"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Margin="18"
+            Background="White"
+            BorderBrush="#D8E2F0"
+            BorderThickness="1"
+            CornerRadius="18">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="32"
+                              ShadowDepth="8"
+                              Opacity="0.24"
+                              Color="#334155"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Padding="22,18" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="42" Height="42" Background="#EAF2FF" CornerRadius="11">
+                        <Path Width="22"
+                              Height="22"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Data="M2,7 H18 M14,3 L18,7 L14,11 M22,17 H6 M10,13 L6,17 L10,21"
+                              Fill="Transparent"
+                              Stroke="#2F6BFF"
+                              StrokeThickness="2"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
+                              Stretch="Uniform"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Xác nhận đổi phòng" FontSize="18" FontWeight="SemiBold" Foreground="#102E5A"/>
+                        <TextBlock Margin="0,2,0,0" Text="Kiểm tra lần cuối trước khi xác nhận bản mockup" FontSize="12" Foreground="#64748B"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" Margin="22,18">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Padding="16" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="50"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="PHÒNG CŨ" FontSize="10" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                            <TextBlock x:Name="OldRoomText" Margin="0,5,0,0" FontSize="16" FontWeight="SemiBold" Foreground="#475569"/>
+                        </StackPanel>
+                        <Path Grid.Column="1"
+                              Width="24"
+                              Height="16"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Data="M1,8 H21 M15,2 L21,8 L15,14"
+                              Fill="Transparent"
+                              Stroke="#2F6BFF"
+                              StrokeThickness="2"
+                              Stretch="Uniform"/>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="PHÒNG MỚI" FontSize="10" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                            <TextBlock x:Name="NewRoomText" Margin="0,5,0,0" FontSize="16" FontWeight="SemiBold" Foreground="#2F6BFF"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="1" Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="132"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Khách" FontSize="11" Foreground="#94A3B8"/>
+                    <TextBlock x:Name="GuestText" Grid.Column="1" Margin="0,0,0,9" FontSize="12" FontWeight="SemiBold" Foreground="#17365D"/>
+                    <TextBlock Grid.Row="1" Text="Hiệu lực" FontSize="11" Foreground="#94A3B8"/>
+                    <TextBlock x:Name="EffectiveText" Grid.Row="1" Grid.Column="1" Margin="0,0,0,9" FontSize="12" Foreground="#334155"/>
+                    <TextBlock Grid.Row="2" Text="Lý do" FontSize="11" Foreground="#94A3B8"/>
+                    <TextBlock x:Name="ReasonText" Grid.Row="2" Grid.Column="1" Margin="0,0,0,9" FontSize="12" Foreground="#334155"/>
+                    <TextBlock Grid.Row="3" Text="Chênh lệch" FontSize="11" Foreground="#94A3B8"/>
+                    <TextBlock x:Name="DifferenceText" Grid.Row="3" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#17365D"/>
+                </Grid>
+
+                <Border Grid.Row="2" Margin="0,16,0,0" Padding="12" Background="#FFF7ED" CornerRadius="9">
+                    <TextBlock x:Name="WarningText" TextWrapping="Wrap" FontSize="11" Foreground="#C2410C"/>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="2" Padding="18,14" Background="#FBFCFE" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+                <Grid>
+                    <TextBlock Text="Mockup UI · không gọi service, không ghi database"
+                               VerticalAlignment="Center"
+                               FontSize="10"
+                               Foreground="#94A3B8"/>
+                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                        <Button Content="Quay lại"
+                                Click="OnBack"
+                                Background="#EEF2F7"
+                                Foreground="#475569"
+                                Style="{StaticResource DialogButton}"/>
+                        <Button Margin="8,0,0,0"
+                                Content="Xác nhận mockup"
+                                Click="OnConfirm"
+                                Background="#2F6BFF"
+                                Foreground="White"
+                                FontWeight="SemiBold"
+                                Style="{StaticResource DialogButton}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,60 @@
+<Window x:Class="ASMILE.BO.App.Views.RoomMoveExtendWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Đổi phòng và gia hạn" Width="1180" Height="800" MinWidth="980" MinHeight="680"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <Style x:Key="ModTextBox" TargetType="TextBox"><Setter Property="Height" Value="38"/><Setter Property="Padding" Value="12,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="BlueBtn" TargetType="Button"><Setter Property="Height" Value="38"/><Setter Property="Background" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="18,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="GrayBtn" TargetType="Button"><Setter Property="Height" Value="38"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="14,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border Padding="20,16" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="42" Height="42" CornerRadius="11"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFAD39" Offset="0"/><GradientStop Color="#ED7900" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE8D2;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" Margin="12,0,0,0"><TextBlock Text="Đổi phòng và gia hạn" FontSize="18" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Thay đổi phòng đồng thời kéo dài thời gian lưu trú." FontSize="12" Foreground="#64748B"/></StackPanel>
+                <Button Grid.Column="2" Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}"/>
+            </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="16,12">
+            <StackPanel>
+                <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16" Margin="0,0,0,10"><StackPanel>
+                    <TextBlock Text="A. Chọn khách" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,8"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBox Text="Nguyễn Văn An" Style="{StaticResource ModTextBox}"/><TextBlock Text="Phòng 201 · Deluxe · 24/07→27/07" FontSize="11" Foreground="#64748B" Margin="0,6,0,0"/></StackPanel>
+                    </Grid>
+                </StackPanel></Border>
+                <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16" Margin="0,0,0,10"><StackPanel>
+                    <TextBlock Text="B. Chọn phòng mới" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,8"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="Phòng hiện tại: 201 (Deluxe)" FontSize="12" Foreground="#64748B"/><TextBlock Text="Phòng mới chọn: 305 (Superior)" FontSize="13" FontWeight="SemiBold" Foreground="#17365D" Margin="0,4,0,0"/></StackPanel>
+                        <Border Grid.Column="1" Background="#EFF6FF" CornerRadius="8" Padding="10"><TextBlock Text="Khả dụng đến 30/07: ✓" FontSize="12" Foreground="#2563EB"/></Border>
+                    </Grid>
+                </StackPanel></Border>
+                <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16" Margin="0,0,0,10"><StackPanel>
+                    <TextBlock Text="C. Gia hạn lưu trú" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,8"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="Ngày đi mới" FontSize="11" Foreground="#94A3B8"/><TextBox Text="29/07/2026" Style="{StaticResource ModTextBox}"/></StackPanel>
+                        <StackPanel Margin="6,0,0,0"><TextBlock Text="Số đêm thêm" FontSize="11" Foreground="#94A3B8"/><TextBox Text="2" Style="{StaticResource ModTextBox}"/></StackPanel>
+                        <StackPanel Margin="6,0,0,0"><TextBlock Text="Giá áp dụng" FontSize="11" Foreground="#94A3B8"/><TextBox Text="1.500.000" Style="{StaticResource ModTextBox}"/></StackPanel>
+                    </Grid>
+                </StackPanel></Border>
+                <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16"><StackPanel>
+                    <TextBlock Text="D. Xác nhận" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,8"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="Thay đổi phòng" FontSize="12" FontWeight="SemiBold" Foreground="#17365D"/><TextBlock FontSize="12" Foreground="#64748B"><Run Text="201 (Deluxe) → 305 (Superior)"/></TextBlock><TextBlock Text="Gia hạn" FontSize="12" FontWeight="SemiBold" Foreground="#17365D" Margin="0,6,0,0"/><TextBlock FontSize="12" Foreground="#64748B"><Run Text="27/07 → 29/07 (+2 đêm)"/></TextBlock></StackPanel>
+                        <StackPanel><TextBlock Text="Tài chính" FontSize="12" FontWeight="SemiBold" Foreground="#17365D"/><TextBlock FontSize="12" Foreground="#64748B"><Run Text="Giá: 1.2M → 1.5M"/><LineBreak/><Run Text="Tổng phát sinh: 3.000.000 VND"/></TextBlock></StackPanel>
+                    </Grid>
+                </StackPanel></Border>
+            </StackPanel>
+        </ScrollViewer>
+        <Border Grid.Row="2" Padding="14,12" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Button Content="Hủy" Click="OnClose" Style="{StaticResource GrayBtn}" HorizontalAlignment="Left"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal"><Button Content="Quay lại" Style="{StaticResource GrayBtn}" Margin="0,0,8,0"/><Button Content="Xác nhận điều chỉnh" Click="OnConfirm" Style="{StaticResource BlueBtn}"/></StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,85 @@
+<UserControl x:Class="ASMILE.BO.App.Views.ReceptionHubView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:ASMILE.BO.App.Models"
+             UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <UserControl.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding BackCommand}" />
+    </UserControl.InputBindings>
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis" />
+
+        <DataTemplate DataType="{x:Type models:ReceptionHubCard}">
+            <Border Style="{StaticResource HubCardStyle}" Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}"
+                    Tag="{Binding Id}">
+                <Border.InputBindings>
+                    <MouseBinding MouseAction="LeftClick" Command="{Binding Command}"/>
+                </Border.InputBindings>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="54"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border x:Name="IconBox" Style="{StaticResource HubIconBoxStyle}">
+                        <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="28"
+                                   Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" Style="{StaticResource HubCardTitleStyle}"/>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Id}" Value="room-rack"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4A8EFF" Offset="0"/><GradientStop Color="#1765F2" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="check-in"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#31C9B8" Offset="0"/><GradientStop Color="#00A58F" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="check-out"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#ED7900" Offset="0"/><GradientStop Color="#FFAD39" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="walk-in"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#7D2BE1" Offset="0"/><GradientStop Color="#B158FF" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="stay-profiles"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4ED86E" Offset="0"/><GradientStop Color="#18B33F" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="locked-rooms"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4A91FF" Offset="0"/><GradientStop Color="#1E6CF1" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="arrivals"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#2CC7D8" Offset="0"/><GradientStop Color="#00A7BA" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="in-house"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#3E83F3" Offset="0"/><GradientStop Color="#195FCE" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="departures"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#18B33F" Offset="0"/><GradientStop Color="#0D7A2E" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="housekeeping"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FF5A94" Offset="0"/><GradientStop Color="#E32F70" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="exchange"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#9853F0" Offset="0"/><GradientStop Color="#6F28D8" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="reports"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#2661D9" Offset="0"/><GradientStop Color="#1046B7" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.Background>
+            <RadialGradientBrush GradientOrigin="0.04,0.04" Center="0.04,0.04" RadiusX="0.32" RadiusY="0.32">
+                <GradientStop Color="#106aa7ff" Offset="0"/>
+                <GradientStop Color="#00ffffff" Offset="1"/>
+            </RadialGradientBrush>
+        </Grid.Background>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                      Visibility="{Binding IsHubVisible, Converter={StaticResource BoolVis}}">
+            <Grid Style="{StaticResource HubContainerStyle}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Button Content="← Quay lại" Command="{Binding BackCommand}" Style="{StaticResource HubBackButtonStyle}"/>
+
+                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,32">
+                    <TextBlock Text="Lễ tân" Style="{StaticResource HubHeaderStyle}"/>
+                    <TextBlock Text="Trung tâm tác nghiệp tại quầy lễ tân" Style="{StaticResource HubSubtitleStyle}"/>
+                </StackPanel>
+
+                <ItemsControl Grid.Row="2" ItemsSource="{Binding Cards}" Style="{StaticResource HubGridStyle}"/>
+            </Grid>
+        </ScrollViewer>
+
+        <ContentControl Content="{Binding ActiveWorkspace}"
+                        Visibility="{Binding IsWorkspaceVisible, Converter={StaticResource BoolVis}}"/>
+
+        <ContentControl Content="{Binding CheckInModal.ActiveModal}"
+                        Visibility="{Binding CheckInModal.IsOpen, Converter={StaticResource BoolVis}, FallbackValue=Collapsed}"/>
+        <ContentControl Content="{Binding CheckOutModal.ActiveModal}"
+                        Visibility="{Binding CheckOutModal.IsOpen, Converter={StaticResource BoolVis}, FallbackValue=Collapsed}"/>
+        <ContentControl Content="{Binding ActiveOverlay}"
+                        Visibility="{Binding ActiveOverlay, Converter={StaticResource BoolVis}, TargetNullValue=Collapsed, FallbackValue=Collapsed}"/>
+    </Grid>
+</UserControl>

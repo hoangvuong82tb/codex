@@ -294,7 +294,7 @@ public sealed class FrontOfficeSqlServerIntegrationTests
             await using var createDb = new AppDbContext(options); var accessor = new FrontOfficeExecutionContextAccessor(); var context = CreateContext(propertyA, actor);
             using (accessor.BeginScope(context))
             {
-                var created = await CreateReservationService(createDb, accessor, now).CreateAsync(new CreateReservationCommand(propertyA.Value, Guid.NewGuid(), "Guest", new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 22), 1, 0, typeA.HotelRoomTypeId, "Direct"), default);
+                var created = await CreateReservationService(createDb, accessor, now).CreateAsync(new CreateReservationCommand(propertyA.Value, Guid.NewGuid(), "Guest", new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 22), 1, 0, typeA.HotelRoomTypeId, null, "Direct", null, null, null, false), default);
                 created.IsSuccess.Should().BeTrue(); var reservation = created.Value!; reservation.RowVersion.Should().HaveCount(8);
                 var historyBefore = await createDb.FrontOfficeReservationHistory.CountAsync(); var outboxBefore = await createDb.FrontOfficeOutboxMessages.CountAsync(); var auditBefore = await createDb.AuditLogs.CountAsync();
                 await using var winnerDb = new AppDbContext(options); await using var staleDb = new AppDbContext(options); var winnerAccessor = new FrontOfficeExecutionContextAccessor(); var staleAccessor = new FrontOfficeExecutionContextAccessor();
@@ -326,7 +326,7 @@ public sealed class FrontOfficeSqlServerIntegrationTests
 
     private static ReservationApplicationService CreateReservationService(AppDbContext db, FrontOfficeExecutionContextAccessor accessor, DateTime now)
     {
-        var clock = new FixedClock(now); return new ReservationApplicationService(new EfReservationRepository(db), new SqlReservationNumberGenerator(db), new EfHotelRoomMasterDataRepository(db), new EfFrontOfficePersistenceSession(db, accessor, new PassthroughIntegrationEventMapper(), new CanonicalOutboxMessageFactory(clock), new FrontOfficeAuditWriter(), clock), accessor, new AllowAllAuthorization(), clock);
+        var clock = new FixedClock(now); var repo = new EfReservationRepository(db); return new ReservationApplicationService(repo, new SqlReservationNumberGenerator(db), new EfHotelRoomMasterDataRepository(db), new EfFrontOfficePersistenceSession(db, accessor, new PassthroughIntegrationEventMapper(), new CanonicalOutboxMessageFactory(clock), new FrontOfficeAuditWriter(), clock), accessor, new AllowAllAuthorization(), clock, repo);
     }
     private sealed class AllowAllAuthorization : IAuthorizationService { public bool HasPermission(string permissionCode) => true; public void Demand(string permissionCode) { } public Task<bool> CanAccessAsync(string permissionCode) => Task.FromResult(true); public bool HasPermission(Permission permission) => true; public void Demand(Permission permission) { } public Task<bool> ConfirmDangerousActionAsync(string title, string message) => Task.FromResult(true); }
 

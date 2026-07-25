@@ -10,13 +10,14 @@ using ReservationAggregate = ASMILE.BO.Core.FrontOffice.Reservation.Reservation;
 
 namespace ASMILE.BO.Application.FrontOffice.Reservation;
 
-public sealed class ReservationApplicationService(IReservationRepository repository, IReservationNumberGenerator numberGenerator, IHotelReservationReferenceReader hotelReferences, IFrontOfficePersistenceSession persistence, IFrontOfficeExecutionContextAccessor contextAccessor, IAuthorizationService authorization, IClock clock)
+public sealed class ReservationApplicationService(IReservationRepository repository, IReservationNumberGenerator numberGenerator, IHotelReservationReferenceReader hotelReferences, IFrontOfficePersistenceSession persistence, IFrontOfficeExecutionContextAccessor contextAccessor, IAuthorizationService authorization, IClock clock, IOverbookingChecker overbookingChecker)
 {
     public async Task<Result<ReservationDto>> CreateAsync(CreateReservationCommand command, CancellationToken ct)
     {
         if (!Authorized(ReservationPermissions.Create, out var denial)) return Result<ReservationDto>.Failure(denial!);
         var context = Context(command.PropertyId); if (context is null) return PropertyFailure();
         var type = await ValidateRoomType(command.RoomTypeId, context.Property.PropertyId.Value, ct); if (type is { IsFailure: true }) return Result<ReservationDto>.Failure(type.Error!);
+        if (command.RoomTypeId is not null && await overbookingChecker.IsOverbookingLimitReachedAsync(context.Property.PropertyId.Value, command.RoomTypeId.Value, command.ArrivalDate, command.DepartureDate, null, ct)) return Result<ReservationDto>.Failure(Error.Business("RESERVATION_OVERBOOKING_LIMIT", "Overbooking limit reached for this room type and date range."));
         try
         {
             var number = await numberGenerator.GenerateAsync(context.Property.PropertyId.Value, context.BusinessDate.BusinessDate, ct);
@@ -50,6 +51,8 @@ public sealed class ReservationApplicationService(IReservationRepository reposit
         if (conflict.HasConflict) return Error.Business("RESERVATION_ROOM_CONFLICT", "The room has an overlapping reservation.");
         r.AssignRoom(c.RoomId, clock.UtcNow, context.Actor.ActorId); return null;
     }, ct);
+    public Task<Result<ReservationDto>> GuaranteeAsync(GuaranteeReservationCommand c, CancellationToken ct) => MutateAsync(ReservationPermissions.ChangeStatus, c.PropertyId, c.ReservationId, c.ExpectedRowVersion, "Guaranteed", (r, context) => { r.Guarantee(c.GuaranteeType, clock.UtcNow, context.Actor.ActorId, c.GuaranteeExpiryDate); return Task.FromResult<Error?>(null); }, ct);
+    public Task<Result<ReservationDto>> RecordDepositAsync(RecordReservationDepositCommand c, CancellationToken ct) => MutateAsync(ReservationPermissions.Update, c.PropertyId, c.ReservationId, c.ExpectedRowVersion, "DepositRecorded", (r, context) => { r.RecordDeposit(c.DepositAmount, c.DepositDueDate, clock.UtcNow, context.Actor.ActorId); return Task.FromResult<Error?>(null); }, ct);
 
     private async Task<Result<ReservationDto>> MutateAsync(string permission, Guid clientPropertyId, Guid reservationId, byte[]? token, string action, Func<ReservationAggregate, FrontOfficeExecutionContext, Task<Error?>> mutation, CancellationToken ct)
     {

@@ -74,7 +74,7 @@ public sealed class NavigationService : INavigationService
             new AppModuleInfo("menu-recipe", "Món ăn & Định lượng", "\uE8D2", "Quản lý món và định lượng nguyên vật liệu", "#0EA5E9", true, true, iconBase + "commerce.ico"),
             new AppModuleInfo("restaurant-alacarte", "Nhà hàng À La Carte", "\uE7BF", "Quản lý phòng ăn, bàn, đặt bàn, gọi món và thanh toán", "#0EA5E9", true, true, iconBase + "commerce.ico"),
             new AppModuleInfo("restaurant-banquet", "Nhà hàng Tiệc", "\uE8D2", "Quản lý phòng tiệc, sự kiện, hợp đồng, đặt cọc và checklist", "#0F766E", true, true, iconBase + "calendar.ico"),
-            new AppModuleInfo("front-office-reservations", "Dat phong", "\uE787", "Quan ly dat phong khach san", "#2563EB", true, true, iconBase + "calendar.ico"),
+            new AppModuleInfo("front-office-reservations", "Quan ly khach san", "\uE787", "Chon phan he de bat dau lam viec", "#2563EB", true, true, iconBase + "calendar.ico"),
             new AppModuleInfo("breakfast-cafe-sales", "Bán đồ ăn sáng & cà phê", "\uEADF", "Bán nhanh cho nhà hàng/khách sạn/café", "#2563EB", true, true, iconBase + "commerce.ico"),
             new AppModuleInfo("breakfast-cafe-settings", "Cài đặt Breakfast & Coffee", "\uE713", "Cấu hình POS nhà hàng và quầy cà phê", "#2563EB", true, false, iconBase + "settings.ico")
         ];
@@ -333,7 +333,7 @@ public sealed class NavigationService : INavigationService
             "menu-recipe" => serviceProvider.GetRequiredService<MenuRecipeViewModel>(),
             "restaurant-alacarte" => serviceProvider.GetRequiredService<AlacarteRestaurantViewModel>(),
             "restaurant-banquet" => serviceProvider.GetRequiredService<BanquetRestaurantViewModel>(),
-            "front-office-reservations" => serviceProvider.GetRequiredService<ReservationWorkspaceViewModel>(),
+            "front-office-reservations" => serviceProvider.GetRequiredService<FrontOfficeHubViewModel>(),
             "breakfast-cafe-sales" => serviceProvider.GetRequiredService<BreakfastCafeSalesViewModel>(),
             "breakfast-cafe-settings" => serviceProvider.GetRequiredService<BreakfastCafeSettingsViewModel>(),
             _ => new ModulePlaceholderViewModel(request.Target.DisplayTitle ?? route, BuildFallbackDescription(request))

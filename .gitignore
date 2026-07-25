@@ -2,6 +2,7 @@
 **/[Bb]in/
 **/[Oo]bj/
 **/TestResults/
+*_wpftmp.csproj
 
 # Visual Studio and local agent state
 .vs/
@@ -9,6 +10,7 @@
 .codex/
 .codebase-memory/
 .tools/
+DEEPSEEK_PROJECT_CONTEXT.md
 
 # Local runtime configuration and secrets
 ASMILE.BO.App/appsettings.json

@@ -108,7 +108,7 @@ public sealed class ReservationWorkspaceViewModelTests
     {
         var service = new FakeReservationUiService
         {
-            SearchResult = Result<PageResult<ReservationDto>>.Success(new PageResult<ReservationDto>([new(Guid.NewGuid(), "RSV-A", Guid.NewGuid(), "Guest A", new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 21), 1, 0, null, null, ReservationStatus.Draft, "Direct", DateTime.UtcNow, [1, 2, 3, 4, 5, 6, 7, 8])], 1, 1, 50))
+            SearchResult = Result<PageResult<ReservationDto>>.Success(new PageResult<ReservationDto>([MakeDto(number: "RSV-A", guestName: "Guest A")], 1, 1, 50))
         };
         var propertyHost = new FakePropertyContextHost();
         using var viewModel = new ReservationWorkspaceViewModel(service, propertyHost);
@@ -128,7 +128,7 @@ public sealed class ReservationWorkspaceViewModelTests
         var propertyB = new FrontOfficePropertyOption(Guid.NewGuid(), "B", "Branch B", "B - Branch B", true);
         var service = new FakeReservationUiService
         {
-            SearchResult = Result<PageResult<ReservationDto>>.Success(new PageResult<ReservationDto>([new(Guid.NewGuid(), "RSV-B", propertyB.PropertyId, "Guest B", new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 21), 1, 0, null, null, ReservationStatus.Draft, "Direct", DateTime.UtcNow, [1, 2, 3, 4, 5, 6, 7, 8])], 1, 1, 50))
+            SearchResult = Result<PageResult<ReservationDto>>.Success(new PageResult<ReservationDto>([MakeDto(number: "RSV-B", propertyId: propertyB.PropertyId, guestName: "Guest B")], 1, 1, 50))
         };
         var propertyHost = new FakePropertyContextHost(propertyA);
         using var viewModel = new ReservationWorkspaceViewModel(service, propertyHost);
@@ -146,17 +146,20 @@ public sealed class ReservationWorkspaceViewModelTests
         predicate().Should().BeTrue();
     }
 
-    private sealed class FakeReservationUiService : IReservationUiService
+    internal static ReservationDto MakeDto(Guid? reservationId = null, string number = "RSV-1001", Guid? propertyId = null, string guestName = "Guest") =>
+        new(reservationId ?? Guid.NewGuid(), number, propertyId ?? Guid.NewGuid(), guestName, null, null, new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 22), 2, 0, null, null, null, ReservationStatus.Draft, "Direct", null, null, null, false, null, null, null, null, GuaranteeType.None, null, 0, null, DepositStatus.NotRequired, null, null, DateTime.UtcNow, DateTime.UtcNow, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+    internal sealed class FakeReservationUiService : IReservationUiService
     {
-        public ReservationDto Current { get; } = new(Guid.NewGuid(), "RSV-1001", Guid.NewGuid(), "Guest", new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 22), 2, 0, null, null, ReservationStatus.Draft, "Direct", DateTime.UtcNow, [1, 2, 3, 4, 5, 6, 7, 8]);
+        public ReservationDto Current { get; } = ReservationWorkspaceViewModelTests.MakeDto();
         public bool HasContext => true; public bool CanView => true; public bool CanCreate => CanCreateValue; public bool CanUpdate => true; public bool CanAssignRoom => true; public bool CanChangeStatus => true; public bool CanCancel => true;
         public bool CanCreateValue { get; set; } = true;
         public int UpdateCalls { get; private set; }
         public int ResetCalls { get; private set; }
         public byte[]? LastUpdateToken { get; private set; }
         public Result<PageResult<ReservationDto>> SearchResult { get; set; } = Result<PageResult<ReservationDto>>.Success(new PageResult<ReservationDto>([], 0, 1, 50));
-        public Result<ReservationDto> GetResult { get; set; } = Result<ReservationDto>.Success(new(Guid.NewGuid(), "RSV-1001", Guid.NewGuid(), "Guest", new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 22), 2, 0, null, null, ReservationStatus.Draft, "Direct", DateTime.UtcNow, [1, 2, 3, 4, 5, 6, 7, 8]));
-        public Result<ReservationDto> UpdateResult { get; set; } = Result<ReservationDto>.Success(new(Guid.NewGuid(), "RSV-1001", Guid.NewGuid(), "Guest", new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 22), 2, 0, null, null, ReservationStatus.Draft, "Direct", DateTime.UtcNow, [1, 2, 3, 4, 5, 6, 7, 8]));
+        public Result<ReservationDto> GetResult { get; set; } = Result<ReservationDto>.Success(ReservationWorkspaceViewModelTests.MakeDto());
+        public Result<ReservationDto> UpdateResult { get; set; } = Result<ReservationDto>.Success(ReservationWorkspaceViewModelTests.MakeDto());
         public Task<Result<PageResult<ReservationDto>>> SearchAsync(string? keyword, ReservationStatus? status, DateOnly? arrivalFrom, DateOnly? arrivalTo, int page, int pageSize, CancellationToken ct) => Task.FromResult(SearchResult);
         public Task<Result<ReservationDto>> GetAsync(Guid reservationId, CancellationToken ct) => Task.FromResult(GetResult);
         public Task<Result<PageResult<HotelRoomTypeDto>>> GetActiveRoomTypesAsync(CancellationToken ct) => Task.FromResult(Result<PageResult<HotelRoomTypeDto>>.Success(new([], 0, 1, 200)));
@@ -173,10 +176,11 @@ public sealed class ReservationWorkspaceViewModelTests
         public Task<Result<ReservationDto>> CancelAsync(ReservationDto current, string reason, CancellationToken ct) => Task.FromResult(Result<ReservationDto>.Success(Current));
         public Task<Result<ReservationDto>> NoShowAsync(ReservationDto current, CancellationToken ct) => Task.FromResult(Result<ReservationDto>.Success(Current));
         public void ResetForContextChange() => ResetCalls++;
-        public void Dispose() { }
+        public int DisposeCalls { get; private set; }
+        public void Dispose() { DisposeCalls++; }
     }
 
-    private sealed class FakePropertyContextHost : IFrontOfficePropertyContextHost
+    internal sealed class FakePropertyContextHost : IFrontOfficePropertyContextHost
     {
         private readonly FrontOfficePropertyOption _property;
         public FrontOfficePropertyOption? CurrentProperty { get; private set; }

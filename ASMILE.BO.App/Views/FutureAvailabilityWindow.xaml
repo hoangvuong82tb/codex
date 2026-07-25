@@ -1,0 +1,49 @@
+<Window x:Class="ASMILE.BO.App.Views.FutureAvailabilityWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Khả năng phòng tương lai"
+        Width="1360" Height="840"
+        MinWidth="1160" MinHeight="720"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F7F9FC"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis" />
+        <Style x:Key="GrayBtn" TargetType="Button"><Setter Property="Height" Value="36"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Border Padding="24,18" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="42" Height="42" CornerRadius="10" Background="#E0F2FE"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#0284C7" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center"><TextBlock Text="Khả năng phòng tương lai" FontSize="19" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Theo dõi tồn phòng và khả năng bán theo ngày" FontSize="13" Foreground="#64748B" Margin="0,2,0,0"/></StackPanel>
+                <Button Grid.Column="2" Content="Làm mới" Click="OnRefreshClick" Style="{StaticResource GrayBtn}"/>
+            </Grid>
+        </Border>
+        <Border Grid.Row="1" Background="White" Margin="16,14,16,16" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="500">
+                <Border Width="72" Height="72" CornerRadius="18" Background="#F0F9FF" Margin="0,0,0,20"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="36" Foreground="#7DD3FC" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <TextBlock Text="Chưa triển khai Availability Engine" FontSize="18" FontWeight="SemiBold" Foreground="#102E5A" TextAlignment="Center"/>
+                <TextBlock Text="Tính năng sẽ cung cấp ma trận khả năng phòng theo ngày và hạng phòng, theo dõi tồn phòng, đã đặt, đang ở, Out of Order và overbooking." FontSize="14" Foreground="#64748B" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" LineHeight="22"/>
+                <Border Background="#F8FAFC" CornerRadius="10" Padding="16,14" Margin="0,20,0,0" Width="420">
+                    <StackPanel>
+                        <TextBlock Text="Dữ liệu cần thiết" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"/>
+                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• Room inventory (tổng phòng theo hạng)"/></TextBlock>
+                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• Reservation theo ngày (đã đặt, đã phân phòng)"/></TextBlock>
+                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• In-house rooms (đang ở)"/></TextBlock>
+                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• Out of Order / Out of Service"/></TextBlock>
+                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• Hold/Block allocations"/></TextBlock>
+                    </StackPanel>
+                </Border>
+                <Border Background="#FFF7ED" CornerRadius="10" Padding="16,14" Margin="0,12,0,0" Width="420" BorderBrush="#FED7AA" BorderThickness="1">
+                    <StackPanel><TextBlock Text="⚠ Trạng thái" FontSize="13" FontWeight="SemiBold" Foreground="#C2410C" Margin="0,0,0,4"/><TextBlock FontSize="12" Foreground="#9A3412" Text="BLOCKED BY BACKEND — Chưa có Availability Engine, chưa có inventory aggregate service."/></StackPanel>
+                </Border>
+                <Button Content="Làm mới" Click="OnRefreshClick" Style="{StaticResource GrayBtn}" Margin="0,20,0,0" Width="120"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

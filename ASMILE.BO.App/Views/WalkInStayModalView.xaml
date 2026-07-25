@@ -1,0 +1,96 @@
+<UserControl x:Class="ASMILE.BO.App.Views.WalkInStayModalView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <UserControl.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding CloseCommand}" />
+    </UserControl.InputBindings>
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis" />
+    </UserControl.Resources>
+
+    <Border Background="#40000000">
+        <Border Background="White" CornerRadius="16" Padding="0"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Width="520" MaxHeight="640" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Border Padding="24,20,24,16" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="Khách vãng lai" FontSize="22" FontWeight="SemiBold" Foreground="#102E5A"/>
+                            <TextBlock Text="Tạo lưu trú nhanh cho khách không đặt trước" FontSize="14" Foreground="#64748B" Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <Button Content="✕" Command="{Binding CloseCommand}" HorizontalAlignment="Right"
+                                Background="Transparent" BorderThickness="0" FontSize="16"
+                                Foreground="#64748B" Cursor="Hand" Width="32" Height="32"/>
+                    </Grid>
+                </Border>
+
+                <!-- Body -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="24,20">
+                    <StackPanel>
+                        <TextBlock Text="Thông tin khách" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,10"/>
+                        <TextBlock Text="Tên khách" FontSize="12" Foreground="#64748B" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding GuestName, UpdateSourceTrigger=PropertyChanged}" Height="36" Padding="10,8"
+                                 BorderBrush="#CBD5E1" BorderThickness="1" VerticalContentAlignment="Center"/>
+                        <TextBlock Text="Số điện thoại" FontSize="12" Foreground="#64748B" Margin="0,12,0,4"/>
+                        <TextBox Text="{Binding GuestPhone, UpdateSourceTrigger=PropertyChanged}" Height="36" Padding="10,8"
+                                 BorderBrush="#CBD5E1" BorderThickness="1" VerticalContentAlignment="Center"/>
+
+                        <TextBlock Text="Thông tin phòng" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,18,0,10"/>
+                        <TextBlock Text="Số phòng" FontSize="12" Foreground="#64748B" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding RoomNumber, UpdateSourceTrigger=PropertyChanged}" Height="36" Padding="10,8"
+                                 BorderBrush="#CBD5E1" BorderThickness="1" VerticalContentAlignment="Center"/>
+                        <TextBlock Text="Loại phòng" FontSize="12" Foreground="#64748B" Margin="0,12,0,4"/>
+                        <TextBox Text="{Binding RoomType, UpdateSourceTrigger=PropertyChanged}" Height="36" Padding="10,8"
+                                 BorderBrush="#CBD5E1" BorderThickness="1" VerticalContentAlignment="Center"/>
+
+                        <TextBlock Text="Khách" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,18,0,10"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="20"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Người lớn" FontSize="12" Foreground="#64748B" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Adults, UpdateSourceTrigger=PropertyChanged}" Height="36" Padding="10,8"
+                                         BorderBrush="#CBD5E1" BorderThickness="1" VerticalContentAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Trẻ em" FontSize="12" Foreground="#64748B" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Children, UpdateSourceTrigger=PropertyChanged}" Height="36" Padding="10,8"
+                                         BorderBrush="#CBD5E1" BorderThickness="1" VerticalContentAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="Ghi chú" FontSize="12" Foreground="#64748B" Margin="0,14,0,4"/>
+                        <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" Height="64" Padding="10,8"
+                                 AcceptsReturn="True" TextWrapping="Wrap" BorderBrush="#CBD5E1" BorderThickness="1"/>
+
+                        <Border Padding="10" CornerRadius="6" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1"
+                                Margin="0,14,0,0" Visibility="{Binding ErrorMessage, Converter={StaticResource BoolVis}, TargetNullValue=Collapsed, FallbackValue=Collapsed}">
+                            <TextBlock Text="{Binding ErrorMessage}" Foreground="#991B1B" TextWrapping="Wrap"/>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Footer -->
+                <Border Grid.Row="2" Padding="20,14,24,20" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding InfoMessage}" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="#16A34A"/>
+                        <Button Content="Hủy" Command="{Binding CloseCommand}"
+                                Background="#F1F5F9" Foreground="#475569" BorderThickness="0"
+                                Padding="16,8" Cursor="Hand" Margin="0,0,10,0"/>
+                        <Button Content="Xác nhận" Command="{Binding ConfirmCommand}" IsEnabled="{Binding CanConfirm}"
+                                Background="#2563EB" Foreground="White" BorderThickness="0"
+                                Padding="20,8" Cursor="Hand" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Border>
+</UserControl>

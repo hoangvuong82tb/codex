@@ -107,6 +107,27 @@
     <DataTemplate DataType="{x:Type vm:ReservationWorkspaceViewModel}">
         <views:ReservationWorkspaceView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReservationModalWorkspaceViewModel}">
+        <views:ReservationModalWorkspaceView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:FrontOfficeHubViewModel}">
+        <views:FrontOfficeHubView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReservationHubViewModel}">
+        <views:ReservationHubView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReceptionHubViewModel}">
+        <views:ReceptionHubView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ModuleHubViewModel}">
+        <views:ModuleHubView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:WalkInStayModalViewModel}">
+        <views:WalkInStayModalView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:CheckInStayModalViewModel}">
+        <views:CheckInStayModalView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:BanquetMenuSelectionViewModel}">
         <views:BanquetMenuSelectionView />
     </DataTemplate>

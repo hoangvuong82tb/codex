@@ -27,9 +27,14 @@ public partial class ReservationWorkspaceView : UserControl
         }
         else if (e.Key == Key.Escape && DataContext is ReservationWorkspaceViewModel viewModel)
         {
-            if (viewModel.IsRoomPanelOpen) viewModel.CloseRoomPanelCommand.Execute(null);
-            else viewModel.CancelEditCommand.Execute(null);
+            viewModel.CancelEditCommand.Execute(null);
             e.Handled = true;
         }
+    }
+
+    private void OnDataGridDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is ReservationWorkspaceViewModel viewModel && viewModel.SelectedReservation is not null && viewModel.CanEditDetails)
+            viewModel.NewCommand.Execute(null);
     }
 }

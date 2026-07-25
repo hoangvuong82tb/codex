@@ -24,6 +24,8 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
 
             modelBuilder.HasSequence("TrinhTuSoDatPhong", "fo");
 
+            modelBuilder.HasSequence("TrinhTuSoLuuTru", "fo");
+
             modelBuilder.Entity("ASMILE.BO.Core.Entities.AccountBalanceSnapshot", b =>
                 {
                     b.Property<Guid>("Id")
@@ -18279,6 +18281,107 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                     b.ToTable("WorkflowRetryHistories");
                 });
 
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Folio.HotelFolio", b =>
+                {
+                    b.Property<Guid>("HotelFolioId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ArchivedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ClosedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FolioNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("HotelStayId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTime?>("SettledAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SettledBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("HotelFolioId");
+
+                    b.ToTable("HotelFolios");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Folio.HotelFolioEntry", b =>
+                {
+                    b.Property<Guid>("HotelFolioEntryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateOnly?>("BusinessDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EntryType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("HotelFolioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReferenceType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ReversedByEntryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ReversesEntryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SequenceNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("HotelFolioEntryId");
+
+                    b.HasIndex("HotelFolioId");
+
+                    b.ToTable("HotelFolioEntries");
+                });
+
             modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Foundation.Persistence.FrontOfficeIdempotencyRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -18551,6 +18654,206 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_fo_hop_thu_di_trang_thai_thu_lai");
 
                     b.ToTable("fo_hop_thu_di", "fo");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Group.GroupReservation", b =>
+                {
+                    b.Property<Guid>("GroupReservationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AgencyName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateOnly>("ArrivalDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("CompanyName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("ConfirmedRooms")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContactEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ContactPerson")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("DepartureDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ExpectedRooms")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GroupCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("GroupName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsVip")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MarketSegment")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("OutstandingBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Routing")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SalesManager")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("SpecialRequests")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("TotalAdults")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalChildren")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalDeposit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalRevenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("GroupReservationId")
+                        .HasName("PK_fo_DatPhongDoan");
+
+                    b.HasIndex("PropertyId", "GroupCode")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_fo_DatPhongDoan_CoSo_MaDoan");
+
+                    b.HasIndex("PropertyId", "Status")
+                        .HasDatabaseName("IX_fo_DatPhongDoan_CoSo_TrangThai");
+
+                    b.HasIndex("PropertyId", "ArrivalDate", "DepartureDate")
+                        .HasDatabaseName("IX_fo_DatPhongDoan_CoSo_NgayO");
+
+                    b.ToTable("DatPhongDoan", "fo");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Group.GroupRoomAssignment", b =>
+                {
+                    b.Property<Guid>("GroupRoomAssignmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Adults")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Children")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("GroupReservationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("GroupReservationId1")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("GuestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("GuestName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("HotelRoomId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsCheckedIn")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCheckedOut")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsVip")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ReservationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RoomNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("RoomType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("GroupRoomAssignmentId")
+                        .HasName("PK_fo_PhongDoan");
+
+                    b.HasIndex("GroupReservationId1");
+
+                    b.HasIndex("GroupReservationId", "HotelRoomId")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_fo_PhongDoan_Doan_Phong");
+
+                    b.ToTable("PhongDoan", "fo");
                 });
 
             modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.HotelMasterData.HotelRoom", b =>
@@ -19363,6 +19666,225 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                     b.ToTable("HenGioQuyTrinh", "fo_process");
                 });
 
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Rate.RateCalendarEntry", b =>
+                {
+                    b.Property<Guid>("RateCalendarEntryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Rate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RatePlanId1")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("RateCalendarEntryId")
+                        .HasName("PK_fo_LichGia");
+
+                    b.HasIndex("RatePlanId1");
+
+                    b.HasIndex("RatePlanId", "Date")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_fo_LichGia_KeHoach_Ngay");
+
+                    b.ToTable("LichGia", "fo");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Rate.RatePlan", b =>
+                {
+                    b.Property<Guid>("RatePlanId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AllowYieldManagement")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("BaseRate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Hierarchy")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("PlanCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("PlanName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RoomTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("YieldAdjustmentPct")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal>("YieldMaxRate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("YieldMinRate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("YieldThresholdOccupancy")
+                        .HasColumnType("int");
+
+                    b.HasKey("RatePlanId")
+                        .HasName("PK_fo_KeHoachGia");
+
+                    b.HasIndex("PropertyId", "PlanCode")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_fo_KeHoachGia_CoSo_Ma");
+
+                    b.HasIndex("PropertyId", "Status")
+                        .HasDatabaseName("IX_fo_KeHoachGia_CoSo_TrangThai");
+
+                    b.ToTable("KeHoachGia", "fo");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Rate.RateRule", b =>
+                {
+                    b.Property<Guid>("RateRuleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Combinable")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("Exclusive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RatePlanId1")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("RateRuleId")
+                        .HasName("PK_fo_QuyTacGia");
+
+                    b.HasIndex("RatePlanId1");
+
+                    b.HasIndex("RatePlanId", "Priority")
+                        .HasDatabaseName("IX_fo_QuyTacGia_KeHoach_UuTien");
+
+                    b.ToTable("QuyTacGia", "fo");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Rate.RateSeason", b =>
+                {
+                    b.Property<Guid>("RateSeasonId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("Multiplier")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RatePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RatePlanId1")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ToDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("RateSeasonId")
+                        .HasName("PK_fo_MuaGia");
+
+                    b.HasIndex("RatePlanId1");
+
+                    b.HasIndex("RatePlanId", "FromDate", "ToDate")
+                        .HasDatabaseName("IX_fo_MuaGia_KeHoach_Ngay");
+
+                    b.ToTable("MuaGia", "fo");
+                });
+
             modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Reservation.Reservation", b =>
                 {
                     b.Property<Guid>("ReservationId")
@@ -19385,8 +19907,17 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("CancelledAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("CheckedInAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("ChildCount")
                         .HasColumnType("int");
+
+                    b.Property<string>("CompanyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("ConfirmedAtUtc")
                         .HasColumnType("datetime2");
@@ -19399,6 +19930,28 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
 
                     b.Property<DateOnly>("DepartureDate")
                         .HasColumnType("date");
+
+                    b.Property<decimal>("DepositAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateOnly?>("DepositDueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DepositStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("GuaranteeExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GuaranteeType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime?>("GuaranteedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("GuestEmailSnapshot")
                         .HasMaxLength(200)
@@ -19419,6 +19972,12 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                     b.Property<string>("InternalNotes")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsVip")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MarketSegment")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("NoShowAtUtc")
                         .HasColumnType("datetime2");
@@ -19455,6 +20014,9 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("TravelAgentName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
@@ -19528,6 +20090,201 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_fo_LichSuDatPhong_DatPhong_Luc");
 
                     b.ToTable("LichSuDatPhong", "fo");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Stay.HotelStay", b =>
+                {
+                    b.Property<Guid>("HotelStayId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ActualCheckInAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ActualCheckOutAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Adults")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Children")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ExtensionCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("GuestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("GuestNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("GuestPhoneSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("InternalNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("LateCheckoutRequestedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LateCheckoutUntilUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateOnly?>("OriginalDepartureDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("PreArrivalConfirmedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ReservationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReservationNumberSnapshot")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RoomNumberSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("RoomTypeCodeSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("RoomTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateOnly>("ScheduledArrivalDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("ScheduledDepartureDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("StayNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("HotelStayId")
+                        .HasName("PK_fo_LuuTruKhachSan");
+
+                    b.HasIndex("ReservationId")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_fo_LuuTruKhachSan_DatPhong_HoatDong")
+                        .HasFilter("[ReservationId] IS NOT NULL AND [Status] IN ('PendingArrival', 'InHouse')");
+
+                    b.HasIndex("RoomId");
+
+                    b.HasIndex("RoomTypeId");
+
+                    b.HasIndex("StayNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_fo_LuuTruKhachSan_SoLuuTru");
+
+                    b.HasIndex("UpdatedAtUtc")
+                        .HasDatabaseName("IX_fo_LuuTruKhachSan_CapNhat");
+
+                    b.HasIndex("PropertyId", "ScheduledArrivalDate")
+                        .HasDatabaseName("IX_fo_LuuTruKhachSan_CoSo_NgayDen");
+
+                    b.HasIndex("PropertyId", "ScheduledDepartureDate")
+                        .HasDatabaseName("IX_fo_LuuTruKhachSan_CoSo_NgayDi");
+
+                    b.HasIndex("PropertyId", "Status")
+                        .HasDatabaseName("IX_fo_LuuTruKhachSan_CoSo_TrangThai");
+
+                    b.HasIndex("PropertyId", "RoomId", "Status")
+                        .HasDatabaseName("IX_fo_LuuTruKhachSan_CoSo_Phong_TrangThai");
+
+                    b.ToTable("LuuTruKhachSan", "fo");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Stay.HotelStayHistory", b =>
+                {
+                    b.Property<Guid>("HistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("HotelStayId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SafeMetadata")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("HistoryId")
+                        .HasName("PK_fo_LichSuLuuTruKhachSan");
+
+                    b.HasIndex("HotelStayId", "OccurredAtUtc")
+                        .HasDatabaseName("IX_fo_LichSuLuuTruKhachSan_LuuTru_Luc");
+
+                    b.ToTable("LichSuLuuTruKhachSan", "fo");
                 });
 
             modelBuilder.Entity("ASMILE.BO.Core.Entities.ActiveCompanySession", b =>
@@ -21274,6 +22031,28 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                     b.Navigation("WorkflowExecutionStep");
                 });
 
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Folio.HotelFolioEntry", b =>
+                {
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Folio.HotelFolio", null)
+                        .WithMany("Entries")
+                        .HasForeignKey("HotelFolioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Group.GroupRoomAssignment", b =>
+                {
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Group.GroupReservation", null)
+                        .WithMany()
+                        .HasForeignKey("GroupReservationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Group.GroupReservation", null)
+                        .WithMany("RoomingList")
+                        .HasForeignKey("GroupReservationId1");
+                });
+
             modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.HotelMasterData.HotelRoom", b =>
                 {
                     b.HasOne("ASMILE.BO.Core.FrontOffice.HotelMasterData.HotelRoomType", null)
@@ -21377,11 +22156,79 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Rate.RateCalendarEntry", b =>
+                {
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Rate.RatePlan", null)
+                        .WithMany()
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Rate.RatePlan", null)
+                        .WithMany("Calendar")
+                        .HasForeignKey("RatePlanId1");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Rate.RateRule", b =>
+                {
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Rate.RatePlan", null)
+                        .WithMany()
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Rate.RatePlan", null)
+                        .WithMany("Rules")
+                        .HasForeignKey("RatePlanId1");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Rate.RateSeason", b =>
+                {
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Rate.RatePlan", null)
+                        .WithMany()
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Rate.RatePlan", null)
+                        .WithMany("Seasons")
+                        .HasForeignKey("RatePlanId1");
+                });
+
             modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Reservation.ReservationHistory", b =>
                 {
                     b.HasOne("ASMILE.BO.Core.FrontOffice.Reservation.Reservation", null)
                         .WithMany()
                         .HasForeignKey("ReservationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Stay.HotelStay", b =>
+                {
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Reservation.Reservation", null)
+                        .WithMany()
+                        .HasForeignKey("ReservationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.HotelMasterData.HotelRoom", null)
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.HotelMasterData.HotelRoomType", null)
+                        .WithMany()
+                        .HasForeignKey("RoomTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Stay.HotelStayHistory", b =>
+                {
+                    b.HasOne("ASMILE.BO.Core.FrontOffice.Stay.HotelStay", null)
+                        .WithMany()
+                        .HasForeignKey("HotelStayId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -21757,6 +22604,25 @@ namespace ASMILE.BO.Infrastructure.Persistence.Migrations
                     b.Navigation("ChildWorkflowExecutions");
 
                     b.Navigation("Steps");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Folio.HotelFolio", b =>
+                {
+                    b.Navigation("Entries");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Group.GroupReservation", b =>
+                {
+                    b.Navigation("RoomingList");
+                });
+
+            modelBuilder.Entity("ASMILE.BO.Core.FrontOffice.Rate.RatePlan", b =>
+                {
+                    b.Navigation("Calendar");
+
+                    b.Navigation("Rules");
+
+                    b.Navigation("Seasons");
                 });
 #pragma warning restore 612, 618
         }

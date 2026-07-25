@@ -1,0 +1,48 @@
+<UserControl x:Class="ASMILE.BO.App.Views.AuditTimelineView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ASMILE.BO.App.ViewModels"
+             xmlns:converters="clr-namespace:ASMILE.BO.App.Converters"
+             UseLayoutRounding="True" Loaded="OnLoaded">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:SeverityToColorConverter x:Key="SevToColor"/>
+        <converters:ActionToColorConverter x:Key="ActionToColor"/>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="340"/></Grid.ColumnDefinitions>
+        <Border Grid.ColumnSpan="2" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="20,14">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="Kiem Toan &amp; Hoat Dong (Audit &amp; Timeline)" FontSize="23" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/><StackPanel Orientation="Horizontal" Margin="0,6,0,0"><TextBlock Text="{Binding TotalToday, StringFormat='Hom nay: {}{0}'}" Margin="0,0,12,0" Foreground="#2563EB" FontWeight="SemiBold"/><TextBlock Text="{Binding TotalThisWeek, StringFormat='Tuan nay: {}{0}'}" Foreground="{StaticResource TextSecondaryBrush}"/></StackPanel></StackPanel>
+            </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="12,8">
+            <ItemsControl ItemsSource="{Binding Entries}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:AuditEntryDto}">
+                <Border Padding="12,10" Margin="0,0,0,4" CornerRadius="8" Background="White" BorderBrush="#DDE7F3" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="OnClick" Tag="{Binding}">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="4" CornerRadius="2" Background="{Binding Severity, Converter={StaticResource SevToColor}}" Margin="0,0,8,0"/>
+                        <StackPanel Grid.Column="1">
+                            <StackPanel Orientation="Horizontal"><Border CornerRadius="3" Padding="4,1" Background="{Binding Action, Converter={StaticResource ActionToColor}}"><TextBlock Text="{Binding Action}" FontSize="10" Foreground="White"/></Border><TextBlock Text="{Binding Module}" FontWeight="SemiBold" Margin="8,0,0,0"/></StackPanel>
+                            <TextBlock Text="{Binding Description}" FontSize="12" Margin="0,2,0,0"/>
+                            <TextBlock Text="{Binding PerformedBy}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="{Binding OccurredAt, StringFormat='{}{0:HH:mm:ss}'}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Grid>
+                </Border>
+            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        </ScrollViewer>
+        <Border Grid.Row="1" Grid.Column="1" Background="White" BorderBrush="#DDE7F3" BorderThickness="1,0,0,0" Padding="16" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <TextBlock Text="CHI TIET" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+                <TextBlock Text="{Binding Selected.AuditNumber}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding Selected.Module}"/>
+                <TextBlock Text="{Binding Selected.Action}"/>
+                <TextBlock Text="{Binding Selected.Description}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding Selected.PerformedBy, StringFormat='Nguoi thuc hien: {0}'}"/>
+                <TextBlock Text="{Binding Selected.OccurredAt, StringFormat='Thoi gian: {0:HH:mm:ss dd/MM/yyyy}'}"/>
+            </StackPanel>
+        </Border>
+        <Border Grid.RowSpan="2" Grid.ColumnSpan="2" Background="#80000000" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"><TextBlock Text="Dang tai..." Foreground="White" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+    </Grid>
+</UserControl>

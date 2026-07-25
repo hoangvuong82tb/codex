@@ -1,0 +1,51 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:ASMILE.BO.App.Themes">
+    <Style x:Key="RackHeader" TargetType="Border">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="Padding" Value="20,16"/>
+        <Setter Property="BorderBrush" Value="#DDE7F3"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    </Style>
+
+    <Style x:Key="RoomCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="#DDE7F3"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="#2563EB"/>
+                <Setter Property="BorderThickness" Value="2"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="RackDrawer" TargetType="Border">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="#DDE7F3"/>
+        <Setter Property="BorderThickness" Value="1,0,0,0"/>
+    </Style>
+
+    <Style x:Key="DrawerTabButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="#64748B"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Foreground" Value="#2563EB"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

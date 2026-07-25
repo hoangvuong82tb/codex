@@ -8,6 +8,8 @@ using System.Collections.ObjectModel;
 
 namespace ASMILE.BO.App.ViewModels;
 
+public enum WorkspaceMode { Search, Status, Confirmation, Cancellation, RoomAssignment }
+
 public sealed partial class ReservationWorkspaceViewModel : ViewModelBase, IDisposable
 {
     private readonly IReservationUiService service;
@@ -16,6 +18,72 @@ public sealed partial class ReservationWorkspaceViewModel : ViewModelBase, IDisp
     private CancellationTokenSource? _searchDebounce;
     private ReservationDto? _current;
     private bool _applyingSelection;
+
+    [ObservableProperty] private WorkspaceMode mode = WorkspaceMode.Search;
+    [ObservableProperty] private ReservationDto? selectedReservationDetail;
+
+    public string WorkspaceTitle => Mode switch
+    {
+        WorkspaceMode.Search => "Tìm đặt phòng",
+        WorkspaceMode.Status => "Tình trạng đặt phòng",
+        WorkspaceMode.Confirmation => "Xác nhận đặt phòng",
+        WorkspaceMode.Cancellation => "Hủy đặt phòng",
+        WorkspaceMode.RoomAssignment => "Phân phòng",
+        _ => "Đặt phòng"
+    };
+    public bool IsStatusMode => Mode == WorkspaceMode.Status;
+    public bool IsConfirmationMode => Mode == WorkspaceMode.Confirmation;
+    public bool IsCancellationMode => Mode == WorkspaceMode.Cancellation;
+    public bool ShowKpiBar => Mode == WorkspaceMode.Status;
+    public string? SelectedGuestName => SelectedReservation?.GuestName;
+    public string? SelectedPhone => SelectedReservation?.GuestPhone;
+    public string? SelectedEmail => SelectedReservation?.GuestEmail;
+    public DateOnly? SelectedArrival => SelectedReservation?.ArrivalDate;
+    public DateOnly? SelectedDeparture => SelectedReservation?.DepartureDate;
+    public int SelectedNights => SelectedReservation is not null ? Math.Max(0, (SelectedReservation.DepartureDate.DayNumber - SelectedReservation.ArrivalDate.DayNumber)) : 0;
+    public string? SelectedSource => SelectedReservation?.Source;
+    public string? SelectedRoomTypeName { get; private set; }
+    public string? SelectedRoomNumber { get; private set; }
+    public string? SelectedStatusText => SelectedReservation?.Status.ToString();
+
+    partial void OnModeChanged(WorkspaceMode value)
+    {
+        OnPropertyChanged(nameof(WorkspaceTitle));
+        OnPropertyChanged(nameof(IsStatusMode));
+        OnPropertyChanged(nameof(IsConfirmationMode));
+        OnPropertyChanged(nameof(IsCancellationMode));
+        OnPropertyChanged(nameof(ShowKpiBar));
+    }
+    partial void OnSelectedReservationChanged(ReservationDto? value)
+    {
+        OnPropertyChanged(nameof(HasSelection));
+        if (_applyingSelection || value is null) { ClearDetail(); return; }
+        _ = LoadDetailAsync(value);
+        _ = OpenAsync(value);
+    }
+    private void ClearDetail()
+    {
+        SelectedReservationDetail = null;
+        SelectedRoomTypeName = null; SelectedRoomNumber = null;
+        OnPropertyChanged(nameof(SelectedGuestName)); OnPropertyChanged(nameof(SelectedPhone));
+        OnPropertyChanged(nameof(SelectedEmail)); OnPropertyChanged(nameof(SelectedArrival));
+        OnPropertyChanged(nameof(SelectedDeparture)); OnPropertyChanged(nameof(SelectedNights));
+        OnPropertyChanged(nameof(SelectedSource)); OnPropertyChanged(nameof(SelectedRoomTypeName));
+        OnPropertyChanged(nameof(SelectedRoomNumber)); OnPropertyChanged(nameof(SelectedStatusText));
+    }
+    private async Task LoadDetailAsync(ReservationDto dto)
+    {
+        var result = await service.GetAsync(dto.ReservationId, CancellationToken.None);
+        if (result.IsFailure) return;
+        var detail = result.Value!;
+        SelectedReservationDetail = detail;
+        SelectedRoomTypeName = RoomTypes.FirstOrDefault(x => x.HotelRoomTypeId == detail.RoomTypeId)?.Name;
+        OnPropertyChanged(nameof(SelectedGuestName)); OnPropertyChanged(nameof(SelectedPhone));
+        OnPropertyChanged(nameof(SelectedEmail)); OnPropertyChanged(nameof(SelectedArrival));
+        OnPropertyChanged(nameof(SelectedDeparture)); OnPropertyChanged(nameof(SelectedNights));
+        OnPropertyChanged(nameof(SelectedSource)); OnPropertyChanged(nameof(SelectedRoomTypeName));
+        OnPropertyChanged(nameof(SelectedRoomNumber)); OnPropertyChanged(nameof(SelectedStatusText));
+    }
 
     public ReservationWorkspaceViewModel(IReservationUiService service, IFrontOfficePropertyContextHost propertyContextHost)
     {
@@ -57,7 +125,7 @@ public sealed partial class ReservationWorkspaceViewModel : ViewModelBase, IDisp
     public bool CanAssignRoom => HasPropertyContext && service.CanAssignRoom;
     public bool CanChangeStatus => HasPropertyContext && service.CanChangeStatus;
     public bool CanCancel => HasPropertyContext && service.CanCancel;
-    public bool HasSelection => _current is not null;
+    public bool HasSelection => SelectedReservation is not null;
     public bool HasPreviousPage => CurrentPage > 1;
     public bool HasNextPage => CurrentPage * PageSize < TotalCount;
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
@@ -77,15 +145,13 @@ public sealed partial class ReservationWorkspaceViewModel : ViewModelBase, IDisp
     public string StatusText => _current?.Status.ToString() ?? "New";
     public string RoomText => _current?.AssignedRoomId is not null ? "Da phan phong" : "Chua phan phong";
 
-    partial void OnSelectedReservationChanged(ReservationDto? value)
-    {
-        if (_applyingSelection || value is null) return;
-        _ = OpenAsync(value);
-    }
     partial void OnArrivalDateChanged(DateTime? value) => OnPropertyChanged(nameof(Nights));
     partial void OnDepartureDateChanged(DateTime? value) => OnPropertyChanged(nameof(Nights));
     partial void OnCurrentPageChanged(int value) { OnPropertyChanged(nameof(HasPreviousPage)); OnPropertyChanged(nameof(HasNextPage)); }
     partial void OnSearchTextChanged(string value) => StartDebouncedSearch();
+    partial void OnSelectedStatusChanged(ReservationStatus? value) => StartDebouncedSearch();
+    partial void OnFilterArrivalFromChanged(DateTime? value) => StartDebouncedSearch();
+    partial void OnFilterArrivalToChanged(DateTime? value) => StartDebouncedSearch();
     partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
     partial void OnInfoMessageChanged(string value) => OnPropertyChanged(nameof(HasInfo));
     partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
@@ -106,6 +172,7 @@ public sealed partial class ReservationWorkspaceViewModel : ViewModelBase, IDisp
             Reservations.Clear(); foreach (var item in result.Value!.Items) Reservations.Add(item); TotalCount = result.Value.Total; OnPropertyChanged(nameof(HasData)); OnPropertyChanged(nameof(IsEmpty)); OnPropertyChanged(nameof(HasNextPage));
         }
         catch (OperationCanceledException) { }
+        catch (Exception ex) { ErrorMessage = $"Không thể tải dữ liệu: {ex.Message}"; }
         finally { IsLoading = false; }
     }
     [RelayCommand] public async Task RefreshAsync() => await LoadAsync();
@@ -164,7 +231,9 @@ public sealed partial class ReservationWorkspaceViewModel : ViewModelBase, IDisp
     [RelayCommand] public async Task UnassignRoomAsync() => await RunMutationAsync(x => service.UnassignAsync(x, CancellationToken.None));
     [RelayCommand] public async Task TentativeAsync() => await RunMutationAsync(x => service.TentativeAsync(x, CancellationToken.None));
     [RelayCommand] public async Task ConfirmAsync() => await RunMutationAsync(x => service.ConfirmAsync(x, CancellationToken.None));
-    [RelayCommand] public async Task CancelReservationAsync() => await RunMutationAsync(x => service.CancelAsync(x, "Cancelled by front office", CancellationToken.None));
+    [ObservableProperty] private string cancellationReason = string.Empty;
+
+    [RelayCommand] public async Task CancelReservationAsync() => await RunMutationAsync(x => service.CancelAsync(x, string.IsNullOrWhiteSpace(CancellationReason) ? "Cancelled by front office" : CancellationReason, CancellationToken.None));
     [RelayCommand] public async Task NoShowAsync() => await RunMutationAsync(x => service.NoShowAsync(x, CancellationToken.None));
     [RelayCommand] public async Task ReloadAfterConflictAsync() { if (_current is not null) await OpenAsync(_current); }
 
@@ -244,7 +313,6 @@ public sealed partial class ReservationWorkspaceViewModel : ViewModelBase, IDisp
         _searchDebounce?.Dispose();
         _searchCancellation?.Cancel();
         _searchCancellation?.Dispose();
-        service.Dispose();
     }
 
     private async void OnPropertyContextChanged(object? sender, FrontOfficePropertyContextChangedEventArgs e)

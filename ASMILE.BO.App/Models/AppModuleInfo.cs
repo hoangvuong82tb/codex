@@ -30,7 +30,8 @@ public sealed partial class AppModuleInfo : ObservableObject
     }
 
     public string Key { get; }
-    public string Title { get; }
+    [ObservableProperty]
+    private string title;
     public string IconGlyph { get; }
     public string Subtitle { get; }
     public string AccentHex { get; }

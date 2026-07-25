@@ -1,0 +1,42 @@
+<UserControl x:Class="ASMILE.BO.App.Views.FrontOfficeLogWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <UserControl.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding BackCommand}"/>
+    </UserControl.InputBindings>
+    <Grid>
+        <Grid.Background>
+            <RadialGradientBrush GradientOrigin="0.04,0.04" Center="0.04,0.04" RadiusX="0.32" RadiusY="0.32">
+                <GradientStop Color="#106aa7ff" Offset="0"/><GradientStop Color="#00ffffff" Offset="1"/>
+            </RadialGradientBrush>
+        </Grid.Background>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Style="{StaticResource HubContainerStyle}">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Button Content="← Quay lại Lễ tân" Command="{Binding BackCommand}" Style="{StaticResource HubBackButtonStyle}"/>
+                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,32">
+                    <TextBlock Text="Nhật ký FO" Style="{StaticResource HubHeaderStyle}" FontSize="32"/>
+                    <TextBlock Text="Nhật ký vận hành và bàn giao ca lễ tân." Style="{StaticResource HubSubtitleStyle}" FontSize="16"/>
+                </StackPanel>
+                <WrapPanel Grid.Row="2" HorizontalAlignment="Center" MaxWidth="1060">
+                    <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnShiftLog"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4A8EFF" Offset="0"/><GradientStop Color="#1765F2" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE823;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <TextBlock Grid.Column="1" Text="Nhật ký ca" Style="{StaticResource HubCardTitleStyle}"/></Grid></Border>
+                    <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnIncident"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FF5A94" Offset="0"/><GradientStop Color="#E32F70" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE814;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <TextBlock Grid.Column="1" Text="Nhật ký sự cố" Style="{StaticResource HubCardTitleStyle}"/></Grid></Border>
+                    <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnLostFound"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFAD39" Offset="0"/><GradientStop Color="#ED7900" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <TextBlock Grid.Column="1" Text="Đồ thất lạc / Tìm thấy" Style="{StaticResource HubCardTitleStyle}"/></Grid></Border>
+                    <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnVipNote"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#B158FF" Offset="0"/><GradientStop Color="#7D2BE1" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <TextBlock Grid.Column="1" Text="Ghi chú VIP" Style="{StaticResource HubCardTitleStyle}"/></Grid></Border>
+                    <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnHandover"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4ED86E" Offset="0"/><GradientStop Color="#18B33F" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE8AB;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <TextBlock Grid.Column="1" Text="Bàn giao ca" Style="{StaticResource HubCardTitleStyle}"/></Grid></Border>
+                </WrapPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
