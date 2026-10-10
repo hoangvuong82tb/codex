@@ -3,6 +3,7 @@ using ASMILE.BO.Application.Interfaces;
 using ASMILE.BO.Application.Interfaces.Settings;
 using ASMILE.BO.Core.Entities.Settings;
 using ASMILE.BO.Shared.Security;
+using ASMILE.BO.Infrastructure.Services;
 
 namespace ASMILE.BO.Infrastructure.SettingsEngine;
 
@@ -32,129 +33,11 @@ internal static class SettingsMapper
         Scope = x.Scope,
         ScopeTarget = x.ScopeTarget,
         Value = valueOverride ?? x.Value,
+        IsPersisted = true,
         IsEncrypted = x.IsEncrypted,
         UpdatedAt = x.UpdatedAt,
         UpdatedBy = x.UpdatedBy
     };
-}
-
-public sealed class SettingsRepository : ISettingsRepository
-{
-    private static readonly List<SettingDefinition> Definitions = [];
-    private static readonly List<SettingValue> Values = [];
-    private static readonly object Sync = new();
-
-    public Task<IReadOnlyList<SettingDefinition>> GetDefinitionsAsync()
-    {
-        lock (Sync)
-        {
-            return Task.FromResult<IReadOnlyList<SettingDefinition>>(Definitions.Select(Clone).ToList());
-        }
-    }
-
-    public Task<IReadOnlyList<SettingValue>> GetValuesAsync()
-    {
-        lock (Sync)
-        {
-            return Task.FromResult<IReadOnlyList<SettingValue>>(Values.Select(Clone).ToList());
-        }
-    }
-
-    public Task<SettingValue?> GetValueAsync(string key, SettingScope scope, string? scopeTarget)
-    {
-        lock (Sync)
-        {
-            var row = Values.FirstOrDefault(x => x.DefinitionKey == key && x.Scope == scope && string.Equals(x.ScopeTarget ?? string.Empty, scopeTarget ?? string.Empty, StringComparison.OrdinalIgnoreCase));
-            return Task.FromResult(row is null ? null : Clone(row));
-        }
-    }
-
-    public Task UpsertValueAsync(SettingValue value)
-    {
-        lock (Sync)
-        {
-            var idx = Values.FindIndex(x => x.DefinitionKey == value.DefinitionKey && x.Scope == value.Scope && string.Equals(x.ScopeTarget ?? string.Empty, value.ScopeTarget ?? string.Empty, StringComparison.OrdinalIgnoreCase));
-            if (idx >= 0) Values[idx] = Clone(value); else Values.Add(Clone(value));
-        }
-        return Task.CompletedTask;
-    }
-
-    public Task UpsertDefinitionAsync(SettingDefinition definition)
-    {
-        lock (Sync)
-        {
-            var idx = Definitions.FindIndex(x => x.Key == definition.Key);
-            if (idx >= 0) Definitions[idx] = Clone(definition); else Definitions.Add(Clone(definition));
-        }
-        return Task.CompletedTask;
-    }
-
-    private static SettingDefinition Clone(SettingDefinition x) => new()
-    {
-        Id = x.Id, Key = x.Key, DisplayName = x.DisplayName, Description = x.Description, Category = x.Category, Group = x.Group,
-        Scope = x.Scope, ValueType = x.ValueType, DefaultValue = x.DefaultValue, IsRequired = x.IsRequired, IsSensitive = x.IsSensitive,
-        IsReadOnly = x.IsReadOnly, RequiresRestart = x.RequiresRestart, RequiredPermission = x.RequiredPermission, SortOrder = x.SortOrder, CreatedAt = x.CreatedAt
-    };
-
-    private static SettingValue Clone(SettingValue x) => new()
-    {
-        Id = x.Id, DefinitionKey = x.DefinitionKey, Scope = x.Scope, ScopeTarget = x.ScopeTarget, Value = x.Value,
-        IsEncrypted = x.IsEncrypted, UpdatedAt = x.UpdatedAt, UpdatedBy = x.UpdatedBy
-    };
-}
-
-public sealed class AppModuleRepository : IAppModuleRepository
-{
-    private static readonly List<AppModule> Apps = [];
-    private static readonly object Sync = new();
-
-    public Task<IReadOnlyList<AppModule>> GetAppsAsync()
-    {
-        lock (Sync) return Task.FromResult<IReadOnlyList<AppModule>>(Apps.Select(Clone).ToList());
-    }
-
-    public Task<AppModule?> GetAppAsync(string appKey)
-    {
-        lock (Sync)
-        {
-            var app = Apps.FirstOrDefault(x => x.AppKey == appKey);
-            return Task.FromResult(app is null ? null : Clone(app));
-        }
-    }
-
-    public Task UpsertAppAsync(AppModule app)
-    {
-        lock (Sync)
-        {
-            var idx = Apps.FindIndex(x => x.AppKey == app.AppKey);
-            if (idx >= 0) Apps[idx] = Clone(app); else Apps.Add(Clone(app));
-        }
-        return Task.CompletedTask;
-    }
-
-    private static AppModule Clone(AppModule x) => new()
-    {
-        Id = x.Id, AppKey = x.AppKey, Name = x.Name, Description = x.Description, Icon = x.Icon, Version = x.Version,
-        IsEnabled = x.IsEnabled, ShowOnDesktop = x.ShowOnDesktop, PinToTaskbar = x.PinToTaskbar, AllowClientAccess = x.AllowClientAccess,
-        RequiredPermission = x.RequiredPermission, SortOrder = x.SortOrder
-    };
-}
-
-public sealed class SettingChangeLogRepository : ISettingChangeLogRepository
-{
-    private static readonly List<SettingChangeLog> Logs = [];
-    private static readonly object Sync = new();
-
-    public Task AddAsync(SettingChangeLog log)
-    {
-        lock (Sync) Logs.Add(log);
-        return Task.CompletedTask;
-    }
-
-    public Task<IReadOnlyList<SettingChangeLog>> GetRecentAsync(int take)
-    {
-        lock (Sync) return Task.FromResult<IReadOnlyList<SettingChangeLog>>(Logs.OrderByDescending(x => x.ChangedAt).Take(take).ToList());
-    }
 }
 
 public sealed class SettingsChangeNotifier : ISettingsChangeNotifier
@@ -191,12 +74,93 @@ public sealed class SettingsValidator : ISettingsValidator
     {
         if (definition.IsRequired && string.IsNullOrWhiteSpace(value)) return ValidationResult.Fail("Giá trị bắt buộc.");
         if (definition.Key == "Backup.RetentionCount" && (!int.TryParse(value, out var ret) || ret < 1)) return ValidationResult.Fail("Retention count phải >= 1.");
-        if (definition.Key == "Security.SessionTimeoutMinutes" && (!int.TryParse(value, out var timeout) || timeout < 5)) return ValidationResult.Fail("Session timeout phải >= 5 phút.");
+        if (definition.Key == "Logs.RetentionDays"
+            && (!int.TryParse(value, out var logRetentionDays) || logRetentionDays is < 1 or > 3650))
+        {
+            return ValidationResult.Fail("Thời hạn giữ log phải từ 1 đến 3650 ngày.");
+        }
+        if (definition.Key == "Database.CommandTimeout"
+            && (!int.TryParse(value, out var databaseTimeout) || databaseTimeout is < 5 or > 600))
+        {
+            return ValidationResult.Fail("Command timeout phải từ 5 đến 600 giây.");
+        }
+        if (definition.Key == "Warehouse.LowStockThreshold"
+            && (!int.TryParse(value, out var lowStockThreshold) || lowStockThreshold < 0))
+        {
+            return ValidationResult.Fail("Ngưỡng tồn kho thấp phải là số nguyên không âm.");
+        }
+        if (definition.Key == "Maintenance.UpdateChannel"
+            && (value is null || !new[] { "Stable", "Beta", "Internal" }.Contains(value, StringComparer.OrdinalIgnoreCase)))
+        {
+            return ValidationResult.Fail("Kênh cập nhật phải là Stable, Beta hoặc Internal.");
+        }
+        if (definition.Key == "Logs.LogLevel"
+            && (value is null || !new[] { "Debug", "Information", "Warning", "Error" }.Contains(value, StringComparer.OrdinalIgnoreCase)))
+        {
+            return ValidationResult.Fail("Mức log phải là Debug, Information, Warning hoặc Error.");
+        }
+        if (definition.Key == "GeneralLedger.DefaultExportFormat"
+            && (value is null || !new[] { "Excel", "PDF" }.Contains(value, StringComparer.OrdinalIgnoreCase)))
+        {
+            return ValidationResult.Fail("Định dạng xuất mặc định phải là Excel hoặc PDF.");
+        }
+        if (definition.Key == "GeneralLedger.ReportFooterNote"
+            && (value?.Length > 500 || value?.Any(char.IsControl) == true))
+        {
+            return ValidationResult.Fail("Ghi chú cuối báo cáo tối đa 500 ký tự và không được chứa ký tự điều khiển.");
+        }
+        if (definition.Key == "Appearance.Theme"
+            && (value is null || !new[] { "Light", "Dark", "System" }.Contains(value, StringComparer.OrdinalIgnoreCase)))
+        {
+            return ValidationResult.Fail("Giao diện phải là Light, Dark hoặc System.");
+        }
+        if (definition.Key == "Backup.Schedule"
+            && (string.IsNullOrWhiteSpace(value)
+                || BackgroundSchedulerService.ComputeNextRun(DateTime.UtcNow, intervalMinutes: null, cronExpression: value) is null))
+        {
+            return ValidationResult.Fail("Lịch backup phải là biểu thức cron 5 trường hợp lệ, ví dụ: 0 0 * * *.");
+        }
+        if (definition.Key == "Security.SessionTimeoutMinutes"
+            && (!int.TryParse(value, out var timeout) || timeout is < 5 or > 1440))
+        {
+            return ValidationResult.Fail("Thời hạn phiên phải từ 5 đến 1.440 phút.");
+        }
         if (definition.Key == "Security.MaxFailedLoginAttempts" && (!int.TryParse(value, out var attempt) || attempt is < 3 or > 10)) return ValidationResult.Fail("Max failed attempts phải từ 3 đến 10.");
         if (definition.Key == "Network.ApiPort" && (!int.TryParse(value, out var port) || port is < 1 or > 65535)) return ValidationResult.Fail("Port phải từ 1 đến 65535.");
+        if (definition.Key is "Network.ApiBaseUrl" or "POS.ApiEndpoint" or "FO.ApiEndpoint"
+            && !string.IsNullOrWhiteSpace(value))
+        {
+            if (!Uri.TryCreate(value.Trim(), UriKind.Absolute, out var endpoint)
+                || (!string.Equals(endpoint.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(endpoint.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                || string.IsNullOrWhiteSpace(endpoint.Host)
+                || !string.IsNullOrEmpty(endpoint.UserInfo)
+                || !string.IsNullOrEmpty(endpoint.Query)
+                || !string.IsNullOrEmpty(endpoint.Fragment))
+            {
+                return ValidationResult.Fail("Endpoint phải là URL tuyệt đối HTTP/HTTPS, không chứa thông tin đăng nhập, query hoặc fragment.");
+            }
+        }
         if (definition.ValueType == SettingValueType.Number && !string.IsNullOrWhiteSpace(value) && !int.TryParse(value, out _)) return ValidationResult.Fail("Giá trị số không hợp lệ.");
         if (definition.ValueType == SettingValueType.Decimal && !string.IsNullOrWhiteSpace(value) && !decimal.TryParse(value, out _)) return ValidationResult.Fail("Giá trị decimal không hợp lệ.");
-        if (definition.ValueType == SettingValueType.Path && !string.IsNullOrWhiteSpace(value) && (value.Contains("..") || value.Contains("*"))) return ValidationResult.Fail("Path không hợp lệ.");
+        if (definition.ValueType == SettingValueType.Boolean && !bool.TryParse(value?.Trim(), out _))
+        {
+            return ValidationResult.Fail("Giá trị Boolean phải là true hoặc false.");
+        }
+        if (definition.ValueType == SettingValueType.Path && !string.IsNullOrWhiteSpace(value))
+        {
+            var path = Environment.ExpandEnvironmentVariables(value.Trim());
+            if (path.Contains("..") || path.Contains('*')) return ValidationResult.Fail("Path không hợp lệ.");
+            if (!Path.IsPathFullyQualified(path)) return ValidationResult.Fail("Đường dẫn phải là đường dẫn tuyệt đối hoặc UNC.");
+            try
+            {
+                _ = Path.GetFullPath(path);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                return ValidationResult.Fail("Đường dẫn không hợp lệ hoặc vượt quá giới hạn hệ thống.");
+            }
+        }
         return ValidationResult.Success();
     }
 }

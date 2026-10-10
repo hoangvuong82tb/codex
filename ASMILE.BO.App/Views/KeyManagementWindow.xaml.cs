@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 
@@ -11,11 +12,20 @@ public partial class KeyManagementWindow : Window
         Owner = System.Windows.Application.Current.MainWindow;
     }
 
-    private void OnIssueKey(object s, MouseButtonEventArgs e) => Msg("Cấp thẻ");
-    private void OnReissueKey(object s, MouseButtonEventArgs e) => Msg("Cấp lại");
-    private void OnRevokeKey(object s, MouseButtonEventArgs e) => Msg("Thu hồi");
-    private void OnLockKey(object s, MouseButtonEventArgs e) => Msg("Khóa thẻ");
-    private void OnKeyLog(object s, MouseButtonEventArgs e) => Msg("Nhật ký thẻ");
-    private void Msg(string a) => MessageBox.Show($"Mockup: {a}. Chưa kết nối backend.", "Quản lý chìa khóa", MessageBoxButton.OK, MessageBoxImage.Information);
+    private void OnIssueKey(object s, MouseButtonEventArgs e) => Open<IssueKeyCardWindow>(e);
+    private void OnReissueKey(object s, MouseButtonEventArgs e) => Open<ReissueKeyCardWindow>(e);
+    private void OnRevokeKey(object s, MouseButtonEventArgs e) => Open<ReturnKeyCardWindow>(e);
+    private void OnLockKey(object s, MouseButtonEventArgs e) => Open<DisableKeyCardWindow>(e);
+    private void OnKeyLog(object s, MouseButtonEventArgs e) => Open<KeyCardAuditLogWindow>(e);
+
+    private void Open<T>(MouseButtonEventArgs e) where T : Window, new()
+    {
+        e.Handled = true;
+        var existing = System.Windows.Application.Current.Windows.OfType<T>().FirstOrDefault(w => w.IsLoaded);
+        if (existing is not null) { if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal; existing.Activate(); existing.Focus(); return; }
+        var w = new T { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner, ResizeMode = ResizeMode.CanResize, ShowInTaskbar = false };
+        w.Show();
+    }
+
     private void OnClose(object s, RoutedEventArgs e) => Close();
 }

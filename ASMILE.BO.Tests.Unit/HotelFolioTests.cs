@@ -46,6 +46,44 @@ public sealed class HotelFolioTests
     }
 
     [Fact]
+    public void FOLIO_DOM_U_014_payment_and_refund_preserve_business_date()
+    {
+        var businessDate = new DateOnly(2026, 9, 21);
+        var folio = HotelFolio.Create(Guid.NewGuid(), Guid.NewGuid(), "FOL-014", DateTime.UtcNow, null);
+
+        var payment = folio.AddPayment(100_000m, "Payment", HotelPaymentMethod.Cash, null, DateTime.UtcNow, null, businessDate);
+        var refund = folio.AddRefund(25_000m, "Refund", DateTime.UtcNow, null, businessDate);
+
+        payment.BusinessDate.Should().Be(businessDate);
+        refund.BusinessDate.Should().Be(businessDate);
+    }
+
+    [Fact]
+    public void FOLIO_DOM_U_015_backfill_assigns_only_missing_business_date_once()
+    {
+        var folio = HotelFolio.Create(Guid.NewGuid(), Guid.NewGuid(), "FOL-015", DateTime.UtcNow, null);
+        var legacyEntry = HotelFolioEntry.Create(
+            folio.HotelFolioId,
+            folio.PropertyId,
+            1,
+            HotelFolioEntryType.OtherCharge,
+            100_000m,
+            "Legacy charge",
+            null,
+            null,
+            null,
+            DateTime.UtcNow,
+            null);
+        var businessDate = new DateOnly(2026, 9, 23);
+
+        legacyEntry.BackfillBusinessDate(businessDate);
+
+        legacyEntry.BusinessDate.Should().Be(businessDate);
+        Action repeat = () => legacyEntry.BackfillBusinessDate(businessDate);
+        repeat.Should().Throw<InvalidOperationException>().WithMessage("FOLIO_BUSINESS_DATE_ALREADY_SET");
+    }
+
+    [Fact]
     public void FOLIO_DOM_U_004_tax_and_service_charge()
     {
         var folio = HotelFolio.Create(Guid.NewGuid(), Guid.NewGuid(), "FOL-004", DateTime.UtcNow, null);
@@ -129,5 +167,19 @@ public sealed class HotelFolioTests
         var rule = TaxRule.Create(Guid.NewGuid(), TaxRuleType.CityTax, "City Tax", 5, RevenueBucket.Rooms, min: 10000, max: 50000);
         rule.Calculate(100000).Should().Be(10000);
         rule.Calculate(2000000).Should().Be(50000);
+    }
+
+    [Fact]
+    public void FOLIO_DOM_U_013_transfer_preserves_source_entry_reference()
+    {
+        var folio = HotelFolio.Create(Guid.NewGuid(), Guid.NewGuid(), "FOL-013", DateTime.UtcNow, null);
+        var original = folio.AddRoomCharge(500000, "Room", new DateOnly(2026, 7, 18), null, DateTime.UtcNow, null);
+
+        var transfer = folio.AddTransfer(-200000, "Split source entry", original.HotelFolioEntryId, DateTime.UtcNow, null);
+
+        transfer.EntryType.Should().Be(HotelFolioEntryType.Transfer);
+        transfer.ReferenceType.Should().Be("HotelFolioEntry");
+        transfer.ReferenceId.Should().Be(original.HotelFolioEntryId);
+        folio.RunningBalance.Should().Be(300000);
     }
 }

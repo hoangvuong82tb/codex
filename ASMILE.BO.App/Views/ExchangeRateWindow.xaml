@@ -36,11 +36,11 @@
         <!-- METRICS -->
         <Border Grid.Row="1" Margin="14,10,14,0" Padding="14,12" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                <Border Style="{StaticResource MetricCard}" Margin="0,0,6,0"><StackPanel><TextBlock Text="Đang sử dụng" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricActive" FontSize="22" FontWeight="Bold" Foreground="#17365D" Text="18"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="Hiệu lực hôm nay" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricEffective" FontSize="22" FontWeight="Bold" Foreground="#16A34A" Text="16"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="Sắp hết hạn" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricExpiring" FontSize="22" FontWeight="Bold" Foreground="#F59E0B" Text="3"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="Hết hạn" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricExpired" FontSize="22" FontWeight="Bold" Foreground="#DC2626" Text="2"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="6,0,0,0"><StackPanel><TextBlock Text="Tiền tệ mặc định" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricDefault" FontSize="22" FontWeight="Bold" Foreground="#2563EB" Text="VND"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="0,0,6,0"><StackPanel><TextBlock Text="Đang sử dụng" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricActive" FontSize="22" FontWeight="Bold" Foreground="#17365D" Text="0"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="Hiệu lực hôm nay" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricEffective" FontSize="22" FontWeight="Bold" Foreground="#16A34A" Text="0"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="Sắp hết hạn" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricExpiring" FontSize="22" FontWeight="Bold" Foreground="#F59E0B" Text="0"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="Hết hạn" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricExpired" FontSize="22" FontWeight="Bold" Foreground="#DC2626" Text="0"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="6,0,0,0"><StackPanel><TextBlock Text="Tiền tệ mặc định" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricDefault" FontSize="22" FontWeight="Bold" Foreground="#2563EB" Text="—"/></StackPanel></Border>
             </Grid>
         </Border>
 

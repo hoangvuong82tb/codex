@@ -14,7 +14,7 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Style="{StaticResource HubContainerStyle}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Button Content="← Quay lại Lễ tân" Command="{Binding BackCommand}" Style="{StaticResource HubBackButtonStyle}"/>
+        <Button Content="← Quay lại Quản lý khách sạn" Command="{Binding BackCommand}" Style="{StaticResource HubBackButtonStyle}"/>
                 <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,32">
                     <TextBlock Text="Quản lý chìa khóa" Style="{StaticResource HubHeaderStyle}" FontSize="32"/>
                     <TextBlock Text="Quản lý phát hành, thay thế và thu hồi thẻ phòng." Style="{StaticResource HubSubtitleStyle}" FontSize="16"/>

@@ -63,6 +63,7 @@ public sealed partial class MenuRecipeViewModel : ViewModelBase
     public ObservableCollection<MenuCategoryCardState> FilteredCategoryCards { get; } = new();
     public ObservableCollection<MenuHistoryEntry> MenuHistoryEntries { get; } = new();
     private readonly Dictionary<Guid, List<MenuHistoryEntry>> _menuHistoryByItem = new();
+    private int _menuCardLoadVersion;
 
     // Dashboard data
     public ObservableCollection<IngredientLookupDto> FilteredIngredients { get; } = new();
@@ -1250,9 +1251,10 @@ public sealed partial class MenuRecipeViewModel : ViewModelBase
     partial void OnSelectedMenuCardChanged(MenuItemCardState? value)
     {
         if (value is null || IsCreatingNewMenu) return;
+        var loadVersion = Interlocked.Increment(ref _menuCardLoadVersion);
         OnPropertyChanged(nameof(HasSelectedMenu)); OnPropertyChanged(nameof(NoSelectedMenu));
         OnPropertyChanged(nameof(ShowEmptyState));
-        _ = LoadSelectedMenuCardAsync(value);
+        _ = LoadSelectedMenuCardAsync(value, loadVersion);
     }
 
     partial void OnSelectedRecipeLineChanged(RecipeLineEditor? value)
@@ -1294,23 +1296,38 @@ public sealed partial class MenuRecipeViewModel : ViewModelBase
         RefreshAvailableSubstituteItems();
     }
 
-    private async Task LoadSelectedMenuCardAsync(MenuItemCardState value)
+    private async Task LoadSelectedMenuCardAsync(MenuItemCardState value, int loadVersion)
     {
-        try { await SelectMenuAsync(value); }
-        catch (Exception ex) { StatusMessage = $"Không thể tải chi tiết món: {ex.Message}"; StatusIsSuccess = false; }
+        try { await LoadMenuCardAsync(value, loadVersion); }
+        catch (Exception ex)
+        {
+            if (loadVersion == Volatile.Read(ref _menuCardLoadVersion))
+            {
+                StatusMessage = $"Không thể tải chi tiết món: {ex.Message}";
+                StatusIsSuccess = false;
+            }
+        }
     }
 
     [RelayCommand]
     private async Task SelectMenuAsync(MenuItemCardState card)
     {
-        if (card is null || IsBusy) return;
+        if (card is null) return;
+        var loadVersion = Interlocked.Increment(ref _menuCardLoadVersion);
+        await LoadMenuCardAsync(card, loadVersion);
+    }
+
+    private async Task LoadMenuCardAsync(MenuItemCardState card, int loadVersion)
+    {
+        if (card is null || loadVersion != Volatile.Read(ref _menuCardLoadVersion)) return;
         IsBusy = true;
         try
         {
+            if (loadVersion != Volatile.Read(ref _menuCardLoadVersion)) return;
             if (IsServiceCatalogSelected)
             {
                 var service = _allExtraServices.FirstOrDefault(x => x.Id == card.Id);
-                if (service is not null)
+                if (service is not null && loadVersion == Volatile.Read(ref _menuCardLoadVersion))
                 {
                     ApplySelectedService(service);
                 }
@@ -1319,6 +1336,7 @@ public sealed partial class MenuRecipeViewModel : ViewModelBase
 
             IsCreatingNewMenu = false;
             var detail = await _menuCatalogService.GetMenuItemDetailAsync(card.Id);
+            if (loadVersion != Volatile.Read(ref _menuCardLoadVersion)) return;
             if (detail is not null)
             {
                 EditingItem = new CreateMenuItemRequest
@@ -1334,10 +1352,20 @@ public sealed partial class MenuRecipeViewModel : ViewModelBase
                 IsEditingStatusActive = detail.IsActive;
                 SelectedWorkspaceTab = 0;
             }
-            await LoadRecipeAsync(card.Id);
-            LoadMenuHistory(card.Id);
+            await LoadRecipeAsync(card.Id, loadVersion);
+            if (loadVersion == Volatile.Read(ref _menuCardLoadVersion))
+            {
+                LoadMenuHistory(card.Id);
+            }
         }
-        finally { IsBusy = false; NotifyComputedState(); }
+        finally
+        {
+            if (loadVersion == Volatile.Read(ref _menuCardLoadVersion))
+            {
+                IsBusy = false;
+                NotifyComputedState();
+            }
+        }
     }
 
     [RelayCommand]
@@ -2164,11 +2192,17 @@ public sealed partial class MenuRecipeViewModel : ViewModelBase
         BuildMenuCards();
     }
 
-    private async Task LoadRecipeAsync(Guid menuItemId)
+    private async Task LoadRecipeAsync(Guid menuItemId, int? selectionLoadVersion = null)
     {
         try
         {
             var recipe = await _menuRecipeService.GetRecipeAsync(menuItemId);
+            if (selectionLoadVersion.HasValue
+                && selectionLoadVersion.Value != Volatile.Read(ref _menuCardLoadVersion))
+            {
+                return;
+            }
+
             if (recipe is not null)
             {
                 EditingRecipeId = recipe.Id; EditingRecipeName = recipe.Name;
@@ -2176,16 +2210,35 @@ public sealed partial class MenuRecipeViewModel : ViewModelBase
                 ResetCollection(RecipeLines, recipe.Lines.Select(ToEditor));
                 SelectedRecipeLine = RecipeLines.FirstOrDefault();
                 UpdateMenuCardRecipeState(menuItemId, recipe.Lines.Count > 0);
-                await AutoRefreshSelectedCostAsync(menuItemId, updateRecipeLinesFromPreview: true);
+                await AutoRefreshSelectedCostAsync(
+                    menuItemId,
+                    updateRecipeLinesFromPreview: true,
+                    selectionLoadVersion);
             }
             else ClearRecipeState();
         }
-        catch { ClearRecipeState(); }
+        catch
+        {
+            if (!selectionLoadVersion.HasValue
+                || selectionLoadVersion.Value == Volatile.Read(ref _menuCardLoadVersion))
+            {
+                ClearRecipeState();
+            }
+        }
     }
 
-    private async Task AutoRefreshSelectedCostAsync(Guid menuItemId, bool updateRecipeLinesFromPreview)
+    private async Task AutoRefreshSelectedCostAsync(
+        Guid menuItemId,
+        bool updateRecipeLinesFromPreview,
+        int? selectionLoadVersion = null)
     {
         var preview = await _menuRecipeService.PreviewCostAsync(menuItemId);
+        if (selectionLoadVersion.HasValue
+            && selectionLoadVersion.Value != Volatile.Read(ref _menuCardLoadVersion))
+        {
+            return;
+        }
+
         PreviewCost = preview.EstimatedCost;
         PreviewMarginAmount = preview.MarginAmount;
         PreviewMarginRate = preview.MarginRate;

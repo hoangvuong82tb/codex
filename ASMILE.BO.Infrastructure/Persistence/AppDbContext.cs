@@ -12,14 +12,23 @@ using ASMILE.BO.Core.FrontOffice.Payment;
 using ASMILE.BO.Core.FrontOffice.Rate;
 using ASMILE.BO.Core.FrontOffice.Guest;
 using ASMILE.BO.Core.FrontOffice.Loyalty;
+using ASMILE.BO.Core.FrontOffice.Feedback;
 using ASMILE.BO.Core.FrontOffice.Group;
 using ASMILE.BO.Core.FrontOffice.Housekeeping;
+using ASMILE.BO.Core.FrontOffice.TaskShift;
 using ASMILE.BO.Core.FrontOffice.ServiceRequest;
+using ASMILE.BO.Core.FrontOffice.Message;
 using ASMILE.BO.Core.FrontOffice.WakeUpCall;
 using ASMILE.BO.Core.FrontOffice.LostFound;
 using ASMILE.BO.Core.FrontOffice.Cashier;
+using ASMILE.BO.Core.FrontOffice.Incident;
+using ASMILE.BO.Core.FrontOffice.ShiftLog;
 using ASMILE.BO.Core.FrontOffice.Settlement;
 using ASMILE.BO.Core.FrontOffice.NightAudit;
+using ASMILE.BO.Core.FrontOffice.Marketing;
+using ASMILE.BO.Core.FrontOffice.Maintenance;
+using ASMILE.BO.Core.FrontOffice.DoorLock;
+using ASMILE.BO.Core.FrontOffice.Concierge;
 using ASMILE.BO.Application.Interfaces;
 using ASMILE.BO.Infrastructure.Services;
 using ASMILE.BO.Shared.Exceptions;
@@ -50,6 +59,31 @@ public sealed class AppDbContext : DbContext
         }
     }
     public Guid? CurrentBranchId => _companyContext?.BranchId;
+
+    public override int SaveChanges()
+    {
+        return SaveChanges(acceptAllChangesOnSuccess: true);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ApplyCompanyScope();
+        ApplyProviderSafeRowVersions();
+        try
+        {
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            ChangeTracker.Clear();
+            throw new AppConcurrencyException("Dữ liệu đã được người dùng khác thay đổi. Vui lòng tải lại trước khi lưu.", ex);
+        }
+        catch
+        {
+            ChangeTracker.Clear();
+            throw;
+        }
+    }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -104,7 +138,10 @@ public sealed class AppDbContext : DbContext
                 continue;
             }
 
-            entry.Property("RowVersion").CurrentValue = Guid.NewGuid().ToByteArray();
+            // Keep the provider-safe token shape identical to SQL Server rowversion.
+            // Guid.ToByteArray() is 16 bytes, while all application concurrency
+            // contracts and SQL Server rowversion columns use 8 bytes.
+            entry.Property("RowVersion").CurrentValue = Guid.NewGuid().ToByteArray()[..8];
         }
     }
 
@@ -289,6 +326,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<AppDataPermission> AppDataPermissions => Set<AppDataPermission>();
     public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<AppUserRole> AppUserRoles => Set<AppUserRole>();
+    public DbSet<LoginAudit> LoginAudits => Set<LoginAudit>();
+    public DbSet<LoginSession> LoginSessions => Set<LoginSession>();
     public DbSet<UserWorkspacePreference> UserWorkspacePreferences => Set<UserWorkspacePreference>();
     public DbSet<BackgroundJobDefinition> BackgroundJobDefinitions => Set<BackgroundJobDefinition>();
     public DbSet<BackgroundJobSchedule> BackgroundJobSchedules => Set<BackgroundJobSchedule>();
@@ -299,6 +338,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<JobRetry> JobRetries => Set<JobRetry>();
     public DbSet<JobLog> JobLogs => Set<JobLog>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<NotificationComment> NotificationComments => Set<NotificationComment>();
+    public DbSet<NotificationUserState> NotificationUserStates => Set<NotificationUserState>();
     public DbSet<TaskInbox> TaskInboxItems => Set<TaskInbox>();
     public DbSet<TaskComment> TaskComments => Set<TaskComment>();
     public DbSet<TaskAttachmentMetadata> TaskAttachmentMetadata => Set<TaskAttachmentMetadata>();
@@ -356,6 +397,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<QuoteChangeRequestDetail> QuoteChangeRequestDetails => Set<QuoteChangeRequestDetail>();
     public DbSet<QuoteAuditLog> QuoteAuditLogs => Set<QuoteAuditLog>();
     public DbSet<FrontOfficeOutboxMessage> FrontOfficeOutboxMessages => Set<FrontOfficeOutboxMessage>();
+    public DbSet<EmailOutboxMessage> EmailOutboxMessages => Set<EmailOutboxMessage>();
     public DbSet<FrontOfficeInboxMessage> FrontOfficeInboxMessages => Set<FrontOfficeInboxMessage>();
     public DbSet<FrontOfficeIdempotencyRecord> FrontOfficeIdempotencyRecords => Set<FrontOfficeIdempotencyRecord>();
     public DbSet<ProcessInstance> FrontOfficeProcesses => Set<ProcessInstance>();
@@ -370,17 +412,128 @@ public sealed class AppDbContext : DbContext
     public DbSet<Reservation> FrontOfficeReservations => Set<Reservation>();
     public DbSet<ReservationHistory> FrontOfficeReservationHistory => Set<ReservationHistory>();
     public DbSet<HotelRoomType> HotelRoomTypes => Set<HotelRoomType>();
+    public DbSet<HotelBuilding> HotelBuildings => Set<HotelBuilding>();
+    public DbSet<HotelFloor> HotelFloors => Set<HotelFloor>();
+    public DbSet<HotelArea> HotelAreas => Set<HotelArea>();
+    public DbSet<HotelReferenceCatalogItem> HotelReferenceCatalogItems => Set<HotelReferenceCatalogItem>();
+    public DbSet<HotelMinibarItemProfile> HotelMinibarItemProfiles => Set<HotelMinibarItemProfile>();
+    public DbSet<HotelRoomStatusRule> HotelRoomStatusRules => Set<HotelRoomStatusRule>();
+    public DbSet<HotelPropertyProfile> HotelPropertyProfiles => Set<HotelPropertyProfile>();
+    public DbSet<HotelStayPolicy> HotelStayPolicies => Set<HotelStayPolicy>();
+    public DbSet<HotelCheckInOutRule> HotelCheckInOutRules => Set<HotelCheckInOutRule>();
+    public DbSet<HotelRoomMoveUpgradeRule> HotelRoomMoveUpgradeRules => Set<HotelRoomMoveUpgradeRule>();
+    public DbSet<HotelPropertyDocument> HotelPropertyDocuments => Set<HotelPropertyDocument>();
+    public DbSet<HotelPromotionPackage> HotelPromotionPackages => Set<HotelPromotionPackage>();
+    public DbSet<HotelGroupPolicy> HotelGroupPolicies => Set<HotelGroupPolicy>();
+    public DbSet<HotelCashierShiftPolicy> HotelCashierShiftPolicies => Set<HotelCashierShiftPolicy>();
+    public DbSet<HotelNightAuditPolicy> HotelNightAuditPolicies => Set<HotelNightAuditPolicy>();
+    public DbSet<HotelApprovalMatrixRule> HotelApprovalMatrixRules => Set<HotelApprovalMatrixRule>();
+    public DbSet<HotelFOPermissionPolicy> HotelFOPermissionPolicies => Set<HotelFOPermissionPolicy>();
+    public DbSet<HotelFormPrinterProfile> HotelFormPrinterProfiles => Set<HotelFormPrinterProfile>();
+    public DbSet<HotelMessagingIntegrationProfile> HotelMessagingIntegrationProfiles => Set<HotelMessagingIntegrationProfile>();
+    public DbSet<HotelPostedCorrectionPolicy> HotelPostedCorrectionPolicies => Set<HotelPostedCorrectionPolicy>();
+    public DbSet<HotelBusinessRuleProfile> HotelBusinessRuleProfiles => Set<HotelBusinessRuleProfile>();
+    public DbSet<HotelTaxServiceChargeRule> HotelTaxServiceChargeRules => Set<HotelTaxServiceChargeRule>();
+    public DbSet<HotelPaymentMethodProfile> HotelPaymentMethodProfiles => Set<HotelPaymentMethodProfile>();
+    public DbSet<HotelDepositPolicy> HotelDepositPolicies => Set<HotelDepositPolicy>();
+    public DbSet<HotelDiscountPolicy> HotelDiscountPolicies => Set<HotelDiscountPolicy>();
+    public DbSet<HotelChargeCodeProfile> HotelChargeCodeProfiles => Set<HotelChargeCodeProfile>();
+    public DbSet<HotelFolioProfile> HotelFolioProfiles => Set<HotelFolioProfile>();
+    public DbSet<HotelGuestTypeProfile> HotelGuestTypeProfiles => Set<HotelGuestTypeProfile>();
+    public DbSet<HotelProfileTypeProfile> HotelProfileTypeProfiles => Set<HotelProfileTypeProfile>();
+    public DbSet<HotelVipLevelProfile> HotelVipLevelProfiles => Set<HotelVipLevelProfile>();
+    public DbSet<HotelGuestPreferenceProfile> HotelGuestPreferenceProfiles => Set<HotelGuestPreferenceProfile>();
+    public DbSet<HotelGuestRequestProfile> HotelGuestRequestProfiles => Set<HotelGuestRequestProfile>();
+    public DbSet<HotelReservationTypeProfile> HotelReservationTypeProfiles => Set<HotelReservationTypeProfile>();
+    public DbSet<HotelBookingSourceProfile> HotelBookingSourceProfiles => Set<HotelBookingSourceProfile>();
+    public DbSet<HotelBookingChannelProfile> HotelBookingChannelProfiles => Set<HotelBookingChannelProfile>();
+    public DbSet<HotelMarketSegmentProfile> HotelMarketSegmentProfiles => Set<HotelMarketSegmentProfile>();
+    public DbSet<HotelHousekeepingRuleProfile> HotelHousekeepingRuleProfiles => Set<HotelHousekeepingRuleProfile>();
+    public DbSet<HotelWakeupRuleProfile> HotelWakeupRuleProfiles => Set<HotelWakeupRuleProfile>();
+    public DbSet<HotelComplaintProfile> HotelComplaintProfiles => Set<HotelComplaintProfile>();
+    public DbSet<HotelCompanyProfile> HotelCompanyProfiles => Set<HotelCompanyProfile>();
+    public DbSet<HotelTravelAgentProfile> HotelTravelAgentProfiles => Set<HotelTravelAgentProfile>();
+    public DbSet<HotelCommissionRuleProfile> HotelCommissionRuleProfiles => Set<HotelCommissionRuleProfile>();
     public DbSet<HotelRoom> HotelRooms => Set<HotelRoom>();
     public DbSet<HotelStay> HotelStays => Set<HotelStay>();
     public DbSet<HotelStayHistory> HotelStayHistories => Set<HotelStayHistory>();
+    public DbSet<HotelStayOccupant> HotelStayOccupants => Set<HotelStayOccupant>();
     public DbSet<HotelFolio> HotelFolios => Set<HotelFolio>();
     public DbSet<HotelFolioEntry> HotelFolioEntries => Set<HotelFolioEntry>();
+    public DbSet<HotelFolioRoutingRule> HotelFolioRoutingRules => Set<HotelFolioRoutingRule>();
+    public DbSet<HotelInvoice> HotelInvoices => Set<HotelInvoice>();
+    public DbSet<HotelPayment> HotelPayments => Set<HotelPayment>();
+    public DbSet<HotelPaymentAllocation> HotelPaymentAllocations => Set<HotelPaymentAllocation>();
+    public DbSet<PaymentHistory> HotelPaymentHistory => Set<PaymentHistory>();
+    // Canonical Night Audit business date. Do not introduce a parallel FO business-date entity.
+    public DbSet<BusinessDateRecord> BusinessDates => Set<BusinessDateRecord>();
+    public DbSet<NightAudit> NightAudits => Set<NightAudit>();
+    public DbSet<NightAuditStepExecution> NightAuditSteps => Set<NightAuditStepExecution>();
+    public DbSet<RevenueSnapshot> RevenueSnapshots => Set<RevenueSnapshot>();
+    public DbSet<GuestProfile> GuestProfiles => Set<GuestProfile>();
+    public DbSet<GuestDocument> GuestDocuments => Set<GuestDocument>();
+    public DbSet<GuestPreference> GuestPreferences => Set<GuestPreference>();
     public DbSet<RatePlan> RatePlans => Set<RatePlan>();
     public DbSet<RateCalendarEntry> RateCalendarEntries => Set<RateCalendarEntry>();
     public DbSet<RateRule> RateRules => Set<RateRule>();
     public DbSet<RateSeason> RateSeasons => Set<RateSeason>();
+    public DbSet<HotelExchangeRate> HotelExchangeRates => Set<HotelExchangeRate>();
     public DbSet<GroupReservation> FrontOfficeGroupReservations => Set<GroupReservation>();
+    public DbSet<GroupDeposit> FrontOfficeGroupDeposits => Set<GroupDeposit>();
+    public DbSet<GroupDepositSchedule> FrontOfficeGroupDepositSchedules => Set<GroupDepositSchedule>();
     public DbSet<GroupRoomAssignment> FrontOfficeGroupRoomAssignments => Set<GroupRoomAssignment>();
+    public DbSet<GroupRoomBlock> FrontOfficeGroupRoomBlocks => Set<GroupRoomBlock>();
+    public DbSet<GroupServiceOrder> FrontOfficeGroupServiceOrders => Set<GroupServiceOrder>();
+    public DbSet<FrontOfficeIncident> FrontOfficeIncidents => Set<FrontOfficeIncident>();
+    public DbSet<FrontOfficeShiftLogEntry> FrontOfficeShiftLogEntries => Set<FrontOfficeShiftLogEntry>();
+    public DbSet<HousekeepingTask> HousekeepingTasks => Set<HousekeepingTask>();
+    public DbSet<TaskAssignment> TaskAssignments => Set<TaskAssignment>();
+    public DbSet<TaskHistory> TaskHistories => Set<TaskHistory>();
+    public DbSet<RoomHousekeepingState> RoomHousekeepingStates => Set<RoomHousekeepingState>();
+    public DbSet<RoomHousekeepingStatusHistory> RoomHousekeepingStatusHistories => Set<RoomHousekeepingStatusHistory>();
+    public DbSet<RoomInspection> RoomInspections => Set<RoomInspection>();
+    public DbSet<HousekeepingLinenType> HousekeepingLinenTypes => Set<HousekeepingLinenType>();
+    public DbSet<HousekeepingLinenTransaction> HousekeepingLinenTransactions => Set<HousekeepingLinenTransaction>();
+    public DbSet<HousekeepingAmenityType> HousekeepingAmenityTypes => Set<HousekeepingAmenityType>();
+    public DbSet<HousekeepingAmenityBalance> HousekeepingAmenityBalances => Set<HousekeepingAmenityBalance>();
+    public DbSet<HousekeepingAmenityRefillRequest> HousekeepingAmenityRefillRequests => Set<HousekeepingAmenityRefillRequest>();
+    public DbSet<HousekeepingAmenityRefillLine> HousekeepingAmenityRefillLines => Set<HousekeepingAmenityRefillLine>();
+    public DbSet<MinibarSession> MinibarSessions => Set<MinibarSession>();
+    public DbSet<MinibarConsumption> MinibarConsumptions => Set<MinibarConsumption>();
+    public DbSet<MinibarRestockTransaction> MinibarRestockTransactions => Set<MinibarRestockTransaction>();
+    public DbSet<MinibarInventoryAudit> MinibarInventoryAudits => Set<MinibarInventoryAudit>();
+    public DbSet<MinibarInventoryLine> MinibarInventoryLines => Set<MinibarInventoryLine>();
+    public DbSet<KeyCardCredential> KeyCardCredentials => Set<KeyCardCredential>();
+    public DbSet<KeyCardEvent> KeyCardEvents => Set<KeyCardEvent>();
+    public DbSet<LostFoundItem> LostFoundItems => Set<LostFoundItem>();
+    public DbSet<LostFoundHistory> LostFoundHistories => Set<LostFoundHistory>();
+    public DbSet<CashierShift> CashierShifts => Set<CashierShift>();
+    public DbSet<CashMovement> CashMovements => Set<CashMovement>();
+    public DbSet<CashReconciliation> CashReconciliations => Set<CashReconciliation>();
+    public DbSet<MarketingRecord> MarketingRecords => Set<MarketingRecord>();
+    public DbSet<ServiceRequest> FrontOfficeServiceRequests => Set<ServiceRequest>();
+    public DbSet<ServiceHistory> FrontOfficeServiceHistories => Set<ServiceHistory>();
+    public DbSet<GuestMessage> FrontOfficeGuestMessages => Set<GuestMessage>();
+    public DbSet<MessageHistory> FrontOfficeMessageHistories => Set<MessageHistory>();
+    public DbSet<MaintenanceWorkOrder> MaintenanceWorkOrders => Set<MaintenanceWorkOrder>();
+    public DbSet<MaintenanceWorkOrderNote> MaintenanceWorkOrderNotes => Set<MaintenanceWorkOrderNote>();
+    public DbSet<MaintenanceAsset> MaintenanceAssets => Set<MaintenanceAsset>();
+    public DbSet<MaintenanceAssetFailure> MaintenanceAssetFailures => Set<MaintenanceAssetFailure>();
+    public DbSet<PreventiveMaintenancePlan> PreventiveMaintenancePlans => Set<PreventiveMaintenancePlan>();
+    public DbSet<PreventiveChecklistItem> PreventiveChecklistItems => Set<PreventiveChecklistItem>();
+    public DbSet<PreventiveMaintenanceSchedule> PreventiveMaintenanceSchedules => Set<PreventiveMaintenanceSchedule>();
+    public DbSet<DoorLockDevice> DoorLockDevices => Set<DoorLockDevice>();
+    public DbSet<DoorLockEvent> DoorLockEvents => Set<DoorLockEvent>();
+    public DbSet<ConciergeWakeUpCall> ConciergeWakeUpCalls => Set<ConciergeWakeUpCall>();
+    public DbSet<ConciergeLuggageItem> ConciergeLuggageItems => Set<ConciergeLuggageItem>();
+    public DbSet<ConciergeTransportationBooking> ConciergeTransportationBookings => Set<ConciergeTransportationBooking>();
+    public DbSet<ConciergeTelephoneCall> ConciergeTelephoneCalls => Set<ConciergeTelephoneCall>();
+    public DbSet<ConciergeTelephoneContact> ConciergeTelephoneContacts => Set<ConciergeTelephoneContact>();
+    public DbSet<ReservationDenial> ReservationDenials => Set<ReservationDenial>();
+    public DbSet<GuestFeedback> GuestFeedbacks => Set<GuestFeedback>();
+    public DbSet<GuestFeedbackHistory> GuestFeedbackHistories => Set<GuestFeedbackHistory>();
+    public DbSet<VipProfile> VipProfiles => Set<VipProfile>();
+    public DbSet<LoyaltyTransaction> LoyaltyTransactions => Set<LoyaltyTransaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -544,8 +697,30 @@ public sealed class AppDbContext : DbContext
             entity.Property(x => x.Title).HasMaxLength(255);
             entity.Property(x => x.Message).HasMaxLength(2000);
             entity.Property(x => x.SourceType).HasMaxLength(80);
+            entity.Property(x => x.IdempotencyKey).HasMaxLength(160);
             entity.Property(x => x.TargetRoute).HasMaxLength(120);
             entity.Property(x => x.MetadataJson);
+            entity.HasIndex(x => x.IdempotencyKey)
+                .IsUnique()
+                .HasFilter("[IdempotencyKey] IS NOT NULL")
+                .HasDatabaseName("UQ_UserNotifications_IdempotencyKey");
+        });
+
+        modelBuilder.Entity<NotificationComment>(entity =>
+        {
+            entity.HasIndex(x => x.NotificationId);
+            entity.HasIndex(x => new { x.NotificationId, x.UserId, x.CreatedAt });
+            entity.Property(x => x.Kind).HasMaxLength(20);
+            entity.Property(x => x.CommentText).HasMaxLength(4000);
+            entity.Property(x => x.CreatedByName).HasMaxLength(128);
+            entity.HasOne(x => x.Notification).WithMany(x => x.Comments).HasForeignKey(x => x.NotificationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<NotificationUserState>(entity =>
+        {
+            entity.HasIndex(x => new { x.NotificationId, x.UserId }).IsUnique();
+            entity.HasIndex(x => new { x.UserId, x.IsDismissed, x.UpdatedAt });
+            entity.HasOne(x => x.Notification).WithMany(x => x.UserStates).HasForeignKey(x => x.NotificationId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<TaskInbox>(entity =>
@@ -827,6 +1002,21 @@ public sealed class AppDbContext : DbContext
             entity.HasIndex(x => x.PayloadHash).HasDatabaseName("IX_fo_hop_thu_di_ma_bam");
         });
 
+        modelBuilder.Entity<EmailOutboxMessage>(entity =>
+        {
+            entity.ToTable("EmailOutboxMessages");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Recipient).HasMaxLength(320).IsRequired();
+            entity.Property(x => x.Subject).HasMaxLength(255).IsRequired();
+            entity.Property(x => x.Body).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.LastError).HasMaxLength(2000);
+            entity.Property(x => x.SourceType).HasMaxLength(80);
+            entity.HasIndex(x => new { x.Status, x.NextAttemptAtUtc });
+            entity.HasIndex(x => new { x.SourceType, x.SourceId });
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+        });
+
         modelBuilder.Entity<FrontOfficeInboxMessage>(entity =>
         {
             entity.ToTable("fo_hop_thu_den", "fo");
@@ -926,33 +1116,1143 @@ public sealed class AppDbContext : DbContext
         modelBuilder.Entity<ProcessCompensation>(entity => { entity.ToTable("BuTruQuyTrinh", "fo_process"); entity.HasKey(x => x.CompensationId).HasName("PK_fo_process_BuTruQuyTrinh"); entity.Property(x => x.CompensationType).HasMaxLength(100); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(40); entity.Property(x => x.CommandReference).HasMaxLength(500); entity.Property(x => x.ErrorCode).HasMaxLength(100); entity.Property(x => x.ApprovalReference).HasMaxLength(500); entity.Property(x => x.AuditReference).HasMaxLength(500); entity.HasIndex(x => new { x.ProcessId, x.Status }).HasDatabaseName("IX_fo_process_BuTruQuyTrinh_Process_Status"); entity.HasOne<ProcessInstance>().WithMany().HasForeignKey(x => x.ProcessId).OnDelete(DeleteBehavior.Restrict); entity.HasOne<ProcessStep>().WithMany().HasForeignKey(x => x.StepId).OnDelete(DeleteBehavior.Restrict); });
         modelBuilder.Entity<ProcessManualAction>(entity => { entity.ToTable("HanhDongThuCongQuyTrinh", "fo_process"); entity.HasKey(x => x.ManualActionId).HasName("PK_fo_process_HanhDongThuCongQuyTrinh"); entity.Property(x => x.ActionType).HasMaxLength(100); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(40); entity.Property(x => x.RequiredPermission).HasMaxLength(120); entity.Property(x => x.AssignedRole).HasMaxLength(120); entity.Property(x => x.ResultCode).HasMaxLength(100); entity.Property(x => x.AuditReference).HasMaxLength(500); entity.HasIndex(x => new { x.Status, x.DueAtUtc }).HasDatabaseName("IX_fo_process_HanhDongThuCongQuyTrinh_Status_Due"); entity.HasOne<ProcessInstance>().WithMany().HasForeignKey(x => x.ProcessId).OnDelete(DeleteBehavior.Restrict); });
         modelBuilder.Entity<ProcessHistory>(entity => { entity.ToTable("LichSuQuyTrinh", "fo_process"); entity.HasKey(x => x.HistoryId).HasName("PK_fo_process_LichSuQuyTrinh"); entity.Property(x => x.PreviousState).HasMaxLength(80); entity.Property(x => x.NewState).HasMaxLength(80); entity.Property(x => x.PreviousStep).HasMaxLength(120); entity.Property(x => x.NewStep).HasMaxLength(120); entity.Property(x => x.TransitionType).HasMaxLength(80); entity.Property(x => x.ErrorCode).HasMaxLength(100); entity.Property(x => x.ReasonCode).HasMaxLength(100); entity.HasIndex(x => new { x.ProcessId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_process_LichSuQuyTrinh_Process_Occurred"); entity.HasOne<ProcessInstance>().WithMany().HasForeignKey(x => x.ProcessId).OnDelete(DeleteBehavior.Restrict); });
-        modelBuilder.Entity<Reservation>(entity => { entity.ToTable("DatPhong", "fo"); entity.HasKey(x => x.ReservationId).HasName("PK_fo_DatPhong"); entity.Property(x => x.ReservationNumber).HasMaxLength(40); entity.Property(x => x.GuestNameSnapshot).HasMaxLength(200); entity.Property(x => x.GuestPhoneSnapshot).HasMaxLength(50); entity.Property(x => x.GuestEmailSnapshot).HasMaxLength(200); entity.Property(x => x.Source).HasMaxLength(80); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.GuaranteeType).HasConversion<string>().HasMaxLength(40); entity.Property(x => x.DepositStatus).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.DepositAmount).HasColumnType("decimal(18,2)"); entity.Property(x => x.SpecialRequests).HasMaxLength(1000); entity.Property(x => x.InternalNotes).HasMaxLength(1000); entity.Property(x => x.CancellationReason).HasMaxLength(300); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.ReservationNumber }).IsUnique().HasDatabaseName("UQ_fo_DatPhong_CoSo_SoDatPhong"); entity.HasIndex(x => new { x.PropertyId, x.ArrivalDate, x.DepartureDate }).HasDatabaseName("IX_fo_DatPhong_CoSo_NgayO"); entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_DatPhong_CoSo_TrangThai"); entity.HasIndex(x => new { x.PropertyId, x.AssignedRoomId, x.ArrivalDate, x.DepartureDate }).HasDatabaseName("IX_fo_DatPhong_Phong_NgayO"); });
+        modelBuilder.Entity<Reservation>(entity => { entity.ToTable("DatPhong", "fo"); entity.HasKey(x => x.ReservationId).HasName("PK_fo_DatPhong"); entity.Property(x => x.ReservationNumber).HasMaxLength(40); entity.Property(x => x.GuestNameSnapshot).HasMaxLength(200); entity.Property(x => x.GuestPhoneSnapshot).HasMaxLength(50); entity.Property(x => x.GuestEmailSnapshot).HasMaxLength(200); entity.Property(x => x.Source).HasMaxLength(80); entity.Property(x => x.MarketSegment).HasMaxLength(80); entity.Property(x => x.CompanyName).HasMaxLength(200); entity.Property(x => x.TravelAgentName).HasMaxLength(200); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.GuaranteeType).HasConversion<string>().HasMaxLength(40); entity.Property(x => x.DepositStatus).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.DepositAmount).HasColumnType("decimal(18,2)"); entity.Property(x => x.SpecialRequests).HasMaxLength(1000); entity.Property(x => x.InternalNotes).HasMaxLength(1000); entity.Property(x => x.CancellationReason).HasMaxLength(300); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.ReservationNumber }).IsUnique().HasDatabaseName("UQ_fo_DatPhong_CoSo_SoDatPhong"); entity.HasIndex(x => new { x.PropertyId, x.ArrivalDate, x.DepartureDate }).HasDatabaseName("IX_fo_DatPhong_CoSo_NgayO"); entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_DatPhong_CoSo_TrangThai"); entity.HasIndex(x => new { x.PropertyId, x.AssignedRoomId, x.ArrivalDate, x.DepartureDate }).HasDatabaseName("IX_fo_DatPhong_Phong_NgayO"); entity.HasIndex(x => new { x.PropertyId, x.BookingSourceProfileId, x.BookingChannelProfileId, x.MarketSegmentProfileId }).HasDatabaseName("IX_fo_DatPhong_CoSo_Nguon_Kenh_PhanKhuc"); entity.HasIndex(x => new { x.PropertyId, x.CompanyProfileId, x.TravelAgentProfileId }).HasDatabaseName("IX_fo_DatPhong_CoSo_DoiTac"); entity.HasOne<HotelBookingSourceProfile>().WithMany().HasForeignKey(x => x.BookingSourceProfileId).HasConstraintName("FK_fo_DatPhong_NguonDatPhongFO").OnDelete(DeleteBehavior.Restrict); entity.HasOne<HotelBookingChannelProfile>().WithMany().HasForeignKey(x => x.BookingChannelProfileId).HasConstraintName("FK_fo_DatPhong_KenhDatPhongFO").OnDelete(DeleteBehavior.Restrict); entity.HasOne<HotelMarketSegmentProfile>().WithMany().HasForeignKey(x => x.MarketSegmentProfileId).HasConstraintName("FK_fo_DatPhong_PhanKhucThiTruongFO").OnDelete(DeleteBehavior.Restrict); entity.HasOne<HotelCompanyProfile>().WithMany().HasForeignKey(x => x.CompanyProfileId).HasConstraintName("FK_fo_DatPhong_DoiTacCongTyFO").OnDelete(DeleteBehavior.Restrict); entity.HasOne<HotelTravelAgentProfile>().WithMany().HasForeignKey(x => x.TravelAgentProfileId).HasConstraintName("FK_fo_DatPhong_DaiLyDuLichFO").OnDelete(DeleteBehavior.Restrict); entity.HasOne<HotelCommissionRuleProfile>().WithMany().HasForeignKey(x => x.CommissionRuleProfileId).HasConstraintName("FK_fo_DatPhong_QuyTacHoaHongFO").OnDelete(DeleteBehavior.Restrict); });
         modelBuilder.Entity<ReservationHistory>(entity => { entity.ToTable("LichSuDatPhong", "fo"); entity.HasKey(x => x.HistoryId).HasName("PK_fo_LichSuDatPhong"); entity.Property(x => x.Action).HasMaxLength(80); entity.Property(x => x.FromStatus).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.ToStatus).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.ReasonCode).HasMaxLength(100); entity.Property(x => x.SafeSummary).HasMaxLength(300); entity.HasIndex(x => new { x.ReservationId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_LichSuDatPhong_DatPhong_Luc"); entity.HasOne<Reservation>().WithMany().HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Restrict); });
         modelBuilder.Entity<HotelRoomType>(entity => { entity.ToTable("LoaiPhongKhachSan", "fo"); entity.HasKey(x => x.HotelRoomTypeId).HasName("PK_fo_LoaiPhongKhachSan"); entity.Property(x => x.Code).HasMaxLength(40); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_LoaiPhongKhachSan_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.IsActive }).HasDatabaseName("IX_fo_LoaiPhongKhachSan_CoSo_HoatDong"); entity.HasIndex(x => new { x.PropertyId, x.DisplayOrder }).HasDatabaseName("IX_fo_LoaiPhongKhachSan_CoSo_ThuTu"); });
-        modelBuilder.Entity<HotelRoom>(entity => { entity.ToTable("PhongKhachSan", "fo"); entity.HasKey(x => x.HotelRoomId).HasName("PK_fo_PhongKhachSan"); entity.Property(x => x.RoomNumber).HasMaxLength(40); entity.Property(x => x.DisplayName).HasMaxLength(160); entity.Property(x => x.Floor).HasMaxLength(40); entity.Property(x => x.Building).HasMaxLength(80); entity.Property(x => x.Zone).HasMaxLength(80); entity.Property(x => x.Description).HasMaxLength(1000); entity.Property(x => x.OperationalStatus).HasConversion<string>().HasMaxLength(30); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.RoomNumber }).IsUnique().HasDatabaseName("UQ_fo_PhongKhachSan_CoSo_SoPhong"); entity.HasIndex(x => new { x.PropertyId, x.HotelRoomTypeId }).HasDatabaseName("IX_fo_PhongKhachSan_CoSo_LoaiPhong"); entity.HasIndex(x => new { x.PropertyId, x.OperationalStatus }).HasDatabaseName("IX_fo_PhongKhachSan_CoSo_TrangThai"); entity.HasIndex(x => new { x.PropertyId, x.IsActive }).HasDatabaseName("IX_fo_PhongKhachSan_CoSo_HoatDong"); entity.HasOne<HotelRoomType>().WithMany().HasForeignKey(x => x.HotelRoomTypeId).OnDelete(DeleteBehavior.Restrict); });
+        modelBuilder.Entity<HotelBuilding>(entity => { entity.ToTable("ToaNhaKhachSan", "fo"); entity.HasKey(x => x.HotelBuildingId).HasName("PK_fo_ToaNhaKhachSan"); entity.Property(x => x.Code).HasMaxLength(40); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ToaNhaKhachSan_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.IsActive }).HasDatabaseName("IX_fo_ToaNhaKhachSan_CoSo_HoatDong"); entity.HasIndex(x => new { x.PropertyId, x.DisplayOrder }).HasDatabaseName("IX_fo_ToaNhaKhachSan_CoSo_ThuTu"); });
+        modelBuilder.Entity<HotelFloor>(entity => { entity.ToTable("TangKhachSan", "fo"); entity.HasKey(x => x.HotelFloorId).HasName("PK_fo_TangKhachSan"); entity.Property(x => x.Code).HasMaxLength(40); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.HotelBuildingId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_TangKhachSan_CoSo_ToaNha_Ma"); entity.HasIndex(x => new { x.PropertyId, x.HotelBuildingId, x.LevelNumber }).HasDatabaseName("IX_fo_TangKhachSan_CoSo_ToaNha_Tang"); entity.HasOne<HotelBuilding>().WithMany().HasForeignKey(x => x.HotelBuildingId).OnDelete(DeleteBehavior.Restrict); });
+        modelBuilder.Entity<HotelArea>(entity => { entity.ToTable("KhuVucKhachSan", "fo"); entity.HasKey(x => x.HotelAreaId).HasName("PK_fo_KhuVucKhachSan"); entity.Property(x => x.Code).HasMaxLength(40); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.AreaType).HasMaxLength(40); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_KhuVucKhachSan_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.HotelBuildingId, x.HotelFloorId }).HasDatabaseName("IX_fo_KhuVucKhachSan_CoSo_ViTri"); entity.HasOne<HotelBuilding>().WithMany().HasForeignKey(x => x.HotelBuildingId).OnDelete(DeleteBehavior.Restrict); entity.HasOne<HotelFloor>().WithMany().HasForeignKey(x => x.HotelFloorId).OnDelete(DeleteBehavior.Restrict); });
+        modelBuilder.Entity<HotelReferenceCatalogItem>(entity => { entity.ToTable("DanhMucThamChieuKhachSan", "fo"); entity.HasKey(x => x.HotelReferenceCatalogItemId).HasName("PK_fo_DanhMucThamChieuKhachSan"); entity.Property(x => x.CatalogKey).HasMaxLength(80); entity.Property(x => x.Code).HasMaxLength(40); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.CatalogKey, x.Code }).IsUnique().HasDatabaseName("UQ_fo_DanhMucThamChieuKhachSan_CoSo_Nhom_Ma"); entity.HasIndex(x => new { x.PropertyId, x.CatalogKey, x.IsActive }).HasDatabaseName("IX_fo_DanhMucThamChieuKhachSan_CoSo_Nhom_HoatDong"); });
+        modelBuilder.Entity<HotelMinibarItemProfile>(entity =>
+        {
+            entity.ToTable("HangMinibarFO", "fo");
+            entity.HasKey(x => x.HotelMinibarItemProfileId).HasName("PK_fo_HangMinibarFO");
+            entity.Property(x => x.ItemCode).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.ItemName).HasMaxLength(255).IsRequired();
+            entity.Property(x => x.Unit).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.ChargeCode).HasMaxLength(50);
+            entity.Property(x => x.ServiceChargeCode).HasMaxLength(50);
+            entity.Property(x => x.RetailPrice).HasPrecision(18, 2);
+            entity.Property(x => x.VatRate).HasPrecision(9, 4);
+            entity.Property(x => x.StandardQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.MinStock).HasPrecision(18, 3);
+            entity.Property(x => x.MaxStock).HasPrecision(18, 3);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.ItemCode }).IsUnique().HasDatabaseName("UQ_fo_HangMinibarFO_CoSo_MaHang");
+            entity.HasIndex(x => new { x.PropertyId, x.IsActive }).HasDatabaseName("IX_fo_HangMinibarFO_CoSo_HoatDong");
+            entity.HasOne<Item>().WithMany().HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Restrict).HasConstraintName("FK_fo_HangMinibarFO_HangHoa");
+        });
+        modelBuilder.Entity<HotelRoomStatusRule>(entity => { entity.ToTable("QuyTacTrangThaiPhong", "fo"); entity.HasKey(x => x.HotelRoomStatusRuleId).HasName("PK_fo_QuyTacTrangThaiPhong"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.StatusDomain).HasMaxLength(12); entity.Property(x => x.FromStatus).HasMaxLength(80); entity.Property(x => x.ToStatus).HasMaxLength(80); entity.Property(x => x.RequiredRole).HasMaxLength(120); entity.Property(x => x.RequiredEvent).HasMaxLength(120); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_QuyTacTrangThaiPhong_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.StatusDomain, x.IsActive }).HasDatabaseName("IX_fo_QuyTacTrangThaiPhong_CoSo_LinhVuc_HoatDong"); });
+        modelBuilder.Entity<HotelPropertyProfile>(entity => { entity.ToTable("HoSoCoSoLuuTru", "fo"); entity.HasKey(x => x.HotelPropertyProfileId).HasName("PK_fo_HoSoCoSoLuuTru"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(200); entity.Property(x => x.Address).HasMaxLength(500); entity.Property(x => x.Phone).HasMaxLength(40); entity.Property(x => x.Email).HasMaxLength(160); entity.Property(x => x.TaxCode).HasMaxLength(40); entity.Property(x => x.TimeZoneId).HasMaxLength(80); entity.Property(x => x.CurrencyCode).HasMaxLength(3); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => x.PropertyId).IsUnique().HasDatabaseName("UQ_fo_HoSoCoSoLuuTru_CoSo"); });
+        modelBuilder.Entity<HotelStayPolicy>(entity => { entity.ToTable("ChinhSachLuuTru", "fo"); entity.HasKey(x => x.HotelStayPolicyId).HasName("PK_fo_ChinhSachLuuTru"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.DepositPercent).HasPrecision(5, 2); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChinhSachLuuTru_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_ChinhSachLuuTru_CoSo_HieuLuc"); });
+        modelBuilder.Entity<HotelCheckInOutRule>(entity => { entity.ToTable("QuyTacNhanTraPhong", "fo"); entity.HasKey(x => x.HotelCheckInOutRuleId).HasName("PK_fo_QuyTacNhanTraPhong"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.EarlyCheckInApprovalRole).HasMaxLength(120); entity.Property(x => x.LateCheckOutApprovalRole).HasMaxLength(120); entity.Property(x => x.EarlyCheckInChargeCode).HasMaxLength(80); entity.Property(x => x.LateCheckOutChargeCode).HasMaxLength(80); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_QuyTacNhanTraPhong_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_QuyTacNhanTraPhong_CoSo_HieuLuc"); });
+        modelBuilder.Entity<HotelRoomMoveUpgradeRule>(entity => { entity.ToTable("QuyTacDoiNangHangPhong", "fo"); entity.HasKey(x => x.HotelRoomMoveUpgradeRuleId).HasName("PK_fo_QuyTacDoiNangHangPhong"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.ApprovalRole).HasMaxLength(120); entity.Property(x => x.PriceDifferenceMode).HasMaxLength(40); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_QuyTacDoiNangHangPhong_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_QuyTacDoiNangHangPhong_CoSo_HieuLuc"); });
+        modelBuilder.Entity<HotelPropertyDocument>(entity => { entity.ToTable("HoSoGiayPhepKhachSan", "fo"); entity.HasKey(x => x.HotelPropertyDocumentId).HasName("PK_fo_HoSoGiayPhepKhachSan"); entity.Property(x => x.DocumentType).HasMaxLength(80); entity.Property(x => x.DocumentNumber).HasMaxLength(120); entity.Property(x => x.IssuedBy).HasMaxLength(160); entity.Property(x => x.FileReference).HasMaxLength(500); entity.Property(x => x.Notes).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.DocumentType, x.DocumentNumber }).IsUnique().HasDatabaseName("UQ_fo_HoSoGiayPhepKhachSan_CoSo_Loai_So"); entity.HasIndex(x => new { x.PropertyId, x.ExpiryDate, x.IsActive }).HasDatabaseName("IX_fo_HoSoGiayPhepKhachSan_CoSo_HetHan"); });
+        modelBuilder.Entity<HotelPromotionPackage>(entity => { entity.ToTable("KhuyenMaiGoiDichVu", "fo"); entity.HasKey(x => x.HotelPromotionPackageId).HasName("PK_fo_KhuyenMaiGoiDichVu"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.OfferType).HasMaxLength(40); entity.Property(x => x.DiscountMode).HasMaxLength(30); entity.Property(x => x.DiscountValue).HasPrecision(18, 2); entity.Property(x => x.IncludedServices).HasMaxLength(1000); entity.Property(x => x.BlackoutDates).HasMaxLength(1000); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_KhuyenMaiGoiDichVu_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_KhuyenMaiGoiDichVu_CoSo_HieuLuc"); });
+        modelBuilder.Entity<HotelGroupPolicy>(entity => { entity.ToTable("ChinhSachDoanKhachSan", "fo"); entity.HasKey(x => x.HotelGroupPolicyId).HasName("PK_fo_ChinhSachDoanKhachSan"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.DepositPercent).HasPrecision(5, 2); entity.Property(x => x.DefaultRouting).HasMaxLength(40); entity.Property(x => x.DefaultBillingInstruction).HasMaxLength(1000); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChinhSachDoanKhachSan_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_ChinhSachDoanKhachSan_CoSo_HieuLuc"); });
+        modelBuilder.Entity<HotelCashierShiftPolicy>(entity => { entity.ToTable("ChinhSachCaThuNgan", "fo"); entity.HasKey(x => x.HotelCashierShiftPolicyId).HasName("PK_fo_ChinhSachCaThuNgan"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.DefaultOpeningFloat).HasPrecision(18, 2); entity.Property(x => x.VarianceApprovalThreshold).HasPrecision(18, 2); entity.Property(x => x.SupervisorRole).HasMaxLength(120); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChinhSachCaThuNgan_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_ChinhSachCaThuNgan_CoSo_HieuLuc"); });
+        modelBuilder.Entity<HotelNightAuditPolicy>(entity => { entity.ToTable("ChinhSachNightAudit", "fo"); entity.HasKey(x => x.HotelNightAuditPolicyId).HasName("PK_fo_ChinhSachNightAudit"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.SupervisorRole).HasMaxLength(120); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChinhSachNightAudit_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_ChinhSachNightAudit_CoSo_HieuLuc"); });
+        modelBuilder.Entity<HotelApprovalMatrixRule>(entity => { entity.ToTable("MaTranPheDuyetKhachSan", "fo"); entity.HasKey(x => x.HotelApprovalMatrixRuleId).HasName("PK_fo_MaTranPheDuyetKhachSan"); entity.Property(x => x.Code).HasMaxLength(60); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Domain).HasMaxLength(80); entity.Property(x => x.Action).HasMaxLength(80); entity.Property(x => x.ThresholdAmount).HasPrecision(18, 2); entity.Property(x => x.RequiredRole).HasMaxLength(120); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_MaTranPheDuyetKhachSan_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Domain, x.Action, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_MaTranPheDuyetKhachSan_CoSo_NghiepVu"); });
+        modelBuilder.Entity<HotelFOPermissionPolicy>(entity => { entity.ToTable("ChinhSachQuyenFO", "fo"); entity.HasKey(x => x.HotelFOPermissionPolicyId).HasName("PK_fo_ChinhSachQuyenFO"); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Module).HasMaxLength(80); entity.Property(x => x.Action).HasMaxLength(80); entity.Property(x => x.RequiredRole).HasMaxLength(120); entity.Property(x => x.DataScope).HasMaxLength(80); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChinhSachQuyenFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Module, x.Action, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_ChinhSachQuyenFO_CoSo_ChucNang"); });
+        modelBuilder.Entity<HotelFormPrinterProfile>(entity => { entity.ToTable("MauBieuMayInFO", "fo"); entity.HasKey(x => x.HotelFormPrinterProfileId).HasName("PK_fo_MauBieuMayInFO"); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.DocumentType).HasMaxLength(80); entity.Property(x => x.TemplateReference).HasMaxLength(260); entity.Property(x => x.PrinterName).HasMaxLength(260); entity.Property(x => x.PaperSize).HasMaxLength(40); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_MauBieuMayInFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.DocumentType, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_MauBieuMayInFO_CoSo_NghiepVu"); });
+        modelBuilder.Entity<HotelMessagingIntegrationProfile>(entity => { entity.ToTable("TichHopTinNhanFO", "fo"); entity.HasKey(x => x.HotelMessagingIntegrationProfileId).HasName("PK_fo_TichHopTinNhanFO"); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Channel).HasMaxLength(40); entity.Property(x => x.Provider).HasMaxLength(120); entity.Property(x => x.Endpoint).HasMaxLength(500); entity.Property(x => x.SecretReference).HasMaxLength(260); entity.Property(x => x.TemplateReference).HasMaxLength(260); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_TichHopTinNhanFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Channel, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_TichHopTinNhanFO_CoSo_Kenh"); });
+        modelBuilder.Entity<HotelPostedCorrectionPolicy>(entity => { entity.ToTable("ChinhSachDieuChinhPosted", "fo"); entity.HasKey(x => x.HotelPostedCorrectionPolicyId).HasName("PK_fo_ChinhSachDieuChinhPosted"); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Domain).HasMaxLength(80); entity.Property(x => x.AllowedRoles).HasMaxLength(500); entity.Property(x => x.MaximumAmount).HasPrecision(18, 2); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChinhSachDieuChinhPosted_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Domain, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_ChinhSachDieuChinhPosted_CoSo_NghiepVu"); });
+        modelBuilder.Entity<HotelBusinessRuleProfile>(entity => { entity.ToTable("QuyTacNghiepVuFO", "fo"); entity.HasKey(x => x.HotelBusinessRuleProfileId).HasName("PK_fo_QuyTacNghiepVuFO"); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Domain).HasMaxLength(80); entity.Property(x => x.ConditionReference).HasMaxLength(2000); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_QuyTacNghiepVuFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Domain, x.Priority, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_QuyTacNghiepVuFO_CoSo_UuTien"); });
+        modelBuilder.Entity<HotelTaxServiceChargeRule>(entity => { entity.ToTable("QuyTacThuePhiDichVuFO", "fo"); entity.HasKey(x => x.HotelTaxServiceChargeRuleId).HasName("PK_fo_QuyTacThuePhiDichVuFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Rate).HasPrecision(9, 4); entity.Property(x => x.ApplicableService).HasMaxLength(120); entity.Property(x => x.ApplicableRatePlan).HasMaxLength(80); entity.Property(x => x.RoundingMode).HasMaxLength(40); entity.Property(x => x.AccountingMapping).HasMaxLength(160); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.Code }).IsUnique().HasDatabaseName("UQ_fo_QuyTacThuePhiDichVuFO_CoSo_Loai_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_QuyTacThuePhiDichVuFO_CoSo_HieuLuc"); });
+        modelBuilder.Entity<HotelPaymentMethodProfile>(entity => { entity.ToTable("PhuongThucThanhToanFO", "fo"); entity.HasKey(x => x.HotelPaymentMethodProfileId).HasName("PK_fo_PhuongThucThanhToanFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.CurrencyCode).HasMaxLength(10); entity.Property(x => x.BankAccount).HasMaxLength(160); entity.Property(x => x.CardTerminal).HasMaxLength(120); entity.Property(x => x.FeeRate).HasPrecision(9, 4); entity.Property(x => x.AccountingMapping).HasMaxLength(160); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_PhuongThucThanhToanFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.IsActive }).HasDatabaseName("IX_fo_PhuongThucThanhToanFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelDepositPolicy>(entity => { entity.ToTable("ChinhSachDatCocFO", "fo"); entity.HasKey(x => x.HotelDepositPolicyId).HasName("PK_fo_ChinhSachDatCocFO"); entity.Property(x => x.DepositType).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Percentage).HasPrecision(9, 4); entity.Property(x => x.FixedAmount).HasPrecision(18, 2); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChinhSachDatCocFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.DepositType, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_ChinhSachDatCocFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelDiscountPolicy>(entity => { entity.ToTable("ChinhSachChietKhauFO", "fo"); entity.HasKey(x => x.HotelDiscountPolicyId).HasName("PK_fo_ChinhSachChietKhauFO"); entity.Property(x => x.DiscountType).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Percentage).HasPrecision(9, 4); entity.Property(x => x.FixedAmount).HasPrecision(18, 2); entity.Property(x => x.MaximumDiscount).HasPrecision(18, 2); entity.Property(x => x.AllowedRoles).HasMaxLength(500); entity.Property(x => x.AccountingTreatment).HasMaxLength(160); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChinhSachChietKhauFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.DiscountType, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_ChinhSachChietKhauFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelChargeCodeProfile>(entity => { entity.ToTable("ChargeCodeFO", "fo"); entity.HasKey(x => x.HotelChargeCodeProfileId).HasName("PK_fo_ChargeCodeFO"); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Category).HasMaxLength(80); entity.Property(x => x.Unit).HasMaxLength(40); entity.Property(x => x.Price).HasPrecision(18, 2); entity.Property(x => x.TaxCode).HasMaxLength(80); entity.Property(x => x.ServiceChargeCode).HasMaxLength(80); entity.Property(x => x.RevenueDepartment).HasMaxLength(120); entity.Property(x => x.RevenueAccount).HasMaxLength(120); entity.Property(x => x.TaxAccount).HasMaxLength(120); entity.Property(x => x.CostCenter).HasMaxLength(120); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChargeCodeFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Category, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_ChargeCodeFO_CoSo_Nhom"); });
+        modelBuilder.Entity<HotelFolioProfile>(entity => { entity.ToTable("LoaiFolioFO", "fo"); entity.HasKey(x => x.HotelFolioProfileId).HasName("PK_fo_LoaiFolioFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.ChargeRouting).HasMaxLength(500); entity.Property(x => x.PaymentRouting).HasMaxLength(500); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_LoaiFolioFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_LoaiFolioFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelGuestTypeProfile>(entity => { entity.ToTable("LoaiKhachFO", "fo"); entity.HasKey(x => x.HotelGuestTypeProfileId).HasName("PK_fo_LoaiKhachFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.RequiredFields).HasMaxLength(500); entity.Property(x => x.DefaultRateCode).HasMaxLength(80); entity.Property(x => x.DefaultPaymentMethodCode).HasMaxLength(80); entity.Property(x => x.DefaultMarketCode).HasMaxLength(80); entity.Property(x => x.DefaultSourceCode).HasMaxLength(80); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_LoaiKhachFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_LoaiKhachFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelProfileTypeProfile>(entity => { entity.ToTable("LoaiHoSoFO", "fo"); entity.HasKey(x => x.HotelProfileTypeProfileId).HasName("PK_fo_LoaiHoSoFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.RequiredFields).HasMaxLength(500); entity.Property(x => x.DefaultRateCode).HasMaxLength(80); entity.Property(x => x.DefaultPaymentMethodCode).HasMaxLength(80); entity.Property(x => x.DefaultMarketCode).HasMaxLength(80); entity.Property(x => x.DefaultSourceCode).HasMaxLength(80); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_LoaiHoSoFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_LoaiHoSoFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelVipLevelProfile>(entity => { entity.ToTable("CapVipFO", "fo"); entity.HasKey(x => x.HotelVipLevelProfileId).HasName("PK_fo_CapVipFO"); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.WelcomeBenefit).HasMaxLength(500); entity.Property(x => x.AmenityBenefit).HasMaxLength(500); entity.Property(x => x.DiscountPercent).HasPrecision(9, 4); entity.Property(x => x.NotificationChannels).HasMaxLength(300); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_CapVipFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.LevelNumber, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_CapVipFO_CoSo_Cap"); });
+        modelBuilder.Entity<HotelGuestPreferenceProfile>(entity => { entity.ToTable("SoThichKhachFO", "fo"); entity.HasKey(x => x.HotelGuestPreferenceProfileId).HasName("PK_fo_SoThichKhachFO"); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Category).HasMaxLength(80); entity.Property(x => x.ValueKind).HasMaxLength(40); entity.Property(x => x.DefaultValue).HasMaxLength(500); entity.Property(x => x.Options).HasMaxLength(2000); entity.Property(x => x.Scope).HasMaxLength(40); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_SoThichKhachFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Category, x.Priority, x.IsActive }).HasDatabaseName("IX_fo_SoThichKhachFO_CoSo_Nhom"); });
+        modelBuilder.Entity<HotelGuestRequestProfile>(entity => { entity.ToTable("YeuCauKhachFO", "fo"); entity.HasKey(x => x.HotelGuestRequestProfileId).HasName("PK_fo_YeuCauKhachFO"); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.RequestType).HasMaxLength(80); entity.Property(x => x.Department).HasMaxLength(120); entity.Property(x => x.AutoAssignment).HasMaxLength(160); entity.Property(x => x.NotificationChannels).HasMaxLength(500); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_YeuCauKhachFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.RequestType, x.Priority, x.IsActive }).HasDatabaseName("IX_fo_YeuCauKhachFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelReservationTypeProfile>(entity => { entity.ToTable("LoaiDatPhongFO", "fo"); entity.HasKey(x => x.HotelReservationTypeProfileId).HasName("PK_fo_LoaiDatPhongFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_LoaiDatPhongFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_LoaiDatPhongFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelBookingSourceProfile>(entity => { entity.ToTable("NguonDatPhongFO", "fo"); entity.HasKey(x => x.HotelBookingSourceProfileId).HasName("PK_fo_NguonDatPhongFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.DefaultMarketSegmentCode).HasMaxLength(80); entity.Property(x => x.TrackingCode).HasMaxLength(120); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_NguonDatPhongFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_NguonDatPhongFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelBookingChannelProfile>(entity => { entity.ToTable("KenhDatPhongFO", "fo"); entity.HasKey(x => x.HotelBookingChannelProfileId).HasName("PK_fo_KenhDatPhongFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.ConnectorKey).HasMaxLength(120); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_KenhDatPhongFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_KenhDatPhongFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelMarketSegmentProfile>(entity => { entity.ToTable("PhanKhucThiTruongFO", "fo"); entity.HasKey(x => x.HotelMarketSegmentProfileId).HasName("PK_fo_PhanKhucThiTruongFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.RevenueBucket).HasMaxLength(100); entity.Property(x => x.DefaultRateCode).HasMaxLength(80); entity.Property(x => x.ForecastCategory).HasMaxLength(100); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_PhanKhucThiTruongFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_PhanKhucThiTruongFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelHousekeepingRuleProfile>(entity => { entity.ToTable("QuyTacHousekeepingFO", "fo"); entity.HasKey(x => x.HotelHousekeepingRuleProfileId).HasName("PK_fo_QuyTacHousekeepingFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Department).HasMaxLength(100); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_QuyTacHousekeepingFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_QuyTacHousekeepingFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelWakeupRuleProfile>(entity => { entity.ToTable("QuyTacWakeupFO", "fo"); entity.HasKey(x => x.HotelWakeupRuleProfileId).HasName("PK_fo_QuyTacWakeupFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.NotificationChannel).HasMaxLength(80); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_QuyTacWakeupFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_QuyTacWakeupFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelComplaintProfile>(entity => { entity.ToTable("DanhMucKhieuNaiFO", "fo"); entity.HasKey(x => x.HotelComplaintProfileId).HasName("PK_fo_DanhMucKhieuNaiFO"); entity.Property(x => x.Severity).HasConversion<string>().HasMaxLength(20); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.Category).HasMaxLength(100); entity.Property(x => x.Department).HasMaxLength(100); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_DanhMucKhieuNaiFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Severity, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_DanhMucKhieuNaiFO_CoSo_Muc"); });
+        modelBuilder.Entity<HotelCompanyProfile>(entity => { entity.ToTable("DoiTacCongTyFO", "fo"); entity.HasKey(x => x.HotelCompanyProfileId).HasName("PK_fo_DoiTacCongTyFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(200); entity.Property(x => x.TaxCode).HasMaxLength(40); entity.Property(x => x.BusinessLicense).HasMaxLength(80); entity.Property(x => x.ContactName).HasMaxLength(160); entity.Property(x => x.Phone).HasMaxLength(40); entity.Property(x => x.Email).HasMaxLength(320); entity.Property(x => x.Address).HasMaxLength(500); entity.Property(x => x.CurrencyCode).HasMaxLength(10); entity.Property(x => x.CreditLimit).HasPrecision(18, 2); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_DoiTacCongTyFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_DoiTacCongTyFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelTravelAgentProfile>(entity => { entity.ToTable("DaiLyDuLichFO", "fo"); entity.HasKey(x => x.HotelTravelAgentProfileId).HasName("PK_fo_DaiLyDuLichFO"); entity.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(200); entity.Property(x => x.IataCode).HasMaxLength(40); entity.Property(x => x.LicenseNumber).HasMaxLength(80); entity.Property(x => x.ContactName).HasMaxLength(160); entity.Property(x => x.Phone).HasMaxLength(40); entity.Property(x => x.Email).HasMaxLength(320); entity.Property(x => x.Address).HasMaxLength(500); entity.Property(x => x.CommissionRuleCode).HasMaxLength(80); entity.Property(x => x.DefaultMarketSegmentCode).HasMaxLength(80); entity.Property(x => x.PaymentTerms).HasMaxLength(40); entity.Property(x => x.CreditLimit).HasPrecision(18, 2); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_DaiLyDuLichFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Kind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_DaiLyDuLichFO_CoSo_Loai"); });
+        modelBuilder.Entity<HotelCommissionRuleProfile>(entity => { entity.ToTable("QuyTacHoaHongFO", "fo"); entity.HasKey(x => x.HotelCommissionRuleProfileId).HasName("PK_fo_QuyTacHoaHongFO"); entity.Property(x => x.PartnerKind).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Basis).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Code).HasMaxLength(80); entity.Property(x => x.Name).HasMaxLength(160); entity.Property(x => x.CurrencyCode).HasMaxLength(10); entity.Property(x => x.RatePercent).HasPrecision(9, 4); entity.Property(x => x.FixedAmount).HasPrecision(18, 2); entity.Property(x => x.MinimumAmount).HasPrecision(18, 2); entity.Property(x => x.MaximumAmount).HasPrecision(18, 2); entity.Property(x => x.Description).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_QuyTacHoaHongFO_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.PartnerKind, x.EffectiveFrom, x.EffectiveTo, x.IsActive }).HasDatabaseName("IX_fo_QuyTacHoaHongFO_CoSo_DoiTac"); });
+        modelBuilder.Entity<HotelRoom>(entity => { entity.ToTable("PhongKhachSan", "fo"); entity.HasKey(x => x.HotelRoomId).HasName("PK_fo_PhongKhachSan"); entity.Property(x => x.RoomNumber).HasMaxLength(40); entity.Property(x => x.DisplayName).HasMaxLength(160); entity.Property(x => x.Floor).HasMaxLength(40); entity.Property(x => x.Building).HasMaxLength(80); entity.Property(x => x.Zone).HasMaxLength(80); entity.Property(x => x.Description).HasMaxLength(1000); entity.Property(x => x.RoomCondition).HasMaxLength(30); entity.Property(x => x.View).HasMaxLength(80); entity.Property(x => x.BedType).HasMaxLength(40); entity.Property(x => x.OperationalStatus).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.OperationalStatusReason).HasMaxLength(500); entity.Property(x => x.HousekeepingStatus).HasMaxLength(30); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.RoomNumber }).IsUnique().HasDatabaseName("UQ_fo_PhongKhachSan_CoSo_SoPhong"); entity.HasIndex(x => new { x.PropertyId, x.HotelRoomTypeId }).HasDatabaseName("IX_fo_PhongKhachSan_CoSo_LoaiPhong"); entity.HasIndex(x => new { x.PropertyId, x.HotelAreaId }).HasDatabaseName("IX_fo_PhongKhachSan_CoSo_KhuVuc"); entity.HasIndex(x => new { x.PropertyId, x.OperationalStatus }).HasDatabaseName("IX_fo_PhongKhachSan_CoSo_TrangThai"); entity.HasIndex(x => new { x.PropertyId, x.OperationalStatus, x.OperationalStatusExpiresAtUtc }).HasDatabaseName("IX_fo_PhongKhachSan_CoSo_TrangThai_HetHan"); entity.HasIndex(x => new { x.PropertyId, x.IsActive }).HasDatabaseName("IX_fo_PhongKhachSan_CoSo_HoatDong"); entity.HasOne<HotelRoomType>().WithMany().HasForeignKey(x => x.HotelRoomTypeId).OnDelete(DeleteBehavior.Restrict); entity.HasOne<HotelArea>().WithMany().HasForeignKey(x => x.HotelAreaId).OnDelete(DeleteBehavior.Restrict); });
+        // U-014: Night Audit owns the business date lifecycle. The existing domain model
+        // is mapped directly to fo.NgayKinhDoanh so Front Office has one source of truth.
+        modelBuilder.Entity<BusinessDateRecord>(entity =>
+        {
+            entity.ToTable("NgayKinhDoanh", "fo");
+            entity.HasKey(x => x.BusinessDateId).HasName("PK_fo_NgayKinhDoanh");
+            entity.Property(x => x.BusinessDate).HasColumnType("date");
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.OpenedAtUtc).HasColumnType("datetime2");
+            entity.Property(x => x.ClosedAtUtc).HasColumnType("datetime2");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.BusinessDate })
+                .IsUnique()
+                .HasDatabaseName("UQ_fo_NgayKinhDoanh_CoSo_Ngay");
+        });
+        modelBuilder.Entity<NightAudit>(entity =>
+        {
+            entity.ToTable("KiemDem", "fo");
+            entity.HasKey(x => x.NightAuditId).HasName("PK_fo_KiemDem");
+            entity.Property(x => x.AuditNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.BusinessDate).HasColumnType("date");
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.CurrentStep).HasConversion<int>();
+            entity.Property(x => x.ErrorMessage).HasMaxLength(1000);
+            entity.Property(x => x.RoomRevenue).HasPrecision(18, 2);
+            entity.Property(x => x.TaxPosted).HasPrecision(18, 2);
+            entity.Property(x => x.ServiceChargePosted).HasPrecision(18, 2);
+            entity.Property(x => x.StartedAtUtc).HasColumnType("datetime2");
+            entity.Property(x => x.CompletedAtUtc).HasColumnType("datetime2");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => x.AuditNumber).IsUnique().HasDatabaseName("UQ_fo_KiemDem_SoKiemDem");
+            entity.HasIndex(x => new { x.PropertyId, x.BusinessDate }).HasDatabaseName("IX_fo_KiemDem_CoSo_Ngay");
+            entity.HasMany(x => x.Steps)
+                .WithOne()
+                .HasForeignKey(x => x.NightAuditId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Navigation(x => x.Steps).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.Validations);
+        });
+        modelBuilder.Entity<NightAuditStepExecution>(entity =>
+        {
+            entity.ToTable("BuocKiemDem", "fo");
+            entity.HasKey(x => x.NightAuditStepExecutionId).HasName("PK_fo_BuocKiemDem");
+            entity.Property(x => x.Step).HasConversion<int>();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Detail).HasMaxLength(1000);
+            entity.Property(x => x.CompletedAtUtc).HasColumnType("datetime2");
+            entity.HasIndex(x => new { x.NightAuditId, x.Step })
+                .IsUnique()
+                .HasDatabaseName("UQ_fo_BuocKiemDem_Audit_Step");
+        });
+        modelBuilder.Entity<RevenueSnapshot>(entity =>
+        {
+            entity.ToTable("DoanhThuNgay", "fo");
+            entity.HasKey(x => x.RevenueSnapshotId).HasName("PK_fo_DoanhThuNgay");
+            entity.Property(x => x.BusinessDate).HasColumnType("date");
+            entity.Property(x => x.RoomRevenue).HasPrecision(18, 2);
+            entity.Property(x => x.OtherRevenue).HasPrecision(18, 2);
+            entity.Property(x => x.TotalRevenue).HasPrecision(18, 2);
+            entity.Property(x => x.TotalTax).HasPrecision(18, 2);
+            entity.Property(x => x.TotalPayments).HasPrecision(18, 2);
+            entity.Property(x => x.TotalRefunds).HasPrecision(18, 2);
+            entity.Property(x => x.OutstandingBalance).HasPrecision(18, 2);
+            entity.Property(x => x.OccupancyRate).HasPrecision(9, 4);
+            entity.Property(x => x.ADR).HasPrecision(18, 2);
+            entity.Property(x => x.RevPAR).HasPrecision(18, 2);
+            entity.Property(x => x.SnapshotJson).IsRequired();
+            entity.HasIndex(x => x.NightAuditId).HasDatabaseName("IX_fo_DoanhThuNgay_KiemDem");
+            entity.HasIndex(x => new { x.PropertyId, x.BusinessDate })
+                .IsUnique()
+                .HasDatabaseName("UQ_fo_DoanhThuNgay_CoSo_Ngay");
+            entity.HasOne<NightAudit>()
+                .WithMany()
+                .HasForeignKey(x => x.NightAuditId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<HotelStay>(entity => { entity.ToTable("LuuTruKhachSan", "fo"); entity.HasKey(x => x.HotelStayId).HasName("PK_fo_LuuTruKhachSan"); entity.Property(x => x.StayNumber).HasMaxLength(40); entity.Property(x => x.ReservationNumberSnapshot).HasMaxLength(40); entity.Property(x => x.GuestNameSnapshot).HasMaxLength(200); entity.Property(x => x.GuestPhoneSnapshot).HasMaxLength(50); entity.Property(x => x.RoomNumberSnapshot).HasMaxLength(40); entity.Property(x => x.RoomTypeCodeSnapshot).HasMaxLength(40); entity.Property(x => x.Source).HasMaxLength(80); entity.Property(x => x.InternalNotes).HasMaxLength(1000); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => x.StayNumber).IsUnique().HasDatabaseName("UQ_fo_LuuTruKhachSan_SoLuuTru"); entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_LuuTruKhachSan_CoSo_TrangThai"); entity.HasIndex(x => new { x.PropertyId, x.ScheduledArrivalDate }).HasDatabaseName("IX_fo_LuuTruKhachSan_CoSo_NgayDen"); entity.HasIndex(x => new { x.PropertyId, x.ScheduledDepartureDate }).HasDatabaseName("IX_fo_LuuTruKhachSan_CoSo_NgayDi"); entity.HasIndex(x => new { x.PropertyId, x.RoomId, x.Status }).HasDatabaseName("IX_fo_LuuTruKhachSan_CoSo_Phong_TrangThai"); entity.HasIndex(x => x.ReservationId).HasDatabaseName("IX_fo_LuuTruKhachSan_DatPhong"); entity.HasIndex(x => x.UpdatedAtUtc).HasDatabaseName("IX_fo_LuuTruKhachSan_CapNhat"); entity.HasIndex(x => x.ReservationId).HasFilter("[ReservationId] IS NOT NULL AND [Status] IN ('PendingArrival', 'InHouse')").IsUnique().HasDatabaseName("UQ_fo_LuuTruKhachSan_DatPhong_HoatDong"); entity.HasOne<Reservation>().WithMany().HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.Restrict); entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.Restrict); entity.HasOne<HotelRoomType>().WithMany().HasForeignKey(x => x.RoomTypeId).OnDelete(DeleteBehavior.Restrict); });
         modelBuilder.Entity<HotelStayHistory>(entity => { entity.ToTable("LichSuLuuTruKhachSan", "fo"); entity.HasKey(x => x.HistoryId).HasName("PK_fo_LichSuLuuTruKhachSan"); entity.Property(x => x.Action).HasMaxLength(80); entity.Property(x => x.FromStatus).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.ToStatus).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.SafeMetadata).HasMaxLength(300); entity.HasIndex(x => new { x.HotelStayId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_LichSuLuuTruKhachSan_LuuTru_Luc"); entity.HasOne<HotelStay>().WithMany().HasForeignKey(x => x.HotelStayId).OnDelete(DeleteBehavior.Restrict); });
+        modelBuilder.Entity<HotelStayOccupant>(entity =>
+        {
+            entity.ToTable("KhachDiCungLuuTru", "fo");
+            entity.HasKey(x => x.OccupantId).HasName("PK_fo_KhachDiCungLuuTru");
+            entity.Property(x => x.GuestNameSnapshot).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.GuestPhoneSnapshot).HasMaxLength(50);
+            entity.Property(x => x.OccupantType).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.HotelStayId, x.IsActive }).HasDatabaseName("IX_fo_KhachDiCungLuuTru_CoSo_LuuTru_HoatDong");
+            entity.HasIndex(x => new { x.PropertyId, x.HotelStayId, x.GuestProfileId, x.IsActive })
+                .IsUnique()
+                .HasFilter("[IsActive] = 1")
+                .HasDatabaseName("UQ_fo_KhachDiCungLuuTru_CoSo_LuuTru_Khach_HoatDong");
+            entity.HasOne<HotelStay>().WithMany().HasForeignKey(x => x.HotelStayId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<GuestProfile>().WithMany().HasForeignKey(x => x.GuestProfileId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HotelFolio>(entity =>
+        {
+            entity.ToTable("SoFolio", "fo");
+            entity.HasKey(x => x.HotelFolioId).HasName("PK_fo_SoFolio");
+            entity.Property(x => x.FolioNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.Ignore(x => x.SettledAtUtc);
+            entity.Ignore(x => x.SettledBy);
+            entity.Ignore(x => x.ArchivedAtUtc);
+            entity.HasIndex(x => x.FolioNumber).IsUnique().HasDatabaseName("UQ_fo_SoFolio_SoFolio");
+            entity.HasIndex(x => x.HotelStayId);
+            entity.HasIndex(x => new { x.PropertyId, x.HotelStayId }).IsUnique().HasDatabaseName("UQ_fo_SoFolio_CoSo_LuuTru");
+            entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_SoFolio_CoSo_TrangThai");
+            entity.HasOne<HotelStay>().WithMany().HasForeignKey(x => x.HotelStayId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HotelFolioRoutingRule>(entity =>
+        {
+            entity.ToTable("QuyTacChuyenFolio", "fo");
+            entity.HasKey(x => x.HotelFolioRoutingRuleId).HasName("PK_fo_QuyTacChuyenFolio");
+            entity.Property(x => x.Name).HasMaxLength(160).IsRequired();
+            entity.Property(x => x.EntryType).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Percent).HasColumnType("decimal(9,4)");
+            entity.Property(x => x.Notes).HasMaxLength(1000);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.SourceFolioId, x.IsActive, x.Priority })
+                .HasDatabaseName("IX_fo_QuyTacChuyenFolio_CoSo_Nguon_HieuLuc");
+            entity.HasIndex(x => new { x.PropertyId, x.SourceFolioId, x.TargetFolioId, x.EntryType, x.IsActive })
+                .IsUnique()
+                .HasFilter("[IsActive] = 1")
+                .HasDatabaseName("UQ_fo_QuyTacChuyenFolio_CoSo_NguonDich_Loai_HieuLuc");
+            entity.HasOne<HotelFolio>().WithMany().HasForeignKey(x => x.SourceFolioId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<HotelFolio>().WithMany().HasForeignKey(x => x.TargetFolioId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HotelFolioEntry>(entity =>
+        {
+            entity.ToTable("ButToanFolio", "fo");
+            entity.HasKey(x => x.HotelFolioEntryId).HasName("PK_fo_ButToanFolio");
+            entity.Property(x => x.EntryType).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.ReferenceType).HasMaxLength(80);
+            entity.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            // BusinessDate is the canonical posting date used by Night Audit.
+            // Keep it persisted so financial metrics are grouped by the hotel's
+            // business date instead of relying on CreatedAtUtc fallbacks.
+            entity.Property(x => x.BusinessDate)
+                .HasColumnType("date")
+                .HasColumnName("BusinessDate");
+            entity.HasIndex(x => new { x.HotelFolioId, x.CreatedAtUtc }).HasDatabaseName("IX_fo_ButToanFolio_Folio_ThoiGian");
+            entity.HasIndex(x => new { x.HotelFolioId, x.SequenceNumber }).IsUnique().HasDatabaseName("UQ_fo_ButToanFolio_Folio_Sequence");
+            entity.HasIndex(x => new { x.PropertyId, x.HotelFolioId }).HasDatabaseName("IX_fo_ButToanFolio_CoSo_Folio");
+            entity.HasIndex(x => x.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL").HasDatabaseName("UQ_fo_ButToanFolio_Idempotency");
+            entity.HasOne(x => x.HotelFolio).WithMany(x => x.Entries).HasForeignKey(x => x.HotelFolioId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HotelInvoice>(entity =>
+        {
+            entity.ToTable("HoaDon", "fo");
+            entity.HasKey(x => x.HotelInvoiceId).HasName("PK_fo_HoaDon");
+            entity.Property(x => x.InvoiceNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Subtotal).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.TaxAmount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.PaidAmount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.OutstandingAmount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.StayDates).HasMaxLength(200);
+            entity.Property(x => x.InvoiceDataJson).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => x.InvoiceNumber).IsUnique().HasDatabaseName("UQ_fo_HoaDon_SoHoaDon");
+            entity.HasIndex(x => new { x.PropertyId, x.HotelFolioId }).HasDatabaseName("IX_fo_HoaDon_CoSo_Folio");
+        });
+        modelBuilder.Entity<HotelPayment>(entity =>
+        {
+            entity.ToTable("ThanhToan", "fo");
+            entity.HasKey(x => x.HotelPaymentId).HasName("PK_fo_ThanhToan");
+            entity.Property(x => x.PaymentNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.PaymentMethod).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Currency).HasConversion<string>().HasMaxLength(10).IsRequired();
+            entity.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.RefundedAmount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.ExchangeRateToVnd).HasColumnType("decimal(18,6)");
+            entity.Property(x => x.ExternalReference).HasMaxLength(200);
+            entity.Property(x => x.AuthorizationCode).HasMaxLength(100);
+            entity.Property(x => x.Notes).HasMaxLength(500);
+            entity.Property(x => x.VoidReason).HasMaxLength(500);
+            entity.Property(x => x.RefundReason).HasMaxLength(500);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.Ignore(x => x.AllocatedAmount);
+            entity.Ignore(x => x.UnallocatedAmount);
+            entity.HasIndex(x => x.PaymentNumber).IsUnique().HasDatabaseName("UQ_fo_ThanhToan_SoThanhToan");
+            entity.HasOne<HotelFolio>().WithMany().HasForeignKey(x => x.HotelFolioId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(x => x.Allocations).WithOne().HasForeignKey(x => x.HotelPaymentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(x => x.History).WithOne().HasForeignKey(x => x.HotelPaymentId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HotelPaymentAllocation>(entity =>
+        {
+            entity.ToTable("PhanBoThanhToan", "fo");
+            entity.HasKey(x => x.HotelPaymentAllocationId).HasName("PK_fo_PhanBoThanhToan");
+            entity.Property(x => x.ChargeDescription).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            entity.HasOne<HotelFolioEntry>().WithMany().HasForeignKey(x => x.ChargeFolioEntryId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<PaymentHistory>(entity =>
+        {
+            entity.ToTable("LichSuThanhToan", "fo");
+            entity.HasKey(x => x.PaymentHistoryId).HasName("PK_fo_LichSuThanhToan");
+            entity.Property(x => x.PaymentHistoryId).ValueGeneratedNever();
+            entity.Property(x => x.Action).HasMaxLength(100).IsRequired();
+    entity.Property(x => x.Detail).HasMaxLength(500).IsRequired(false);
+        });
+        // U-005: map the existing guest master tables without changing their live schema.
+        // Nationality/Country are explicitly capped at the live 80-character size and
+        // RowVersion remains nullable because the existing table was created that way.
+        modelBuilder.Entity<GuestProfile>(entity =>
+        {
+            entity.ToTable("HoSoKhach", "fo");
+            entity.HasKey(x => x.GuestProfileId);
+            entity.Property(x => x.GuestNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.FullName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Phone).HasMaxLength(50);
+            entity.Property(x => x.Email).HasMaxLength(200);
+            entity.Property(x => x.Address).HasMaxLength(500);
+            entity.Property(x => x.Nationality).HasMaxLength(80);
+            entity.Property(x => x.Country).HasMaxLength(80);
+            entity.Property(x => x.Gender).HasMaxLength(20);
+            entity.Property(x => x.EmergencyContact).HasMaxLength(200);
+            entity.Property(x => x.EmergencyPhone).HasMaxLength(50);
+            entity.Property(x => x.VipLevel).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.TotalRevenue).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.AverageSpend).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.BlacklistReason).HasMaxLength(500);
+            entity.Property(x => x.Source).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.CompanyName).HasMaxLength(200);
+            entity.Property(x => x.Notes).HasMaxLength(1000);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.GuestNumber }).IsUnique();
+            entity.HasIndex(x => new { x.PropertyId, x.FullName });
+            entity.HasIndex(x => x.Phone);
+            entity.HasIndex(x => x.Email);
+        });
+        modelBuilder.Entity<GuestDocument>(entity =>
+        {
+            entity.ToTable("GiayToKhach", "fo");
+            entity.HasKey(x => x.GuestDocumentId);
+            entity.Property(x => x.DocumentType).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.DocumentNumber).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.IssuingCountry).HasMaxLength(80);
+            entity.HasIndex(x => new { x.PropertyId, x.GuestProfileId });
+            entity.HasOne(x => x.GuestProfile).WithMany(x => x.Documents).HasForeignKey(x => x.GuestProfileId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<GuestFeedback>(entity =>
+        {
+            entity.ToTable("PhanHoiKhach", "fo");
+            entity.HasKey(x => x.GuestFeedbackId).HasName("PK_fo_PhanHoiKhach");
+            entity.Property(x => x.FeedbackNumber).HasMaxLength(60).IsRequired();
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.FeedbackType).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Priority).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Source).HasMaxLength(80);
+            entity.Property(x => x.Subject).HasMaxLength(255);
+            entity.Property(x => x.Description).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.AssignedDepartment).HasMaxLength(120);
+            entity.Property(x => x.Resolution).HasMaxLength(4000);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.FeedbackNumber }).IsUnique().HasDatabaseName("UQ_fo_PhanHoiKhach_CoSo_SoPhanHoi");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.CreatedAtUtc }).HasDatabaseName("IX_fo_PhanHoiKhach_CoSo_TrangThai_ThoiGian");
+            entity.HasIndex(x => new { x.PropertyId, x.RoomNumber, x.CreatedAtUtc }).HasDatabaseName("IX_fo_PhanHoiKhach_CoSo_Phong_ThoiGian");
+            entity.HasMany(x => x.History).WithOne().HasForeignKey(x => x.GuestFeedbackId).OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.History).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        modelBuilder.Entity<GuestFeedbackHistory>(entity =>
+        {
+            entity.ToTable("LichSuPhanHoiKhach", "fo");
+            entity.HasKey(x => x.GuestFeedbackHistoryId).HasName("PK_fo_LichSuPhanHoiKhach");
+            entity.Property(x => x.Action).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => new { x.PropertyId, x.GuestFeedbackId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_LichSuPhanHoiKhach_CoSo_PhanHoi_ThoiGian");
+        });
+        modelBuilder.Entity<VipProfile>(entity =>
+        {
+            entity.ToTable("HoSoVIP", "fo");
+            entity.HasKey(x => x.VipProfileId).HasName("PK_fo_HoSoVIP");
+            entity.Property(x => x.VipNumber).HasMaxLength(60).IsRequired();
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.Level).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Preferences).HasMaxLength(2000);
+            entity.Property(x => x.SpecialRequests).HasMaxLength(2000);
+            entity.Property(x => x.AssignedAccountManager).HasMaxLength(200);
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.Property(x => x.TotalRevenue).HasColumnType("decimal(18,2)");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.VipNumber }).IsUnique().HasDatabaseName("UQ_fo_HoSoVIP_CoSo_MaVIP");
+            entity.HasIndex(x => new { x.PropertyId, x.Level, x.Status }).HasDatabaseName("IX_fo_HoSoVIP_CoSo_Hang_TrangThai");
+            entity.HasMany(x => x.Transactions).WithOne().HasForeignKey(x => x.VipProfileId).OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Transactions).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        modelBuilder.Entity<LoyaltyTransaction>(entity =>
+        {
+            entity.ToTable("GiaoDichLoyalty", "fo");
+            entity.HasKey(x => x.LoyaltyTransactionId).HasName("PK_fo_GiaoDichLoyalty");
+            entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => new { x.PropertyId, x.VipProfileId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_GiaoDichLoyalty_CoSo_VIP_ThoiGian");
+        });
+        modelBuilder.Entity<GuestPreference>(entity =>
+        {
+            entity.ToTable("SoThichKhach", "fo");
+            entity.HasKey(x => x.GuestPreferenceId);
+            entity.Property(x => x.Key).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Value).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => new { x.PropertyId, x.GuestProfileId });
+            entity.HasOne(x => x.GuestProfile).WithMany(x => x.Preferences).HasForeignKey(x => x.GuestProfileId).OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<RatePlan>(entity => { entity.ToTable("KeHoachGia", "fo"); entity.HasKey(x => x.RatePlanId).HasName("PK_fo_KeHoachGia"); entity.Property(x => x.PlanCode).HasMaxLength(40); entity.Property(x => x.PlanName).HasMaxLength(160); entity.Property(x => x.BaseRate).HasColumnType("decimal(18,2)"); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Hierarchy).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.YieldMinRate).HasColumnType("decimal(18,2)"); entity.Property(x => x.YieldMaxRate).HasColumnType("decimal(18,2)"); entity.Property(x => x.YieldAdjustmentPct).HasColumnType("decimal(8,4)"); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.PlanCode }).IsUnique().HasDatabaseName("UQ_fo_KeHoachGia_CoSo_Ma"); entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_KeHoachGia_CoSo_TrangThai"); });
-        modelBuilder.Entity<RateCalendarEntry>(entity => { entity.ToTable("LichGia", "fo"); entity.HasKey(x => x.RateCalendarEntryId).HasName("PK_fo_LichGia"); entity.Property(x => x.Rate).HasColumnType("decimal(18,2)"); entity.HasIndex(x => new { x.RatePlanId, x.Date }).IsUnique().HasDatabaseName("UQ_fo_LichGia_KeHoach_Ngay"); entity.HasOne<RatePlan>().WithMany().HasForeignKey(x => x.RatePlanId).OnDelete(DeleteBehavior.Cascade); });
-        modelBuilder.Entity<RateRule>(entity => { entity.ToTable("QuyTacGia", "fo"); entity.HasKey(x => x.RateRuleId).HasName("PK_fo_QuyTacGia"); entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(50); entity.Property(x => x.Value).HasColumnType("decimal(18,4)"); entity.Property(x => x.Description).HasMaxLength(500); entity.HasIndex(x => new { x.RatePlanId, x.Priority }).HasDatabaseName("IX_fo_QuyTacGia_KeHoach_UuTien"); entity.HasOne<RatePlan>().WithMany().HasForeignKey(x => x.RatePlanId).OnDelete(DeleteBehavior.Cascade); });
-        modelBuilder.Entity<RateSeason>(entity => { entity.ToTable("MuaGia", "fo"); entity.HasKey(x => x.RateSeasonId).HasName("PK_fo_MuaGia"); entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Multiplier).HasColumnType("decimal(8,4)"); entity.Property(x => x.Description).HasMaxLength(500); entity.HasIndex(x => new { x.RatePlanId, x.FromDate, x.ToDate }).HasDatabaseName("IX_fo_MuaGia_KeHoach_Ngay"); entity.HasOne<RatePlan>().WithMany().HasForeignKey(x => x.RatePlanId).OnDelete(DeleteBehavior.Cascade); });
-        modelBuilder.Entity<GroupReservation>(entity => { entity.ToTable("DatPhongDoan", "fo"); entity.HasKey(x => x.GroupReservationId).HasName("PK_fo_DatPhongDoan"); entity.Property(x => x.GroupCode).HasMaxLength(40); entity.Property(x => x.GroupName).HasMaxLength(200); entity.Property(x => x.CompanyName).HasMaxLength(200); entity.Property(x => x.AgencyName).HasMaxLength(200); entity.Property(x => x.ContactPerson).HasMaxLength(200); entity.Property(x => x.ContactPhone).HasMaxLength(50); entity.Property(x => x.ContactEmail).HasMaxLength(200); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Source).HasMaxLength(80); entity.Property(x => x.SalesManager).HasMaxLength(200); entity.Property(x => x.MarketSegment).HasMaxLength(80); entity.Property(x => x.Routing).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.SpecialRequests).HasMaxLength(1000); entity.Property(x => x.Notes).HasMaxLength(1000); entity.Property(x => x.TotalDeposit).HasColumnType("decimal(18,2)"); entity.Property(x => x.TotalRevenue).HasColumnType("decimal(18,2)"); entity.Property(x => x.OutstandingBalance).HasColumnType("decimal(18,2)"); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.GroupCode }).IsUnique().HasDatabaseName("UQ_fo_DatPhongDoan_CoSo_MaDoan"); entity.HasIndex(x => new { x.PropertyId, x.ArrivalDate, x.DepartureDate }).HasDatabaseName("IX_fo_DatPhongDoan_CoSo_NgayO"); entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_DatPhongDoan_CoSo_TrangThai"); });
-        modelBuilder.Entity<GroupRoomAssignment>(entity => { entity.ToTable("PhongDoan", "fo"); entity.HasKey(x => x.GroupRoomAssignmentId).HasName("PK_fo_PhongDoan"); entity.Property(x => x.RoomNumber).HasMaxLength(40); entity.Property(x => x.RoomType).HasMaxLength(80); entity.Property(x => x.GuestName).HasMaxLength(200); entity.HasIndex(x => new { x.GroupReservationId, x.HotelRoomId }).IsUnique().HasDatabaseName("UQ_fo_PhongDoan_Doan_Phong"); entity.HasOne<GroupReservation>().WithMany().HasForeignKey(x => x.GroupReservationId).OnDelete(DeleteBehavior.Cascade); });
+        modelBuilder.Entity<RateCalendarEntry>(entity => { entity.ToTable("LichGia", "fo"); entity.HasKey(x => x.RateCalendarEntryId).HasName("PK_fo_LichGia"); entity.Property(x => x.Rate).HasColumnType("decimal(18,2)"); entity.HasIndex(x => new { x.RatePlanId, x.Date }).IsUnique().HasDatabaseName("UQ_fo_LichGia_KeHoach_Ngay"); entity.HasOne(x => x.RatePlan).WithMany(x => x.Calendar).HasForeignKey(x => x.RatePlanId).OnDelete(DeleteBehavior.Cascade); });
+        modelBuilder.Entity<RateRule>(entity => { entity.ToTable("QuyTacGia", "fo"); entity.HasKey(x => x.RateRuleId).HasName("PK_fo_QuyTacGia"); entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(50); entity.Property(x => x.Value).HasColumnType("decimal(18,4)"); entity.Property(x => x.Description).HasMaxLength(500); entity.HasIndex(x => new { x.RatePlanId, x.Priority }).HasDatabaseName("IX_fo_QuyTacGia_KeHoach_UuTien"); entity.HasOne(x => x.RatePlan).WithMany(x => x.Rules).HasForeignKey(x => x.RatePlanId).OnDelete(DeleteBehavior.Cascade); });
+        modelBuilder.Entity<RateSeason>(entity => { entity.ToTable("MuaGia", "fo"); entity.HasKey(x => x.RateSeasonId); entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Multiplier).HasColumnType("decimal(8,4)"); entity.Property(x => x.Description).HasMaxLength(500); entity.HasIndex(x => new { x.RatePlanId, x.FromDate, x.ToDate }).HasDatabaseName("IX_fo_MuaGia_KeHoach_Ngay"); entity.HasOne(x => x.RatePlan).WithMany(x => x.Seasons).HasForeignKey(x => x.RatePlanId).OnDelete(DeleteBehavior.Cascade); });
+        modelBuilder.Entity<HotelExchangeRate>(entity => { entity.ToTable("TyGia", "fo"); entity.HasKey(x => x.HotelExchangeRateId).HasName("PK_fo_TyGia"); entity.Property(x => x.CurrencyCode).HasMaxLength(10).IsRequired(); entity.Property(x => x.CurrencyName).HasMaxLength(160).IsRequired(); entity.Property(x => x.Symbol).HasMaxLength(20); entity.Property(x => x.BuyRate).HasColumnType("decimal(18,6)"); entity.Property(x => x.SellRate).HasColumnType("decimal(18,6)"); entity.Property(x => x.HotelRate).HasColumnType("decimal(18,6)"); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Notes).HasMaxLength(1000); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.CurrencyCode, x.EffectiveFromUtc }).IsUnique().HasDatabaseName("UQ_fo_TyGia_CoSo_Ma_TuNgay"); entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_TyGia_CoSo_TrangThai"); entity.HasIndex(x => new { x.PropertyId, x.EffectiveFromUtc, x.EffectiveToUtc }).HasDatabaseName("IX_fo_TyGia_CoSo_HieuLuc"); });
+        modelBuilder.Entity<MarketingRecord>(entity =>
+        {
+            entity.ToTable("TiepThi", "fo");
+            entity.HasKey(x => x.MarketingRecordId).HasName("PK_fo_TiepThi");
+            entity.Property(x => x.Section).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Code).HasMaxLength(60).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.GroupName).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Owner).HasMaxLength(160).IsRequired();
+            entity.Property(x => x.Revenue).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Notes).HasMaxLength(1000);
+            entity.Property(x => x.CreatedAtUtc).HasColumnType("datetime2");
+            entity.Property(x => x.UpdatedAtUtc).HasColumnType("datetime2");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.Section, x.Code }).IsUnique().HasDatabaseName("UQ_fo_TiepThi_CoSo_PhanLoai_Ma");
+            entity.HasIndex(x => new { x.PropertyId, x.Section, x.Status }).HasDatabaseName("IX_fo_TiepThi_CoSo_PhanLoai_TrangThai");
+            entity.HasIndex(x => new { x.PropertyId, x.GroupName }).HasDatabaseName("IX_fo_TiepThi_CoSo_Nhom");
+        });
+        modelBuilder.Entity<GroupReservation>(entity => { entity.ToTable("DatPhongDoan", "fo"); entity.HasKey(x => x.GroupReservationId).HasName("PK_fo_DatPhongDoan"); entity.Property(x => x.GroupCode).HasMaxLength(40); entity.Property(x => x.GroupName).HasMaxLength(200); entity.Property(x => x.CompanyName).HasMaxLength(200); entity.Property(x => x.AgencyName).HasMaxLength(200); entity.Property(x => x.ContactPerson).HasMaxLength(200); entity.Property(x => x.ContactPhone).HasMaxLength(50); entity.Property(x => x.ContactEmail).HasMaxLength(200); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.Source).HasMaxLength(80); entity.Property(x => x.SalesManager).HasMaxLength(200); entity.Property(x => x.MarketSegment).HasMaxLength(80); entity.Property(x => x.Routing).HasConversion<string>().HasMaxLength(30); entity.Property(x => x.SpecialRequests).HasMaxLength(1000); entity.Property(x => x.Notes).HasMaxLength(1000); entity.Property(x => x.GuaranteeType).HasMaxLength(40); entity.Property(x => x.TotalDeposit).HasColumnType("decimal(18,2)"); entity.Property(x => x.TotalRevenue).HasColumnType("decimal(18,2)"); entity.Property(x => x.OutstandingBalance).HasColumnType("decimal(18,2)"); entity.Property(x => x.SplitPercentage).HasColumnType("decimal(5,2)"); ConfigureRowVersion(entity.Property(x => x.RowVersion)); entity.HasIndex(x => new { x.PropertyId, x.GroupCode }).IsUnique().HasDatabaseName("UQ_fo_DatPhongDoan_CoSo_MaDoan"); entity.HasIndex(x => new { x.PropertyId, x.ArrivalDate, x.DepartureDate }).HasDatabaseName("IX_fo_DatPhongDoan_CoSo_NgayO"); entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_DatPhongDoan_CoSo_TrangThai"); });
+        modelBuilder.Entity<GroupDeposit>(entity =>
+        {
+            entity.ToTable("DatCocDoan", "fo");
+            entity.HasKey(x => x.GroupDepositId).HasName("PK_fo_DatCocDoan");
+            entity.Property(x => x.CurrencyCode).HasMaxLength(10).IsRequired();
+            entity.Property(x => x.PaymentMethod).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.ExternalReference).HasMaxLength(120);
+            entity.Property(x => x.Note).HasMaxLength(1000);
+            entity.Property(x => x.ReversalReason).HasMaxLength(500);
+            entity.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.GroupReservationId, x.BusinessDate }).HasDatabaseName("IX_fo_DatCocDoan_CoSo_Doan_Ngay");
+            entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_DatCocDoan_CoSo_TrangThai");
+            entity.HasOne(x => x.GroupReservation).WithMany().HasForeignKey(x => x.GroupReservationId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<GroupDepositSchedule>(entity =>
+        {
+            entity.ToTable("LichDatCocDoan", "fo");
+            entity.HasKey(x => x.GroupDepositScheduleId).HasName("PK_fo_LichDatCocDoan");
+            entity.Property(x => x.Percent).HasColumnType("decimal(9,2)");
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.GroupReservationId, x.DueDate }).HasDatabaseName("IX_fo_LichDatCocDoan_CoSo_Doan_Han");
+            entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_LichDatCocDoan_CoSo_TrangThai");
+            entity.HasOne(x => x.GroupReservation).WithMany(x => x.DepositSchedules).HasForeignKey(x => x.GroupReservationId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<GroupRoomAssignment>(entity => { entity.ToTable("PhongDoan", "fo"); entity.HasKey(x => x.GroupRoomAssignmentId).HasName("PK_fo_PhongDoan"); entity.Property(x => x.RoomNumber).HasMaxLength(40); entity.Property(x => x.RoomType).HasMaxLength(80); entity.Property(x => x.GuestName).HasMaxLength(200); entity.HasIndex(x => new { x.GroupReservationId, x.HotelRoomId }).IsUnique().HasDatabaseName("UQ_fo_PhongDoan_Doan_Phong"); entity.HasOne(x => x.GroupReservation).WithMany(x => x.RoomingList).HasForeignKey(x => x.GroupReservationId).OnDelete(DeleteBehavior.Cascade); });
+        modelBuilder.Entity<GroupRoomBlock>(entity =>
+        {
+            entity.ToTable("RoomBlockDoan", "fo");
+            entity.HasKey(x => x.GroupRoomBlockId).HasName("PK_fo_RoomBlockDoan");
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+            entity.Property(x => x.NegotiatedRate).HasColumnType("decimal(18,2)");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.GroupReservationId, x.HotelRoomTypeId, x.ArrivalDate, x.DepartureDate }).IsUnique().HasDatabaseName("UQ_fo_RoomBlockDoan_CoSo_Doan_Loai_Ngay");
+            entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_RoomBlockDoan_CoSo_TrangThai");
+            entity.HasIndex(x => new { x.PropertyId, x.CutoffDate }).HasDatabaseName("IX_fo_RoomBlockDoan_CoSo_HanChot");
+            entity.HasOne(x => x.GroupReservation).WithMany(x => x.RoomBlocks).HasForeignKey(x => x.GroupReservationId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<HotelRoomType>().WithMany().HasForeignKey(x => x.HotelRoomTypeId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<GroupServiceOrder>(entity =>
+        {
+            entity.ToTable("DichVuDoan", "fo");
+            entity.HasKey(x => x.GroupServiceOrderId).HasName("PK_fo_DichVuDoan");
+            entity.Property(x => x.ServiceCode).HasMaxLength(60).IsRequired();
+            entity.Property(x => x.ServiceName).HasMaxLength(255).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.SubCategory).HasMaxLength(80);
+            entity.Property(x => x.Department).HasMaxLength(80);
+            entity.Property(x => x.Provider).HasMaxLength(160);
+            entity.Property(x => x.Location).HasMaxLength(160);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+            entity.Property(x => x.ChargeTo).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.Remark).HasMaxLength(2000);
+            entity.Property(x => x.UnitPrice).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.DiscountRate).HasColumnType("decimal(9,4)");
+            entity.Property(x => x.TaxRate).HasColumnType("decimal(9,4)");
+            entity.Property(x => x.ServiceChargeRate).HasColumnType("decimal(9,4)");
+            entity.Property(x => x.PaidAmount).HasColumnType("decimal(18,2)");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.ServiceCode }).IsUnique().HasDatabaseName("UQ_fo_DichVuDoan_CoSo_MaDV");
+            entity.HasIndex(x => new { x.PropertyId, x.GroupReservationId, x.ServiceDate }).HasDatabaseName("IX_fo_DichVuDoan_CoSo_Doan_Ngay");
+            entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_DichVuDoan_CoSo_TrangThai");
+            entity.HasOne(x => x.GroupReservation).WithMany().HasForeignKey(x => x.GroupReservationId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<FrontOfficeIncident>(entity =>
+        {
+            entity.ToTable("SuCo", "fo");
+            entity.HasKey(x => x.IncidentId).HasName("PK_fo_SuCo");
+            entity.Property(x => x.IncidentNumber).HasMaxLength(60).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(255).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Priority).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.RoomReference).HasMaxLength(80);
+            entity.Property(x => x.GuestReference).HasMaxLength(255);
+            entity.Property(x => x.ReservationReference).HasMaxLength(80);
+            entity.Property(x => x.Department).HasMaxLength(80);
+            entity.Property(x => x.ReporterName).HasMaxLength(180).IsRequired();
+            entity.Property(x => x.AssignedTo).HasMaxLength(180);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Impact).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.RootCause).HasMaxLength(2000);
+            entity.Property(x => x.TemporaryAction).HasMaxLength(2000);
+            entity.Property(x => x.CorrectiveAction).HasMaxLength(2000);
+            entity.Property(x => x.PreventiveAction).HasMaxLength(2000);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.IncidentNumber }).IsUnique().HasDatabaseName("UQ_fo_SuCo_CoSo_MaSC");
+            entity.HasIndex(x => new { x.PropertyId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_SuCo_CoSo_ThoiGian");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.Priority }).HasDatabaseName("IX_fo_SuCo_CoSo_TrangThai_UuTien");
+        });
+        modelBuilder.Entity<FrontOfficeShiftLogEntry>(entity =>
+        {
+            entity.ToTable("NhatKyCa", "fo");
+            entity.HasKey(x => x.ShiftLogEntryId).HasName("PK_fo_NhatKyCa");
+            entity.Property(x => x.ShiftName).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(255).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Priority).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.RoomReference).HasMaxLength(80);
+            entity.Property(x => x.GuestReference).HasMaxLength(255);
+            entity.Property(x => x.ReservationReference).HasMaxLength(80);
+            entity.Property(x => x.AssignedTo).HasMaxLength(180);
+            entity.Property(x => x.Description).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_NhatKyCa_CoSo_ThoiGian");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.Priority }).HasDatabaseName("IX_fo_NhatKyCa_CoSo_TrangThai_UuTien");
+            entity.HasIndex(x => new { x.PropertyId, x.Category }).HasDatabaseName("IX_fo_NhatKyCa_CoSo_Nhom");
+        });
+        modelBuilder.Entity<ServiceRequest>(entity =>
+        {
+            entity.ToTable("YeuCauDichVu", "fo");
+            entity.HasKey(x => x.ServiceRequestId).HasName("PK_fo_YeuCauDichVu");
+            entity.Property(x => x.RequestNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.ServiceType).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Category).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Priority).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Property(x => x.AssignedDepartment).HasMaxLength(200);
+            entity.Property(x => x.EstimatedCost).HasPrecision(18, 2);
+            entity.Property(x => x.ActualCost).HasPrecision(18, 2);
+            entity.Property(x => x.ChargeType).HasConversion<string>().HasMaxLength(20).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.RequestNumber }).IsUnique().HasDatabaseName("UQ_fo_YeuCauDichVu_SoYeuCau");
+            entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_YeuCauDichVu_CoSo_TrangThai");
+            entity.HasIndex(x => new { x.PropertyId, x.SlaDeadlineAtUtc, x.Status }).HasDatabaseName("IX_fo_YeuCauDichVu_SlaDeadline");
+            entity.HasMany(x => x.History).WithOne().HasForeignKey(x => x.ServiceRequestId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<ConciergeWakeUpCall>(entity =>
+        {
+            entity.ToTable("CuocGoiBaoThuc", "fo");
+            entity.HasKey(x => x.CallId).HasName("PK_fo_CuocGoiBaoThuc");
+            entity.Property(x => x.CallNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.CallNumber }).IsUnique().HasDatabaseName("UQ_fo_CuocGoiBaoThuc_CoSo_SoGoi");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.WakeTime }).HasDatabaseName("IX_fo_CuocGoiBaoThuc_CoSo_TrangThai_ThoiGian");
+        });
+        modelBuilder.Entity<ConciergeLuggageItem>(entity =>
+        {
+            entity.ToTable("HanhLyConcierge", "fo");
+            entity.HasKey(x => x.ItemId).HasName("PK_fo_HanhLyConcierge");
+            entity.Property(x => x.TagNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.StorageLocation).HasMaxLength(200);
+            entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.HandlerName).HasMaxLength(200);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.TagNumber }).IsUnique().HasDatabaseName("UQ_fo_HanhLyConcierge_CoSo_MaThe");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.StoredAtUtc }).HasDatabaseName("IX_fo_HanhLyConcierge_CoSo_TrangThai_ThoiGian");
+            entity.HasIndex(x => new { x.PropertyId, x.GuestId }).HasDatabaseName("IX_fo_HanhLyConcierge_CoSo_Khach");
+        });
+        modelBuilder.Entity<ConciergeTransportationBooking>(entity =>
+        {
+            entity.ToTable("DatXeConcierge", "fo");
+            entity.HasKey(x => x.BookingId).HasName("PK_fo_DatXeConcierge");
+            entity.Property(x => x.BookingNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Type).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.DriverName).HasMaxLength(200);
+            entity.Property(x => x.VehicleNumber).HasMaxLength(40);
+            entity.Property(x => x.VehicleType).HasMaxLength(80);
+            entity.Property(x => x.PickupLocation).HasMaxLength(300);
+            entity.Property(x => x.DropoffLocation).HasMaxLength(300);
+            entity.Property(x => x.FlightNumber).HasMaxLength(40);
+            entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Cost).HasPrecision(18, 2);
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.BookingNumber }).IsUnique().HasDatabaseName("UQ_fo_DatXeConcierge_CoSo_SoDat");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.ScheduledAtUtc }).HasDatabaseName("IX_fo_DatXeConcierge_CoSo_TrangThai_ThoiGian");
+        });
+        modelBuilder.Entity<ConciergeTelephoneCall>(entity =>
+        {
+            entity.ToTable("NhatKyCuocGoi", "fo");
+            entity.HasKey(x => x.CallId).HasName("PK_fo_NhatKyCuocGoi");
+            entity.Property(x => x.Direction).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.Subject).HasMaxLength(300);
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            entity.HasIndex(x => new { x.PropertyId, x.Direction, x.StartedAtUtc }).HasDatabaseName("IX_fo_NhatKyCuocGoi_CoSo_Huong_ThoiGian");
+            entity.HasIndex(x => new { x.PropertyId, x.PhoneNumber }).HasDatabaseName("IX_fo_NhatKyCuocGoi_CoSo_SoDienThoai");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+        });
+        modelBuilder.Entity<ConciergeTelephoneContact>(entity =>
+        {
+            entity.ToTable("DanhBaDienThoai", "fo");
+            entity.HasKey(x => x.ContactId).HasName("PK_fo_DanhBaDienThoai");
+            entity.Property(x => x.DisplayName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.Category).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.HasIndex(x => new { x.PropertyId, x.PhoneNumber }).HasDatabaseName("IX_fo_DanhBaDienThoai_CoSo_SoDienThoai");
+            entity.HasIndex(x => new { x.PropertyId, x.IsActive, x.DisplayName }).HasDatabaseName("IX_fo_DanhBaDienThoai_CoSo_HoatDong_Ten");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+        });
+        modelBuilder.Entity<ReservationDenial>(entity =>
+        {
+            entity.ToTable("DatPhongTuChoi", "fo");
+            entity.HasKey(x => x.DenialId).HasName("PK_fo_DatPhongTuChoi");
+            entity.Property(x => x.DenialNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.GuestName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.GuestPhone).HasMaxLength(50);
+            entity.Property(x => x.Source).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Reason).HasConversion<string>().HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.Property(x => x.ArrivalDate).HasColumnType("date");
+            entity.Property(x => x.DepartureDate).HasColumnType("date");
+            entity.HasIndex(x => new { x.PropertyId, x.DenialNumber }).IsUnique().HasDatabaseName("UQ_fo_DatPhongTuChoi_CoSo_SoTuChoi");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.CreatedAtUtc }).HasDatabaseName("IX_fo_DatPhongTuChoi_CoSo_TrangThai_ThoiGian");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+        });
+        modelBuilder.Entity<ServiceHistory>(entity =>
+        {
+            entity.ToTable("LichSuYeuCau", "fo");
+            entity.HasKey(x => x.ServiceHistoryId).HasName("PK_fo_LichSuYeuCau");
+            entity.Property(x => x.ServiceHistoryId).ValueGeneratedNever();
+            entity.Property(x => x.Action).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Detail).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.ServiceRequestId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_LichSuYeuCau_YeuCau_ThoiGian");
+        });
+        modelBuilder.Entity<GuestMessage>(entity =>
+        {
+            entity.ToTable("TinNhanKhach", "fo");
+            entity.HasKey(x => x.GuestMessageId).HasName("PK_fo_TinNhanKhach");
+            entity.Property(x => x.MessageNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.GuestName).HasMaxLength(200);
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.MessageType).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Channel).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Priority).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Subject).HasMaxLength(300);
+            entity.Property(x => x.Content).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.Sender).HasMaxLength(200);
+            entity.Property(x => x.ResponseContent).HasMaxLength(4000);
+            entity.Property(x => x.AssignedStaff).HasMaxLength(200);
+            entity.Property(x => x.Department).HasMaxLength(120);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.MessageNumber }).IsUnique().HasDatabaseName("UQ_fo_TinNhanKhach_CoSo_SoTin");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.CreatedAtUtc }).HasDatabaseName("IX_fo_TinNhanKhach_CoSo_TrangThai_ThoiGian");
+            entity.HasMany(x => x.History).WithOne().HasForeignKey(x => x.GuestMessageId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<MessageHistory>(entity =>
+        {
+            entity.ToTable("LichSuTinNhanKhach", "fo");
+            entity.HasKey(x => x.MessageHistoryId).HasName("PK_fo_LichSuTinNhanKhach");
+            entity.Property(x => x.MessageHistoryId).ValueGeneratedNever();
+            entity.Property(x => x.Action).HasMaxLength(40).IsRequired();
+            entity.HasIndex(x => new { x.GuestMessageId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_LichSuTinNhanKhach_TinNhan_ThoiGian");
+        });
+        modelBuilder.Entity<LostFoundItem>(entity =>
+        {
+            entity.ToTable("LostFoundItems");
+            entity.HasKey(x => x.LostFoundItemId);
+            entity.Property(x => x.ItemNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.ItemName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Category).HasConversion<int>();
+            entity.Property(x => x.Status).HasConversion<int>();
+            entity.Property(x => x.ContactedBy).HasMaxLength(200);
+            entity.Property(x => x.ContactMethod).HasMaxLength(50);
+            entity.Property(x => x.ContactResult).HasMaxLength(1000);
+            entity.Property(x => x.ContactNotes).HasMaxLength(2000);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.Ignore(x => x.History);
+            entity.HasIndex(x => new { x.PropertyId, x.ItemNumber });
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.FoundDateTime });
+        });
+        modelBuilder.Entity<LostFoundHistory>(entity =>
+        {
+            entity.ToTable("LostFoundHistories");
+            entity.HasKey(x => x.LostFoundHistoryId);
+            entity.Property(x => x.Action).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => new { x.LostFoundItemId, x.OccurredAtUtc });
+            entity.HasOne<LostFoundItem>()
+                .WithMany()
+                .HasForeignKey(x => x.LostFoundItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CashierShift>(entity =>
+        {
+            entity.HasKey(x => x.CashierShiftId).HasName("PK_fo_CaLamViec");
+            entity.Property(x => x.ShiftNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.OpeningCash).HasPrecision(18, 2);
+            entity.Property(x => x.ClosingCash).HasPrecision(18, 2);
+            entity.Property(x => x.ActualCash).HasPrecision(18, 2);
+            entity.Property(x => x.BusinessDate).HasColumnType("date");
+            entity.HasIndex(x => x.ShiftNumber).IsUnique().HasDatabaseName("UQ_fo_CaLamViec_SoCa");
+            entity.HasIndex(x => new { x.PropertyId, x.CashierId, x.Status }).HasDatabaseName("IX_fo_CaLamViec_CoSo_ThuNgan_TrangThai");
+            entity.HasMany(x => x.Movements)
+                .WithOne()
+                .HasForeignKey(x => x.CashierShiftId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Navigation(x => x.Movements).UsePropertyAccessMode(PropertyAccessMode.Field);
+            if (useSqlServerRowVersion)
+            {
+                entity.Property(x => x.RowVersion).IsRowVersion();
+            }
+            else
+            {
+                // The legacy SQL Server table owns this value as ROWVERSION. The
+                // lightweight providers used by unit tests do not have an
+                // equivalent generated value; ignoring it keeps their round-trip
+                // behavior faithful without weakening production concurrency.
+                entity.Ignore(x => x.RowVersion);
+            }
+            entity.ToTable("CaLamViec", "fo");
+        });
+
+        modelBuilder.Entity<CashMovement>(entity =>
+        {
+            entity.HasKey(x => x.CashMovementId).HasName("PK_fo_BienDongTienMat");
+            entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Amount).HasPrecision(18, 2);
+            entity.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => new { x.CashierShiftId, x.CreatedAtUtc }).HasDatabaseName("IX_fo_BienDongTienMat_Ca_ThoiGian");
+            entity.ToTable("BienDongTienMat", "fo");
+        });
+
+        modelBuilder.Entity<CashReconciliation>(entity =>
+        {
+            entity.ToTable("DoiSoatTienMat", "fo");
+            entity.HasKey(x => x.CashReconciliationId).HasName("PK_fo_DoiSoatTienMat");
+            entity.Property(x => x.ShiftNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.ExpectedCash).HasPrecision(18, 2);
+            entity.Property(x => x.ActualCash).HasPrecision(18, 2);
+            entity.Property(x => x.Variance).HasPrecision(18, 2);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.ReasonCode).HasMaxLength(40);
+            entity.Property(x => x.ReasonDetail).HasMaxLength(1000);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.CashierShiftId }).IsUnique().HasDatabaseName("UQ_fo_DoiSoatTienMat_CoSo_Ca");
+            entity.HasIndex(x => new { x.PropertyId, x.Status }).HasDatabaseName("IX_fo_DoiSoatTienMat_CoSo_TrangThai");
+            entity.HasOne<CashierShift>().WithMany().HasForeignKey(x => x.CashierShiftId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<HousekeepingTask>(entity =>
+        {
+            entity.ToTable("DonDep", "fo");
+            entity.HasKey(x => x.HousekeepingTaskId).HasName("PK_fo_DonDep");
+            entity.Property(x => x.TaskNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.TaskType).HasConversion<string>().HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+              entity.Property(x => x.Priority).HasConversion<string>().HasMaxLength(30).IsRequired();
+              entity.Property(x => x.InspectorNotes).HasMaxLength(500);
+              entity.Property(x => x.PauseReason).HasMaxLength(500);
+              entity.Property(x => x.InspectionResult).HasConversion<string>().HasMaxLength(30);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.ScheduledDate });
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<TaskAssignment>(entity =>
+        {
+            entity.ToTable("TaskAssignment", "fo");
+            entity.HasKey(x => x.TaskAssignmentId).HasName("PK_fo_TaskAssignment");
+            entity.Property(x => x.TaskNumber).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.TaskType).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.SourceModule).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Priority).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Department).HasMaxLength(120);
+            entity.Property(x => x.AssignedShift).HasConversion<string>().HasMaxLength(30);
+            entity.Property(x => x.AssignedStaffName).HasMaxLength(200);
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            if (useSqlServerRowVersion)
+            {
+                entity.Property(x => x.RowVersion).IsRowVersion();
+            }
+            else
+            {
+                entity.Ignore(x => x.RowVersion);
+            }
+            entity.HasIndex(x => new { x.PropertyId, x.TaskNumber }).IsUnique().HasDatabaseName("UQ_fo_TaskAssignment_CoSo_SoTask");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.DueTime }).HasDatabaseName("IX_fo_TaskAssignment_CoSo_TrangThai_Han");
+            entity.HasIndex(x => new { x.PropertyId, x.AssignedStaffId, x.AssignedShift }).HasDatabaseName("IX_fo_TaskAssignment_CoSo_NhanSu_Ca");
+            entity.HasMany(x => x.History).WithOne().HasForeignKey(x => x.TaskAssignmentId).OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.History).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        modelBuilder.Entity<TaskHistory>(entity =>
+        {
+            entity.ToTable("TaskHistory", "fo");
+            entity.HasKey(x => x.TaskHistoryId).HasName("PK_fo_TaskHistory");
+            entity.Property(x => x.Action).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => new { x.PropertyId, x.TaskAssignmentId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_TaskHistory_CoSo_Task_ThoiGian");
+        });
+        modelBuilder.Entity<RoomHousekeepingState>(entity =>
+        {
+            entity.ToTable("TrangThaiDonDep", "fo");
+            entity.HasKey(x => x.HotelRoomId).HasName("PK_fo_TrangThaiDonDep");
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<RoomHousekeepingStatusHistory>(entity =>
+        {
+            entity.ToTable("LichSuTrangThaiDonDep", "fo");
+            entity.HasKey(x => x.RoomHousekeepingStatusHistoryId).HasName("PK_fo_LichSuTrangThaiDonDep");
+            entity.Property(x => x.FromStatus).HasConversion<string>().HasMaxLength(30);
+            entity.Property(x => x.ToStatus).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Source).HasMaxLength(80).IsRequired();
+            entity.HasIndex(x => new { x.PropertyId, x.HotelRoomId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_LichSuTrangThaiDonDep_CoSo_Phong_ThoiGian");
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<RoomInspection>(entity =>
+        {
+            entity.ToTable("RoomInspection", "fo");
+            entity.HasKey(x => x.InspectionId).HasName("PK_fo_RoomInspection");
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Result).HasMaxLength(30);
+            entity.Property(x => x.ChecklistData);
+            entity.Property(x => x.Notes).HasMaxLength(500);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.HousekeepingTaskId }).IsUnique();
+            entity.HasOne<HousekeepingTask>().WithMany().HasForeignKey(x => x.HousekeepingTaskId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<HousekeepingLinenType>(entity =>
+        {
+            entity.ToTable("LoaiDoVai", "fo");
+            entity.HasKey(x => x.Id).HasName("PK_fo_LoaiDoVai");
+            entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(160).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(80).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_LoaiDoVai_CoSo_Ma");
+            entity.HasIndex(x => new { x.PropertyId, x.IsActive }).HasDatabaseName("IX_fo_LoaiDoVai_CoSo_HoatDong");
+        });
+        modelBuilder.Entity<HousekeepingLinenTransaction>(entity =>
+        {
+            entity.ToTable("GiaoDichDoVai", "fo");
+            entity.HasKey(x => x.TransactionId).HasName("PK_fo_GiaoDichDoVai");
+            entity.Property(x => x.LinenCode).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Action).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(500);
+            entity.HasIndex(x => new { x.PropertyId, x.HotelRoomId, x.LinenCode, x.OccurredAtUtc }).HasDatabaseName("IX_fo_GiaoDichDoVai_CoSo_Phong_Ma_ThoiGian");
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HousekeepingAmenityType>(entity =>
+        {
+            entity.ToTable("LoaiTienNghi", "fo");
+            entity.HasKey(x => x.Id).HasName("PK_fo_LoaiTienNghi");
+            entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(160).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(80).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_LoaiTienNghi_CoSo_Ma");
+            entity.HasIndex(x => new { x.PropertyId, x.IsActive }).HasDatabaseName("IX_fo_LoaiTienNghi_CoSo_HoatDong");
+        });
+        modelBuilder.Entity<HousekeepingAmenityBalance>(entity =>
+        {
+            entity.ToTable("TonTienNghiPhong", "fo");
+            entity.HasKey(x => x.Id).HasName("PK_fo_TonTienNghiPhong");
+            entity.Property(x => x.AmenityCode).HasMaxLength(50).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.HotelRoomId, x.AmenityCode }).IsUnique().HasDatabaseName("UQ_fo_TonTienNghiPhong_CoSo_Phong_Ma");
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HousekeepingAmenityRefillRequest>(entity =>
+        {
+            entity.ToTable("YeuCauCapBuTienNghi", "fo");
+            entity.HasKey(x => x.RequestId).HasName("PK_fo_YeuCauCapBuTienNghi");
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            entity.HasIndex(x => new { x.PropertyId, x.HotelRoomId, x.RequestedAtUtc }).HasDatabaseName("IX_fo_YeuCauCapBuTienNghi_CoSo_Phong_ThoiGian");
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<HousekeepingAmenityRefillLine>(entity =>
+        {
+            entity.ToTable("ChiTietYeuCauCapBuTienNghi", "fo");
+            entity.HasKey(x => x.LineId).HasName("PK_fo_ChiTietYeuCauCapBuTienNghi");
+            entity.Property(x => x.AmenityCode).HasMaxLength(50).IsRequired();
+            entity.HasIndex(x => new { x.RequestId, x.AmenityCode }).IsUnique().HasDatabaseName("UQ_fo_ChiTietYeuCauCapBuTienNghi_YeuCau_Ma");
+            entity.HasOne<HousekeepingAmenityRefillRequest>().WithMany().HasForeignKey(x => x.RequestId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<MaintenanceWorkOrder>(entity =>
+        {
+            entity.ToTable("CongViecBaoTri", "fo");
+            entity.HasKey(x => x.WorkOrderId).HasName("PK_fo_CongViecBaoTri");
+            entity.Property(x => x.OrderNumber).HasMaxLength(60).IsRequired();
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.Type).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Priority).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.AssignedEngineerName).HasMaxLength(180);
+            entity.Property(x => x.Resolution).HasMaxLength(4000);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.OrderNumber }).IsUnique().HasDatabaseName("UQ_fo_CongViecBaoTri_CoSo_SoLenh");
+            entity.HasIndex(x => new { x.PropertyId, x.Status, x.Priority }).HasDatabaseName("IX_fo_CongViecBaoTri_CoSo_TrangThai_UuTien");
+            entity.HasIndex(x => new { x.PropertyId, x.RoomId, x.Status }).HasDatabaseName("IX_fo_CongViecBaoTri_CoSo_Phong_TrangThai");
+            entity.HasMany(x => x.Notes).WithOne().HasForeignKey(x => x.WorkOrderId).OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Notes).UsePropertyAccessMode(PropertyAccessMode.Property);
+        });
+        modelBuilder.Entity<MaintenanceWorkOrderNote>(entity =>
+        {
+            entity.ToTable("NhatKyCongViecBaoTri", "fo");
+            entity.HasKey(x => x.NoteId).HasName("PK_fo_NhatKyCongViecBaoTri");
+            entity.Property(x => x.Action).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Detail).HasMaxLength(2000);
+            entity.HasIndex(x => new { x.WorkOrderId, x.AtUtc }).HasDatabaseName("IX_fo_NhatKyCongViecBaoTri_Lenh_ThoiGian");
+        });
+        modelBuilder.Entity<MaintenanceAsset>(entity =>
+        {
+            entity.ToTable("TaiSanBaoTri", "fo");
+            entity.HasKey(x => x.AssetId).HasName("PK_fo_TaiSanBaoTri");
+            entity.Property(x => x.AssetCode).HasMaxLength(60).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Location).HasMaxLength(200);
+            entity.Property(x => x.SerialNumber).HasMaxLength(120);
+            entity.Property(x => x.Model).HasMaxLength(120);
+            entity.Property(x => x.Vendor).HasMaxLength(160);
+            entity.Property(x => x.ConditionScore).HasPrecision(5, 2);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.AssetCode }).IsUnique().HasDatabaseName("UQ_fo_TaiSanBaoTri_CoSo_MaTaiSan");
+            entity.HasIndex(x => new { x.PropertyId, x.RoomId, x.IsActive }).HasDatabaseName("IX_fo_TaiSanBaoTri_CoSo_Phong_HoatDong");
+            entity.HasMany(x => x.Failures).WithOne().HasForeignKey(x => x.AssetId).OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Failures).UsePropertyAccessMode(PropertyAccessMode.Property);
+        });
+        modelBuilder.Entity<MaintenanceAssetFailure>(entity =>
+        {
+            entity.ToTable("LichSuHongHocBaoTri", "fo");
+            entity.HasKey(x => x.FailureId).HasName("PK_fo_LichSuHongHocBaoTri");
+            entity.Property(x => x.Description).HasMaxLength(2000).IsRequired();
+            entity.HasIndex(x => new { x.AssetId, x.ReportedAtUtc }).HasDatabaseName("IX_fo_LichSuHongHocBaoTri_TaiSan_ThoiGian");
+        });
+        modelBuilder.Entity<PreventiveMaintenancePlan>(entity =>
+        {
+            entity.ToTable("KeHoachBaoTriDinhKy", "fo");
+            entity.HasKey(x => x.PlanId).HasName("PK_fo_KeHoachBaoTriDinhKy");
+            entity.Property(x => x.PlanName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(2000).IsRequired();
+            entity.HasIndex(x => new { x.PropertyId, x.Category, x.IsActive }).HasDatabaseName("IX_fo_KeHoachBaoTriDinhKy_CoSo_Loai_HoatDong");
+            entity.HasMany(x => x.Checklist).WithOne().HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Checklist).UsePropertyAccessMode(PropertyAccessMode.Property);
+        });
+        modelBuilder.Entity<PreventiveChecklistItem>(entity =>
+        {
+            entity.ToTable("ChiTietKeHoachBaoTri", "fo");
+            entity.HasKey(x => x.ChecklistItemId).HasName("PK_fo_ChiTietKeHoachBaoTri");
+            entity.Property(x => x.Code).HasMaxLength(60).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Reference).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.PlanId, x.Code }).IsUnique().HasDatabaseName("UQ_fo_ChiTietKeHoachBaoTri_KeHoach_Ma");
+        });
+        modelBuilder.Entity<PreventiveMaintenanceSchedule>(entity =>
+        {
+            entity.ToTable("LichBaoTriDinhKy", "fo");
+            entity.HasKey(x => x.ScheduleId).HasName("PK_fo_LichBaoTriDinhKy");
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.ScheduledAtUtc }).HasDatabaseName("IX_fo_LichBaoTriDinhKy_CoSo_Lich");
+            entity.HasIndex(x => new { x.PropertyId, x.AssetId, x.CompletedAtUtc }).HasDatabaseName("IX_fo_LichBaoTriDinhKy_CoSo_TaiSan_HoanTat");
+            entity.HasOne<PreventiveMaintenancePlan>().WithMany().HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<DoorLockDevice>(entity =>
+        {
+            entity.ToTable("ThietBiKhoaCua", "fo");
+            entity.HasKey(x => x.DeviceId).HasName("PK_fo_ThietBiKhoaCua");
+            entity.Property(x => x.DeviceCode).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.Vendor).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Model).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.FirmwareVersion).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.DeviceCode }).IsUnique().HasDatabaseName("UQ_fo_ThietBiKhoaCua_CoSo_MaThietBi");
+            entity.HasIndex(x => new { x.PropertyId, x.RoomId, x.Status }).HasDatabaseName("IX_fo_ThietBiKhoaCua_CoSo_Phong_TrangThai");
+        });
+        modelBuilder.Entity<DoorLockEvent>(entity =>
+        {
+            entity.ToTable("SuKienKhoaCua", "fo");
+            entity.HasKey(x => x.EventId).HasName("PK_fo_SuKienKhoaCua");
+            entity.Property(x => x.RoomNumber).HasMaxLength(40);
+            entity.Property(x => x.Type).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.KeyCode).HasMaxLength(80);
+            entity.Property(x => x.AccessLevel).HasMaxLength(30);
+            entity.Property(x => x.Detail).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.PropertyId, x.DeviceId, x.OccurredAtUtc }).HasDatabaseName("IX_fo_SuKienKhoaCua_CoSo_ThietBi_ThoiGian");
+            entity.HasIndex(x => new { x.PropertyId, x.Granted, x.OccurredAtUtc }).HasDatabaseName("IX_fo_SuKienKhoaCua_CoSo_KetQua_ThoiGian");
+        });
+        modelBuilder.Entity<MinibarSession>(entity =>
+        {
+            entity.ToTable("MinibarSession", "fo");
+            entity.HasKey(x => x.SessionId).HasName("PK_fo_MinibarSession");
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => new { x.PropertyId, x.StayId }).IsUnique();
+            entity.HasOne<HotelStay>().WithMany().HasForeignKey(x => x.StayId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(x => x.Consumptions).WithOne().HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<MinibarConsumption>(entity =>
+        {
+            entity.ToTable("MinibarConsumption", "fo");
+            entity.HasKey(x => x.ConsumptionId).HasName("PK_fo_MinibarConsumption");
+            entity.Property(x => x.ItemCode).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.ItemName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Quantity).HasColumnType("decimal(18,3)").HasDefaultValue(1m);
+            entity.Property(x => x.UnitPrice).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.LineAmount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.VatRate).HasColumnType("decimal(9,4)");
+            entity.Property(x => x.VatAmount).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.GrossAmount).HasColumnType("decimal(18,2)");
+            entity.HasIndex(x => new { x.PropertyId, x.SessionId });
+        });
+        modelBuilder.Entity<MinibarRestockTransaction>(entity =>
+        {
+            entity.ToTable("MinibarRestockTransaction", "fo");
+            entity.HasKey(x => x.TransactionId).HasName("PK_fo_MinibarRestockTransaction");
+            entity.Property(x => x.ItemCode).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.ItemName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Quantity).HasColumnType("decimal(18,3)");
+            entity.Property(x => x.Warehouse).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(500);
+            entity.HasIndex(x => new { x.PropertyId, x.HotelRoomId, x.OccurredAtUtc });
+            entity.HasIndex(x => new { x.PropertyId, x.ItemCode });
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<MinibarInventoryAudit>(entity =>
+        {
+            entity.ToTable("MinibarInventoryAudit", "fo");
+            entity.HasKey(x => x.InventoryId).HasName("PK_fo_MinibarInventoryAudit");
+            entity.Property(x => x.Note).HasMaxLength(500);
+            entity.HasIndex(x => new { x.PropertyId, x.HotelRoomId, x.CountedAtUtc });
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.InventoryId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<MinibarInventoryLine>(entity =>
+        {
+            entity.ToTable("MinibarInventoryLine", "fo");
+            entity.HasKey(x => x.InventoryLineId).HasName("PK_fo_MinibarInventoryLine");
+            entity.Property(x => x.ItemCode).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.ItemName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Quantity).HasColumnType("decimal(18,3)");
+            entity.Property(x => x.UnitPrice).HasColumnType("decimal(18,2)");
+            entity.HasIndex(x => new { x.PropertyId, x.InventoryId });
+        });
+        modelBuilder.Entity<KeyCardCredential>(entity =>
+        {
+            entity.ToTable("KeyCardCredential", "fo");
+            entity.HasKey(x => x.CredentialId).HasName("PK_fo_KeyCardCredential");
+            entity.Property(x => x.CardSerial).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.AccessLevel).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.EncoderId).IsRequired();
+            entity.Property(x => x.IsMaster).IsRequired();
+            entity.Property(x => x.DisableReason).HasMaxLength(500);
+            ConfigureRowVersion(entity.Property(x => x.RowVersion));
+            entity.HasIndex(x => x.CardSerial).IsUnique().HasDatabaseName("UQ_fo_KeyCardCredential_CardSerial");
+            entity.HasIndex(x => new { x.PropertyId, x.StayId });
+            entity.HasOne<HotelStay>().WithMany().HasForeignKey(x => x.StayId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<GuestProfile>().WithMany().HasForeignKey(x => x.GuestId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<HotelRoom>().WithMany().HasForeignKey(x => x.HotelRoomId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(x => x.Events).WithOne(x => x.Credential).HasForeignKey(x => x.CredentialId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<KeyCardEvent>(entity =>
+        {
+            entity.ToTable("KeyCardEvent", "fo");
+            entity.HasKey(x => x.EventId).HasName("PK_fo_KeyCardEvent");
+            entity.Property(x => x.EventType).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.DoorId).HasMaxLength(80);
+            entity.Property(x => x.Notes).HasMaxLength(500);
+            entity.HasIndex(x => new { x.PropertyId, x.CredentialId, x.OccurredAtUtc });
+        });
 
         modelBuilder.Ignore<Core.FrontOffice.Stay.RoomMoveRecord>();
-        modelBuilder.Ignore<Core.FrontOffice.Stay.KeyCardRecord>();
         modelBuilder.Ignore<Core.FrontOffice.Stay.StayTimelineEntry>();
         modelBuilder.Ignore<Core.FrontOffice.Stay.WakeUpCallRecord>();
         modelBuilder.Ignore<Core.FrontOffice.Stay.ComplaintRecord>();
+        // Legacy UI-only record; persisted key-card data is represented by
+        // KeyCardCredential/KeyCardEvent below.
+        modelBuilder.Ignore<Core.FrontOffice.Stay.KeyCardRecord>();
         modelBuilder.Ignore<Core.FrontOffice.Payment.SplitTenderLine>();
         modelBuilder.Ignore<Core.FrontOffice.Payment.ExchangeRate>();
         modelBuilder.Ignore<Core.FrontOffice.Allocation.RoomCandidate>();
 
         ConfigureRestaurantModules(modelBuilder, useSqlServerRowVersion);
+
+        // U-006/U-007: link reservations and hotel stays to the canonical guest profile.
+        // The live tables already expose nullable GuestId columns; these mappings make
+        // the relationship explicit without introducing a parallel guest model.
+        modelBuilder.Entity<Reservation>(entity =>
+        {
+            entity.Property(x => x.GuestId);
+            entity.HasOne<GuestProfile>()
+                .WithMany()
+                .HasForeignKey(x => x.GuestId)
+                .HasConstraintName("FK_fo_DatPhong_HoSoKhach")
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<HotelStay>(entity =>
+        {
+            entity.Property(x => x.GuestId);
+            entity.HasOne<GuestProfile>()
+                .WithMany()
+                .HasForeignKey(x => x.GuestId)
+                .HasConstraintName("FK_fo_LuuTruKhachSan_HoSoKhach")
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         ApplyCompanyQueryFilters(modelBuilder);
 
         modelBuilder.Entity<Item>().HasIndex(x => x.ItemCode).IsUnique();
         modelBuilder.Entity<Item>().HasIndex(x => x.ItemName).IsUnique();
+        modelBuilder.Entity<Item>().Property(x => x.RetailPrice).HasPrecision(18, 2);
+        modelBuilder.Entity<Item>().Property(x => x.VatRate).HasPrecision(9, 4);
+        modelBuilder.Entity<Item>().Property(x => x.MinibarStandardQuantity).HasPrecision(18, 3);
+        modelBuilder.Entity<Item>().Property(x => x.MinibarMinStock).HasPrecision(18, 3);
+        modelBuilder.Entity<Item>().Property(x => x.MinibarMaxStock).HasPrecision(18, 3);
 
         modelBuilder.Entity<Customer>().HasIndex(x => x.CustomerCode).IsUnique();
         modelBuilder.Entity<Supplier>().HasIndex(x => x.SupplierCode).IsUnique();
@@ -1074,6 +2374,8 @@ public sealed class AppDbContext : DbContext
             entity.Property(x => x.UserName).HasMaxLength(120);
             entity.Property(x => x.DisplayName).HasMaxLength(180);
             entity.Property(x => x.Email).HasMaxLength(255);
+            entity.Property(x => x.PasswordHash).HasMaxLength(512);
+            entity.Property(x => x.Notes).HasMaxLength(1000);
         });
 
         modelBuilder.Entity<AppUserRole>(entity =>
@@ -1087,6 +2389,25 @@ public sealed class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LoginAudit>(entity =>
+        {
+            entity.HasIndex(x => x.CreatedAt);
+            entity.HasIndex(x => new { x.UserId, x.CreatedAt });
+            entity.Property(x => x.UserName).HasMaxLength(120);
+            entity.Property(x => x.FailureReason).HasMaxLength(255);
+            entity.Property(x => x.MachineName).HasMaxLength(120);
+            entity.Property(x => x.IpAddress).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<LoginSession>(entity =>
+        {
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => new { x.UserId, x.IsActive, x.ExpiresAt });
+            entity.Property(x => x.TokenHash).HasMaxLength(128);
+            entity.Ignore(x => x.Token);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<BackgroundJobDefinition>(entity =>
@@ -2281,6 +3602,9 @@ public sealed class AppDbContext : DbContext
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.CompanyId);
             entity.HasIndex(x => x.BranchId);
+            entity.HasIndex(x => x.PropertyId);
+            entity.HasIndex(x => x.FolioId);
+            entity.HasIndex(x => new { x.PropertyId, x.FolioId, x.DocumentDate });
             entity.HasIndex(x => x.SourceType);
             entity.HasIndex(x => new { x.CompanyId, x.BranchId, x.Status, x.DocumentDate });
             entity.Property(x => x.SourceType).HasMaxLength(50);
@@ -2600,6 +3924,8 @@ public sealed class AppDbContext : DbContext
             entity.HasIndex(x => x.InvoiceNo).IsUnique();
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.ProviderCode);
+            entity.HasIndex(x => x.FolioId);
+            entity.HasIndex(x => x.AdjustsInvoiceId);
             entity.HasIndex(x => new { x.CompanyId, x.BranchId, x.Status, x.InvoiceDate });
             entity.Property(x => x.InvoiceNo).HasMaxLength(100);
             entity.Property(x => x.InvoiceSeries).HasMaxLength(50);
@@ -2615,6 +3941,8 @@ public sealed class AppDbContext : DbContext
             entity.Property(x => x.Status).HasMaxLength(30);
             entity.Property(x => x.ProviderCode).HasMaxLength(30);
             entity.Property(x => x.ProviderInvoiceId).HasMaxLength(120);
+            entity.Property(x => x.AdjustmentType).HasMaxLength(30);
+            entity.Property(x => x.AdjustmentReason).HasMaxLength(2_000);
             entity.HasMany(x => x.Lines).WithOne(x => x.Invoice).HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(x => x.TaxBreakdowns).WithOne(x => x.Invoice).HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(x => x.IssueLogs).WithOne(x => x.Invoice).HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Cascade);
@@ -2622,6 +3950,7 @@ public sealed class AppDbContext : DbContext
             entity.HasOne<ReceivableTransaction>().WithMany().HasForeignKey(x => x.ReceivableTransactionId).OnDelete(DeleteBehavior.NoAction);
             entity.HasOne<PayableTransaction>().WithMany().HasForeignKey(x => x.PayableTransactionId).OnDelete(DeleteBehavior.NoAction);
             entity.HasOne<TaxDeclarationDraft>().WithMany().HasForeignKey(x => x.VatDeclarationDraftId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<Invoice>().WithMany().HasForeignKey(x => x.AdjustsInvoiceId).OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<InvoiceLine>(entity =>
@@ -4416,6 +5745,10 @@ public sealed class AppDbContext : DbContext
 
         modelBuilder.Entity<QuoteChangeRequestDetail>(entity =>
         {
+            // Keep dependents aligned with the tenant-filtered required parent.
+            // Without this matching filter EF can return orphaned detail rows
+            // when the parent request is excluded by the current company scope.
+            entity.HasQueryFilter(x => x.ChangeRequest != null);
             entity.HasIndex(x => x.ChangeRequestId);
             entity.Property(x => x.ChangeType).HasMaxLength(40);
             entity.Property(x => x.ItemName).HasMaxLength(500);
@@ -4428,6 +5761,9 @@ public sealed class AppDbContext : DbContext
 
         modelBuilder.Entity<QuoteAuditLog>(entity =>
         {
+            // Audit rows must follow the same visibility boundary as the
+            // required quote navigation to avoid filtered-parent surprises.
+            entity.HasQueryFilter(x => x.Quote != null);
             entity.HasIndex(x => x.QuoteId);
             entity.HasIndex(x => x.ChangeRequestId);
             entity.HasIndex(x => x.Timestamp);
@@ -4454,9 +5790,12 @@ public sealed class AppDbContext : DbContext
 
             var parameter = Expression.Parameter(clrType, "entity");
             var companyProperty = BuildEfProperty(parameter, "CompanyId");
-            var companyNull = Expression.Equal(companyProperty, Expression.Constant(null, typeof(Guid?)));
             var companyMatches = Expression.Equal(companyProperty, Expression.Property(Expression.Constant(this), nameof(CurrentCompanyId)));
-            Expression filter = Expression.OrElse(companyNull, companyMatches);
+            // Unassigned rows are legacy/import data. They must not be visible
+            // to every tenant through the global filter. Migration and recovery
+            // code can opt into them explicitly with IgnoreQueryFilters plus a
+            // documented scope, while normal application queries stay isolated.
+            Expression filter = companyMatches;
 
             if (typeof(IBranchScoped).IsAssignableFrom(clrType))
             {

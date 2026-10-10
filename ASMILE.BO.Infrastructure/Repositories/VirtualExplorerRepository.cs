@@ -1,5 +1,9 @@
 ﻿using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Interfaces.Settings;
+using ASMILE.BO.Application.DTOs.Settings;
+using ASMILE.BO.Core.Entities;
+using ASMILE.BO.Core.Entities.Settings;
 using ASMILE.BO.Core.Enums;
 using ASMILE.BO.Infrastructure.Persistence;
 using ASMILE.BO.Infrastructure.Services;
@@ -18,14 +22,41 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
     private const string EmptyFolderIcon = "folder.ico";
     private const string FilledFolderIcon = "filled.ico";
 
-    private readonly AppDbContext _dbContext;
+    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly ISettingsRegistry _settingsRegistry;
+    private readonly IPrinterSettingsService? _printerSettingsService;
     private readonly SemaphoreSlim _documentsCacheLock = new(1, 1);
+    // VFC can be opened while the Settings page is still loading, and
+    // navigation/search can also be raised twice by WPF (selection +
+    // activation). Serialize repository operations to keep cache invalidation
+    // and tree materialization deterministic even though each EF branch has
+    // its own context from the factory.
+    private readonly SemaphoreSlim _operationLock = new(1, 1);
     private IReadOnlyList<BusinessDocumentDto>? _documentsCache;
     private DateTime _documentsCacheLoadedAtUtc;
     private static readonly TimeSpan DocumentsCacheTtl = TimeSpan.FromSeconds(30);
-    public VirtualExplorerRepository(AppDbContext dbContext)
+    private static readonly HttpClient EndpointProbeClient = new()
     {
-        _dbContext = dbContext;
+        Timeout = TimeSpan.FromSeconds(2)
+    };
+    private static readonly IReadOnlyDictionary<string, DriveSetting> DriveSettingsByCode =
+        new Dictionary<string, DriveSetting>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["C"] = new("VFC.SystemDrivePath", "VFC.SystemDriveEnabled", BusinessModule.System),
+            ["D"] = new("VFC.AccountingDrivePath", "VFC.AccountingDriveEnabled", BusinessModule.Accounting),
+            ["E"] = new("VFC.SalesDrivePath", "VFC.SalesDriveEnabled", BusinessModule.Sales),
+            ["F"] = new("VFC.HrDrivePath", "VFC.HrDriveEnabled", BusinessModule.HR),
+            ["G"] = new("VFC.LogDrivePath", "VFC.LogDriveEnabled", BusinessModule.Logs)
+        };
+
+    public VirtualExplorerRepository(
+        IDbContextFactory<AppDbContext> dbContextFactory,
+        ISettingsRegistry settingsRegistry,
+        IPrinterSettingsService? printerSettingsService = null)
+    {
+        _dbContextFactory = dbContextFactory;
+        _settingsRegistry = settingsRegistry;
+        _printerSettingsService = printerSettingsService;
     }
 
     public Task<IReadOnlyList<VirtualExplorerNodeDto>> GetRootAsync(CancellationToken cancellationToken = default)
@@ -41,6 +72,19 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
     }
 
     public async Task<IReadOnlyList<VirtualExplorerNodeDto>> GetChildrenAsync(string virtualPath, CancellationToken cancellationToken = default)
+    {
+        await _operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await GetChildrenCoreAsync(virtualPath, cancellationToken);
+        }
+        finally
+        {
+            _operationLock.Release();
+        }
+    }
+
+    private async Task<IReadOnlyList<VirtualExplorerNodeDto>> GetChildrenCoreAsync(string virtualPath, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(virtualPath))
         {
@@ -71,37 +115,60 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
 
         if (normalizedPath.Equals("This PC", StringComparison.OrdinalIgnoreCase))
         {
-            return BuildDriveNodes();
+            return await BuildDriveNodesAsync(cancellationToken);
         }
 
         if (normalizedPath.Equals("Network", StringComparison.OrdinalIgnoreCase))
         {
-            return BuildNetworkNodes();
+            return await BuildNetworkNodesAsync(cancellationToken);
         }
 
-        if (normalizedPath.Equals(@"This PC\D: ACCOUNTING", StringComparison.OrdinalIgnoreCase))
+        // Business collections (customers, suppliers, invoices, inventory
+        // vouchers and orders) must always be materialized from their source
+        // tables. A partial/stale VirtualFolders catalog must not shadow the
+        // live repository branch and make real records disappear.
+        if (!IsDynamicBusinessDataPath(normalizedPath))
         {
-            return BuildAccountingNodes();
+            var persistedFolderNodes = await BuildPersistedFolderNodesAsync(normalizedPath, cancellationToken);
+            if (persistedFolderNodes is not null)
+            {
+                return persistedFolderNodes;
+            }
         }
 
-        if (normalizedPath.Equals(@"This PC\C: SYSTEM", StringComparison.OrdinalIgnoreCase))
+        if (TryGetAccountingDocumentType(normalizedPath, out var accountingDocumentTypes))
         {
-            return BuildSystemNodes();
+            var documentNodes = BuildAccountingDocumentNodes(normalizedPath, await EnsureDocumentsAsync(), accountingDocumentTypes);
+            if (normalizedPath.Equals(@"This PC\D: ACCOUNTING\Phiếu xuất", StringComparison.OrdinalIgnoreCase))
+            {
+                var stockIssueNodes = await BuildStockIssueNodesAsync(normalizedPath, cancellationToken);
+                return documentNodes.Concat(stockIssueNodes)
+                    .OrderByDescending(x => x.DateModified)
+                    .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+
+            return documentNodes;
         }
 
-        if (normalizedPath.Equals(@"This PC\E: SALES", StringComparison.OrdinalIgnoreCase))
+        if (normalizedPath.Equals(@"This PC\E: SALES\POS", StringComparison.OrdinalIgnoreCase))
         {
-            return BuildSalesNodes();
+            return await BuildSalesOrderNodesAsync(normalizedPath, posOnly: true, cancellationToken);
         }
 
-        if (normalizedPath.Equals(@"This PC\F: HR", StringComparison.OrdinalIgnoreCase))
+        if (normalizedPath.Equals(@"This PC\E: SALES\Đơn hàng", StringComparison.OrdinalIgnoreCase))
         {
-            return BuildHrNodes();
+            return await BuildSalesOrderNodesAsync(normalizedPath, posOnly: false, cancellationToken);
         }
 
-        if (normalizedPath.Equals(@"This PC\G: LOGS", StringComparison.OrdinalIgnoreCase))
+        var persistedDrive = await FindPersistedDriveByPathAsync(normalizedPath, cancellationToken);
+        if (persistedDrive is not null)
         {
-            return BuildLogNodes();
+            // System folder taxonomy is materialized by the startup catalog
+            // seeder.  Do not silently synthesize a second in-memory tree when
+            // the catalog is missing; an empty result is safer than showing
+            // paths that cannot be configured, audited, or repaired.
+            return Array.Empty<VirtualExplorerNodeDto>();
         }
 
         if (normalizedPath.Equals(@"This PC\D: ACCOUNTING\Nhà cung cấp", StringComparison.OrdinalIgnoreCase))
@@ -214,11 +281,30 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
             return await BuildCustomerFoldersAsync(cancellationToken);
         }
 
-        if (TryResolveCustomerPath(normalizedPath, out var customerName, out var customerTailPath))
+        if (TryResolveCustomerPath(normalizedPath, out var customerSegment, out var customerTailPath))
         {
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            var customer = await dbContext.Customers
+                .AsNoTracking()
+                .Where(x => x.CustomerCode == customerSegment || x.CustomerName == customerSegment)
+                .Select(x => new { x.Id, x.CustomerCode, x.CustomerName })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (customer is null)
+            {
+                return Array.Empty<VirtualExplorerNodeDto>();
+            }
+
+            var customerId = GuidUtility.Create(GuidUtility.UrlNamespace, $"customer:{customer.Id}");
+            var customerDocuments = (await EnsureDocumentsAsync())
+                .Where(x => x.EntityType == BusinessEntityType.Customer && x.EntityId == customerId)
+                .OrderByDescending(x => x.DocumentDate)
+                .ThenBy(x => x.Code, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
             if (string.IsNullOrWhiteSpace(customerTailPath))
             {
-                return BuildCustomerRootFolders(customerName);
+                return BuildCustomerDocumentNodes(normalizedPath, customerId, customerDocuments);
             }
         }
 
@@ -226,6 +312,53 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
     }
 
     public async Task<IReadOnlyList<VirtualExplorerNodeDto>> SearchAsync(string keyword, CancellationToken cancellationToken = default)
+    {
+        await _operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await SearchCoreAsync(keyword, cancellationToken);
+        }
+        finally
+        {
+            _operationLock.Release();
+        }
+    }
+
+    public async Task<VirtualExplorerRefreshResultDto> RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        await _operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            await _documentsCacheLock.WaitAsync(cancellationToken);
+            try
+            {
+                _documentsCache = null;
+                _documentsCacheLoadedAtUtc = default;
+            }
+            finally
+            {
+                _documentsCacheLock.Release();
+            }
+
+            var documents = await GetDocumentsAsync(cancellationToken);
+            var rootNodes = await GetRootAsync(cancellationToken);
+            var driveNodes = await GetChildrenCoreAsync("This PC", cancellationToken);
+
+            return new VirtualExplorerRefreshResultDto
+            {
+                RootNodeCount = rootNodes.Count,
+                DriveNodeCount = driveNodes.Count,
+                DocumentCount = documents.Count,
+                RefreshedAtUtc = DateTime.UtcNow
+            };
+        }
+        finally
+        {
+            _operationLock.Release();
+        }
+    }
+
+    private async Task<IReadOnlyList<VirtualExplorerNodeDto>> SearchCoreAsync(string keyword, CancellationToken cancellationToken = default)
     {
         var normalized = (keyword ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(normalized))
@@ -239,14 +372,18 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
         var roots = await GetRootAsync(cancellationToken);
         results.AddRange(roots.Where(x => Contains(x.DisplayName, normalized)));
 
-        var thisPcChildren = await GetChildrenAsync("This PC", cancellationToken);
+        var thisPcChildren = await GetChildrenCoreAsync("This PC", cancellationToken);
         results.AddRange(thisPcChildren.Where(x => Contains(x.DisplayName, normalized)));
 
-        var accountingChildren = await GetChildrenAsync(@"This PC\D: ACCOUNTING", cancellationToken);
+        var accountingChildren = await GetChildrenCoreAsync(@"This PC\D: ACCOUNTING", cancellationToken);
         results.AddRange(accountingChildren.Where(x => Contains(x.DisplayName, normalized)));
 
-        var suppliers = await GetChildrenAsync(@"This PC\D: ACCOUNTING\Nhà cung cấp", cancellationToken);
+        var suppliers = await GetChildrenCoreAsync(@"This PC\D: ACCOUNTING\Nhà cung cấp", cancellationToken);
         results.AddRange(suppliers.Where(x => Contains(x.DisplayName, normalized)));
+
+        var customers = await GetChildrenCoreAsync(@"This PC\D: ACCOUNTING\Khách hàng", cancellationToken);
+        results.AddRange(customers.Where(x =>
+            Contains(x.Name, normalized) || Contains(x.DisplayName, normalized)));
 
         results.AddRange(documents
             .Where(x => Contains(x.Code, normalized) || Contains(x.Title, normalized))
@@ -264,9 +401,24 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
                 EntityId = doc.EntityId,
                 DocumentId = doc.Id,
                 DateModified = doc.UpdatedAt,
+                PhysicalPath = doc.PhysicalFilePath,
+                FileSize = doc.FileSize,
                 HasChildren = false,
                 SortOrder = idx + 1
             }));
+
+        var stockIssueNodes = await BuildStockIssueNodesAsync(
+            @"This PC\D: ACCOUNTING\Phiếu xuất",
+            cancellationToken);
+        results.AddRange(stockIssueNodes.Where(x =>
+            Contains(x.Name, normalized) || Contains(x.DisplayName, normalized)));
+
+        var salesOrderNodes = await BuildSalesOrderNodesAsync(
+            @"This PC\E: SALES\Đơn hàng",
+            posOnly: false,
+            cancellationToken,
+            normalized);
+        results.AddRange(salesOrderNodes);
 
         return results
             .GroupBy(x => x.VirtualPath, StringComparer.OrdinalIgnoreCase)
@@ -278,6 +430,19 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
 
     public async Task<VirtualExplorerNodeDto?> GetNodeAsync(string virtualPath, CancellationToken cancellationToken = default)
     {
+        await _operationLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await GetNodeCoreAsync(virtualPath, cancellationToken);
+        }
+        finally
+        {
+            _operationLock.Release();
+        }
+    }
+
+    private async Task<VirtualExplorerNodeDto?> GetNodeCoreAsync(string virtualPath, CancellationToken cancellationToken = default)
+    {
         var normalized = NormalizePath(virtualPath);
         var roots = await GetRootAsync(cancellationToken);
         var rootNode = roots.FirstOrDefault(x => x.VirtualPath.Equals(normalized, StringComparison.OrdinalIgnoreCase));
@@ -286,102 +451,870 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
             return rootNode;
         }
 
-        var searchResult = await SearchAsync(normalized, cancellationToken);
+        var searchResult = await SearchCoreAsync(normalized, cancellationToken);
         return searchResult.FirstOrDefault(x => x.VirtualPath.Equals(normalized, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static IReadOnlyList<VirtualExplorerNodeDto> BuildDriveNodes()
+    private async Task<IReadOnlyList<VirtualExplorerNodeDto>> BuildDriveNodesAsync(CancellationToken cancellationToken)
     {
-        return new List<VirtualExplorerNodeDto>
+        var (definitionMap, valueMap) = await LoadSystemSettingsAsync(cancellationToken);
+
+        if (!ReadBooleanSetting("VFC.EnableVirtualDrives", definitionMap, valueMap, true))
         {
-            CreateNode("drive-c", "this-pc", "C: SYSTEM", "C: SYSTEM", "drive-system.ico", @"This PC\C: SYSTEM", VirtualNodeType.Drive, BusinessModule.System, true, 10),
-            CreateNode("drive-d", "this-pc", "D: ACCOUNTING", "D: ACCOUNTING", "drive-accounting.ico", @"This PC\D: ACCOUNTING", VirtualNodeType.Drive, BusinessModule.Accounting, true, 20),
-            CreateNode("drive-e", "this-pc", "E: SALES", "E: SALES", "drive-sales.ico", @"This PC\E: SALES", VirtualNodeType.Drive, BusinessModule.Sales, true, 30),
-            CreateNode("drive-f", "this-pc", "F: HR", "F: HR", "drive-hr.ico", @"This PC\F: HR", VirtualNodeType.Drive, BusinessModule.HR, true, 40),
-            CreateNode("drive-g", "this-pc", "G: LOGS", "G: LOGS", "drive-logs.ico", @"This PC\G: LOGS", VirtualNodeType.Drive, BusinessModule.Logs, true, 50),
-            CreateNode("drive-net", "this-pc", "Network", "Network", "network.ico", "Network", VirtualNodeType.NetworkItem, BusinessModule.Network, true, 60)
+            return Array.Empty<VirtualExplorerNodeDto>();
+        }
+
+        var persistedDrives = await LoadPersistedDrivesAsync(cancellationToken);
+        var nodes = new List<VirtualExplorerNodeDto>();
+        foreach (var drive in persistedDrives)
+        {
+            var enabled = drive.EnabledKey is null
+                || ReadBooleanSetting(drive.EnabledKey, definitionMap, valueMap, true);
+            if (!enabled)
+            {
+                continue;
+            }
+
+            var physicalPath = string.IsNullOrWhiteSpace(drive.PathKey)
+                ? null
+                : ReadStringSetting(drive.PathKey, definitionMap, valueMap);
+            var isPersisted = !string.IsNullOrWhiteSpace(drive.PathKey)
+                && valueMap.ContainsKey(drive.PathKey);
+            var health = BuildDriveHealth(physicalPath, isPersisted);
+
+            nodes.Add(CreateNode(
+                $"drive-{drive.Code.ToLowerInvariant()}",
+                "this-pc",
+                drive.DisplayName,
+                drive.DisplayName,
+                string.IsNullOrWhiteSpace(drive.Icon)
+                    ? $"drive-{drive.Code.ToLowerInvariant()}.ico"
+                    : drive.Icon,
+                $@"This PC\{drive.DisplayName}",
+                VirtualNodeType.Drive,
+                drive.Module,
+                true,
+                drive.SortOrder,
+                description: health.Description,
+                status: health.Status,
+                physicalPath: physicalPath,
+                usedPercent: health.UsedPercent,
+                hasUsageMetric: health.HasUsageMetric,
+                isAlert: health.IsAlert));
+        }
+
+        return nodes;
+    }
+
+    private DriveHealth BuildDriveHealth(
+        string? physicalPath,
+        bool isPersisted)
+    {
+        var path = physicalPath?.Trim();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return new DriveHealth(
+                "Ổ logic VFC, không phải thư mục vật lý; nội dung được tải từ danh mục nghiệp vụ.",
+                "Ổ logic",
+                null,
+                false,
+                false);
+        }
+
+        path = Environment.ExpandEnvironmentVariables(path);
+
+        if (!Path.IsPathFullyQualified(path))
+        {
+            return new DriveHealth($"Đường dẫn phải là đường dẫn tuyệt đối · {path}", "Không hợp lệ", null, false, true);
+        }
+
+        try
+        {
+            var attributes = File.GetAttributes(path);
+            if ((attributes & FileAttributes.Directory) == 0)
+            {
+                return new DriveHealth($"Đường dẫn đã cấu hình không phải thư mục · {path}", "Không hợp lệ", null, false, true);
+            }
+        }
+        catch (FileNotFoundException)
+        {
+            var source = isPersisted ? "Đã lưu nhưng không tìm thấy" : "Mặc định, chưa kiểm tra";
+            return new DriveHealth($"{source} · {path}", "Không khả dụng", null, false, true);
+        }
+        catch (DirectoryNotFoundException)
+        {
+            var source = isPersisted ? "Đã lưu nhưng không tìm thấy" : "Mặc định, chưa kiểm tra";
+            return new DriveHealth($"{source} · {path}", "Không khả dụng", null, false, true);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new DriveHealth($"Không có quyền truy cập thư mục đã cấu hình · {path}", "Bị từ chối", null, false, true);
+        }
+        catch (IOException)
+        {
+            return new DriveHealth($"Không thể kiểm tra thư mục đã cấu hình · {path}", "Không khả dụng", null, false, true);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            return new DriveHealth("Đường dẫn thư mục đã cấu hình không hợp lệ.", "Không hợp lệ", null, false, true);
+        }
+
+        try
+        {
+            // A configured folder is useful only if this process can list it.
+            // Do not create a probe file: VFC path health is a read-only check.
+            _ = Directory.EnumerateFileSystemEntries(path).Take(1).ToArray();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new DriveHealth($"Có thư mục nhưng tài khoản ứng dụng không có quyền đọc · {path}", "Bị từ chối", null, false, true);
+        }
+        catch (IOException)
+        {
+            return new DriveHealth($"Không thể đọc nội dung thư mục đã cấu hình · {path}", "Không khả dụng", null, false, true);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            return new DriveHealth("Đường dẫn thư mục đã cấu hình không hợp lệ.", "Không hợp lệ", null, false, true);
+        }
+
+        var root = Path.GetPathRoot(path);
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            return new DriveHealth($"Có thể đọc nội dung · {path}", "Đọc được", null, false, false);
+        }
+
+        try
+        {
+            var driveInfo = new DriveInfo(root);
+            var usedPercent = driveInfo.TotalSize > 0
+                ? 1d - (double)driveInfo.AvailableFreeSpace / driveInfo.TotalSize
+                : 0d;
+            var description = isPersisted
+                ? $"Có thể đọc nội dung · {path} · còn trống {FormatBytes(driveInfo.AvailableFreeSpace)}/{FormatBytes(driveInfo.TotalSize)}"
+                : $"Mặc định, chưa lưu trong Settings Engine · có thể đọc nội dung · {path} · còn trống {FormatBytes(driveInfo.AvailableFreeSpace)}/{FormatBytes(driveInfo.TotalSize)}";
+            var isAlert = usedPercent >= 0.9d;
+            return new DriveHealth(description, isPersisted ? "Đọc được" : "Mặc định · đọc được", usedPercent, true, isAlert);
+        }
+        catch (IOException)
+        {
+            return new DriveHealth($"Có thể đọc nội dung nhưng không đo được dung lượng · {path}", "Đọc được", null, false, false);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new DriveHealth($"Có thể đọc nội dung nhưng không có quyền đọc dung lượng · {path}", "Đọc được", null, false, false);
+        }
+    }
+
+    private async Task<IReadOnlyList<ConfiguredDrive>> LoadPersistedDrivesAsync(CancellationToken cancellationToken)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var rows = await dbContext.VirtualDrives
+            .AsNoTracking()
+            .Where(x => x.IsEnabled && x.Code != "NET")
+            .OrderBy(x => x.SortOrder)
+            .ThenBy(x => x.Code)
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(MapPersistedDrive)
+            .ToList();
+    }
+
+    private async Task<VirtualDrive?> FindPersistedDriveByPathAsync(
+        string normalizedPath,
+        CancellationToken cancellationToken)
+    {
+        const string prefix = "This PC\\";
+        if (!normalizedPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            || normalizedPath[prefix.Length..].Contains('\\'))
+        {
+            return null;
+        }
+
+        var displayName = normalizedPath[prefix.Length..];
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await dbContext.VirtualDrives
+            .AsNoTracking()
+            .Where(x => x.IsEnabled && x.DisplayName == displayName)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<VirtualExplorerNodeDto>?> BuildPersistedFolderNodesAsync(
+        string normalizedPath,
+        CancellationToken cancellationToken)
+    {
+        if (!normalizedPath.StartsWith("This PC\\", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var prefix = normalizedPath + "\\";
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var folders = await dbContext.VirtualFolders
+            .AsNoTracking()
+            .Where(x => x.VirtualPath.StartsWith(prefix))
+            .OrderBy(x => x.SortOrder)
+            .ThenBy(x => x.DisplayName)
+            .ToListAsync(cancellationToken);
+
+        var directFolders = folders
+            .Where(x => x.VirtualPath[prefix.Length..].IndexOf('\\') < 0)
+            .ToList();
+
+        // Older deployments may be running in ValidateOnly/Disabled migration
+        // mode and therefore have no persisted system folder catalog yet. Keep
+        // the built-in folder taxonomy navigable in that case, while continuing
+        // to load all customers and documents from their authoritative tables.
+        var relativeDrivePath = normalizedPath["This PC\\".Length..];
+        var driveDisplayName = relativeDrivePath.Split('\\', 2)[0];
+        var persistedDrive = await dbContext.VirtualDrives
+            .AsNoTracking()
+            .Where(x => x.IsEnabled && x.DisplayName == driveDisplayName)
+            .Select(x => new { x.Code, x.DisplayName })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (persistedDrive is not null)
+        {
+            var persistedPaths = directFolders
+                .Select(x => x.VirtualPath)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var defaultFolders = VirtualFileCenterSeed.DefaultFolders
+                .Where(x => string.Equals(x.DriveCode, persistedDrive.Code, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(
+                        x.VirtualPath[..x.VirtualPath.LastIndexOf('\\')],
+                        normalizedPath,
+                        StringComparison.OrdinalIgnoreCase)
+                    && !persistedPaths.Contains(x.VirtualPath))
+                .Select(seed => CreateNode(
+                    $"vf-{VirtualFileCenterSeed.StableGuid($"vfc-folder:{seed.VirtualPath}"):N}",
+                    $"drive-{persistedDrive.Code.ToLowerInvariant()}",
+                    seed.Name,
+                    seed.DisplayName,
+                    ResolveVirtualFolderIcon(seed.FolderType),
+                    seed.VirtualPath,
+                    seed.FolderType,
+                    ResolveDriveModule(seed.DriveCode),
+                    hasChildren: true,
+                    seed.SortOrder,
+                    seed.EntityType,
+                    VirtualFileCenterSeed.StableGuid($"vfc-folder:{seed.VirtualPath}")));
+
+            var combined = directFolders
+                .Select(folder => CreateNode(
+                    $"vf-{folder.Id:N}",
+                    folder.ParentId is null ? GetParentNodeId(normalizedPath) : $"vf-{folder.ParentId.Value:N}",
+                    folder.Name,
+                    string.IsNullOrWhiteSpace(folder.DisplayName) ? folder.Name : folder.DisplayName,
+                    ResolveVirtualFolderIcon(folder.FolderType),
+                    folder.VirtualPath,
+                    folder.FolderType,
+                    ResolveDriveModule(folder.DriveCode),
+                    folders.Any(child => child.VirtualPath.StartsWith(folder.VirtualPath + "\\", StringComparison.OrdinalIgnoreCase)),
+                    folder.SortOrder,
+                    folder.EntityType,
+                    folder.EntityId))
+                .Concat(defaultFolders)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DisplayName)
+                .ToList();
+
+            if (combined.Count > 0)
+            {
+                return combined;
+            }
+        }
+
+        if (directFolders.Count == 0)
+        {
+            return null;
+        }
+
+        return directFolders.Select(folder => CreateNode(
+                $"vf-{folder.Id:N}",
+                folder.ParentId is null ? GetParentNodeId(normalizedPath) : $"vf-{folder.ParentId.Value:N}",
+                folder.Name,
+                string.IsNullOrWhiteSpace(folder.DisplayName) ? folder.Name : folder.DisplayName,
+                ResolveVirtualFolderIcon(folder.FolderType),
+                folder.VirtualPath,
+                folder.FolderType,
+                ResolveDriveModule(folder.DriveCode),
+                folders.Any(child => child.VirtualPath.StartsWith(folder.VirtualPath + "\\", StringComparison.OrdinalIgnoreCase)),
+                folder.SortOrder,
+                folder.EntityType,
+                folder.EntityId))
+            .ToList();
+    }
+
+    private static bool TryGetAccountingDocumentType(string path, out BusinessDocumentType[] documentTypes)
+    {
+        documentTypes = path switch
+        {
+            @"This PC\D: ACCOUNTING\Hóa đơn" => [BusinessDocumentType.Invoice],
+            @"This PC\D: ACCOUNTING\Phiếu nhập" => [BusinessDocumentType.ImportVoucher],
+            @"This PC\D: ACCOUNTING\Phiếu xuất" => [BusinessDocumentType.ExportVoucher],
+            _ => []
+        };
+        return documentTypes.Length > 0;
+    }
+
+    private static IReadOnlyList<VirtualExplorerNodeDto> BuildAccountingDocumentNodes(
+        string virtualPath,
+        IReadOnlyList<BusinessDocumentDto> documents,
+        IReadOnlyCollection<BusinessDocumentType> documentTypes)
+    {
+        return documents
+            .Where(x => documentTypes.Contains(x.DocumentType))
+            .OrderByDescending(x => x.DocumentDate)
+            .ThenBy(x => x.Code)
+            .Select((document, index) => CreateNode(
+                $"doc-{document.Id:N}",
+                null,
+                document.Code,
+                string.IsNullOrWhiteSpace(document.Title) ? document.Code : document.Title,
+                "document.ico",
+                $"{virtualPath}\\{document.Id:N}{document.FileExtension}",
+                VirtualNodeType.Document,
+                document.Module,
+                false,
+                index + 1,
+                document.EntityType,
+                document.EntityId,
+                document.Id,
+                document.UpdatedAt,
+                physicalPath: document.PhysicalFilePath,
+                fileSize: document.FileSize))
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<VirtualExplorerNodeDto>> BuildStockIssueNodesAsync(
+        string virtualPath,
+        CancellationToken cancellationToken)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var issues = await dbContext.StockIssues
+            .AsNoTracking()
+            .OrderByDescending(x => x.IssueDate)
+            .ThenByDescending(x => x.Id)
+            .Select(x => new
+            {
+                x.Id,
+                x.IssueNo,
+                x.IssueDate,
+                x.Description,
+                x.TotalAmount,
+                x.IsApproved,
+                x.PostingStatus
+            })
+            .ToListAsync(cancellationToken);
+
+        return issues.Select((issue, index) => new VirtualExplorerNodeDto
+        {
+            Id = $"stock-issue-{issue.Id}",
+            Name = issue.IssueNo,
+            DisplayName = string.IsNullOrWhiteSpace(issue.Description)
+                ? issue.IssueNo
+                : $"{issue.IssueNo} - {issue.Description}",
+            Icon = "document.ico",
+            VirtualPath = $"{virtualPath}\\{issue.Id}",
+            NodeType = VirtualNodeType.Document,
+            Module = BusinessModule.Accounting,
+            DateModified = issue.IssueDate,
+            HasChildren = false,
+            SortOrder = index + 1,
+            Description = issue.Description,
+            Status = string.Equals(issue.PostingStatus, "Reversed", StringComparison.OrdinalIgnoreCase)
+                ? "Đã đảo"
+                : string.Equals(issue.PostingStatus, "Posted", StringComparison.OrdinalIgnoreCase)
+                    ? "Đã ghi sổ"
+                    : issue.IsApproved ? "Đã duyệt" : "Chờ duyệt",
+            Amount = issue.TotalAmount,
+            Currency = "VND"
+        }).ToList();
+    }
+
+    private async Task<IReadOnlyList<VirtualExplorerNodeDto>> BuildSalesOrderNodesAsync(
+        string virtualPath,
+        bool posOnly,
+        CancellationToken cancellationToken,
+        string? searchTerm = null)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var normalizedSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+        var nodes = new List<VirtualExplorerNodeDto>();
+
+        var cafeOrdersQuery = dbContext.BreakfastCafeOrders.AsNoTracking();
+        if (normalizedSearch is not null)
+        {
+            cafeOrdersQuery = cafeOrdersQuery.Where(x => x.OrderNumber.Contains(normalizedSearch));
+        }
+
+        var cafeOrders = await cafeOrdersQuery
+            .OrderByDescending(x => x.OrderDate)
+            .ThenByDescending(x => x.Id)
+            .Select(x => new
+            {
+                x.Id,
+                Number = x.OrderNumber,
+                x.OrderDate,
+                x.Status,
+                x.TotalAmount
+            })
+            .ToListAsync(cancellationToken);
+
+        nodes.AddRange(cafeOrders.Select(order => CreateSalesOrderNode(
+            $"pos-order-{order.Id:N}",
+            order.Number,
+            order.OrderDate,
+            order.Status,
+            order.TotalAmount,
+            "POS",
+            virtualPath,
+            nodes.Count + 1)));
+
+        if (!posOnly)
+        {
+            var restaurantOrdersQuery = dbContext.AlacarteOrders.AsNoTracking();
+            if (normalizedSearch is not null)
+            {
+                restaurantOrdersQuery = restaurantOrdersQuery.Where(x => x.OrderNo.Contains(normalizedSearch));
+            }
+
+            var restaurantOrders = await restaurantOrdersQuery
+                .OrderByDescending(x => x.OrderDate)
+                .ThenByDescending(x => x.Id)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.OrderNo,
+                    x.OrderDate,
+                    x.Status,
+                    x.TotalAmount
+                })
+                .ToListAsync(cancellationToken);
+
+            nodes.AddRange(restaurantOrders.Select(order => CreateSalesOrderNode(
+                $"restaurant-order-{order.Id:N}",
+                order.OrderNo,
+                order.OrderDate,
+                order.Status,
+                order.TotalAmount,
+                "Nhà hàng",
+                virtualPath,
+                nodes.Count + 1)));
+        }
+
+        return nodes
+            .OrderByDescending(x => x.DateModified)
+            .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static VirtualExplorerNodeDto CreateSalesOrderNode(
+        string id,
+        string orderNumber,
+        DateTime orderDate,
+        string status,
+        decimal totalAmount,
+        string source,
+        string virtualPath,
+        int sortOrder)
+    {
+        return new VirtualExplorerNodeDto
+        {
+            Id = id,
+            Name = orderNumber,
+            DisplayName = $"{orderNumber} · {source}",
+            Icon = "document.ico",
+            VirtualPath = $"{virtualPath}\\{id}",
+            NodeType = VirtualNodeType.Document,
+            Module = BusinessModule.Sales,
+            DateModified = orderDate,
+            HasChildren = false,
+            SortOrder = sortOrder,
+            Status = status,
+            Amount = totalAmount,
+            Currency = "VND"
         };
     }
 
-    private static IReadOnlyList<VirtualExplorerNodeDto> BuildAccountingNodes()
+    private static string GetParentNodeId(string normalizedPath)
     {
+        var lastSeparator = normalizedPath.LastIndexOf('\\');
+        var name = lastSeparator >= 0 ? normalizedPath[(lastSeparator + 1)..] : normalizedPath;
+        return name.StartsWith("C:", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("D:", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("E:", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("F:", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("G:", StringComparison.OrdinalIgnoreCase)
+            ? $"drive-{name[0].ToString().ToLowerInvariant()}"
+            : "this-pc";
+    }
+
+    private static string ResolveVirtualFolderIcon(VirtualNodeType folderType)
+        => folderType switch
+        {
+            VirtualNodeType.Report => "report.ico",
+            VirtualNodeType.SystemTool => "settings.ico",
+            VirtualNodeType.Document => "document.ico",
+            _ => EmptyFolderIcon
+        };
+
+    private static BusinessModule ResolveDriveModule(string driveCode)
+        => driveCode.ToUpperInvariant() switch
+        {
+            "D" => BusinessModule.Accounting,
+            "E" => BusinessModule.Sales,
+            "F" => BusinessModule.HR,
+            "G" => BusinessModule.Logs,
+            _ => BusinessModule.System
+        };
+
+    private static ConfiguredDrive MapPersistedDrive(VirtualDrive drive)
+    {
+        var settings = DriveSettingsByCode.TryGetValue(drive.Code, out var configured)
+            ? configured
+            : new DriveSetting(null, null, ResolveDriveModule(drive.Code));
+
+        return new ConfiguredDrive(
+            drive.Code,
+            string.IsNullOrWhiteSpace(drive.DisplayName) ? drive.Name : drive.DisplayName,
+            drive.Icon,
+            settings.PathKey,
+            settings.EnabledKey,
+            settings.Module,
+            drive.SortOrder);
+    }
+
+    private static string ReadStringSetting(
+        string key,
+        IReadOnlyDictionary<string, SettingDefinitionDto> definitions,
+        IReadOnlyDictionary<string, SettingValueDto> values)
+    {
+        if (values.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value.Value))
+        {
+            return value.Value.Trim();
+        }
+
+        return definitions.TryGetValue(key, out var definition)
+            ? definition.DefaultValue?.Trim() ?? string.Empty
+            : string.Empty;
+    }
+
+    private static bool ReadBooleanSetting(
+        string key,
+        IReadOnlyDictionary<string, SettingDefinitionDto> definitions,
+        IReadOnlyDictionary<string, SettingValueDto> values,
+        bool defaultValue)
+    {
+        var raw = values.TryGetValue(key, out var value)
+            ? value.Value
+            : definitions.TryGetValue(key, out var definition) ? definition.DefaultValue : null;
+        return bool.TryParse(raw, out var parsed) ? parsed : defaultValue;
+    }
+
+    /// <summary>
+    /// Reads VFC/Network settings with a context created by the factory.
+    /// SettingsService is backed by the shell's scoped AppDbContext; using it
+    /// here can reproduce EF Core's second-operation error when VFC opens while
+    /// the Settings page is seeding or loading that same context.
+    /// </summary>
+    private async Task<(
+        IReadOnlyDictionary<string, SettingDefinitionDto> Definitions,
+        IReadOnlyDictionary<string, SettingValueDto> Values)> LoadSystemSettingsAsync(
+        CancellationToken cancellationToken)
+    {
+        var definitions = _settingsRegistry.GetDefaultDefinitions()
+            .Where(x => x.Scope == SettingScope.System)
+            .ToDictionary(x => x.Key, StringComparer.OrdinalIgnoreCase);
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var persistedDefinitions = await dbContext.SettingDefinitions
+            .AsNoTracking()
+            .Where(x => x.Scope == SettingScope.System)
+            .ToListAsync(cancellationToken);
+        foreach (var definition in persistedDefinitions)
+        {
+            definitions[definition.Key] = new SettingDefinitionDto
+            {
+                Key = definition.Key,
+                DisplayName = definition.DisplayName,
+                Description = definition.Description,
+                Category = definition.Category,
+                Group = definition.Group,
+                Scope = definition.Scope,
+                ValueType = definition.ValueType,
+                DefaultValue = definition.DefaultValue,
+                IsRequired = definition.IsRequired,
+                IsSensitive = definition.IsSensitive,
+                IsReadOnly = definition.IsReadOnly,
+                RequiresRestart = definition.RequiresRestart,
+                RequiredPermission = definition.RequiredPermission,
+                SortOrder = definition.SortOrder
+            };
+        }
+
+        var persistedValues = await dbContext.SettingValues
+            .AsNoTracking()
+            .Where(x => x.Scope == SettingScope.System
+                && (x.ScopeTarget == null || x.ScopeTarget == string.Empty)
+                && !x.IsEncrypted)
+            .ToListAsync(cancellationToken);
+
+        var values = persistedValues.ToDictionary(
+            x => x.DefinitionKey,
+            x => new SettingValueDto
+            {
+                Key = x.DefinitionKey,
+                Scope = x.Scope,
+                ScopeTarget = x.ScopeTarget,
+                Value = x.Value,
+                IsPersisted = true,
+                IsEncrypted = x.IsEncrypted,
+                UpdatedAt = x.UpdatedAt,
+                UpdatedBy = x.UpdatedBy
+            },
+            StringComparer.OrdinalIgnoreCase);
+
+        return (definitions, values);
+    }
+
+    private async Task<IReadOnlyList<VirtualExplorerNodeDto>> BuildNetworkNodesAsync(CancellationToken cancellationToken)
+    {
+        var (definitionMap, valueMap) = await LoadSystemSettingsAsync(cancellationToken);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var databaseHealth = await DescribeDatabaseAsync(cancellationToken);
+
+        var apiBaseUrl = ReadStringSetting("Network.ApiBaseUrl", definitionMap, valueMap);
+        var apiPort = ReadStringSetting("Network.ApiPort", definitionMap, valueMap);
+        var enableHttps = ReadBooleanSetting("Network.EnableHttps", definitionMap, valueMap, true);
+        var apiHealthTask = DescribeEndpointAsync(apiBaseUrl, apiPort, enableHttps, valueMap.ContainsKey("Network.ApiBaseUrl"), cancellationToken);
+        var posHealthTask = DescribeEndpointAsync(ReadStringSetting("POS.ApiEndpoint", definitionMap, valueMap), null, null, valueMap.ContainsKey("POS.ApiEndpoint"), cancellationToken);
+        var foHealthTask = DescribeEndpointAsync(ReadStringSetting("FO.ApiEndpoint", definitionMap, valueMap), null, null, valueMap.ContainsKey("FO.ApiEndpoint"), cancellationToken);
+        await Task.WhenAll(apiHealthTask, posHealthTask, foHealthTask);
+        var apiHealth = await apiHealthTask;
+        var posHealth = await posHealthTask;
+        var foHealth = await foHealthTask;
+        var printerHealth = await DescribePrintersAsync(cancellationToken);
+        var sharedFolderHealth = DescribePath(
+            ReadStringSetting("Storage.DataRootPath", definitionMap, valueMap),
+            "Storage.DataRootPath",
+            valueMap.ContainsKey("Storage.DataRootPath"));
+
         return new List<VirtualExplorerNodeDto>
         {
-            CreateNode("accounting-suppliers", "drive-d", "Nhà cung cấp", "Nhà cung cấp", FilledFolderIcon, @"This PC\D: ACCOUNTING\Nhà cung cấp", VirtualNodeType.Folder, BusinessModule.Accounting, true, 10),
-            CreateNode("accounting-customers", "drive-d", "Khách hàng", "Khách hàng", FilledFolderIcon, @"This PC\D: ACCOUNTING\Khách hàng", VirtualNodeType.Folder, BusinessModule.Accounting, true, 20),
-            CreateNode("accounting-invoices", "drive-d", "Hóa đơn", "Hóa đơn", "invoice.ico", @"This PC\D: ACCOUNTING\Hóa đơn", VirtualNodeType.Folder, BusinessModule.Accounting, false, 30),
-            CreateNode("accounting-receipts", "drive-d", "Phiếu nhập", "Phiếu nhập", "import.ico", @"This PC\D: ACCOUNTING\Phiếu nhập", VirtualNodeType.Folder, BusinessModule.Accounting, false, 40),
-            CreateNode("accounting-issues", "drive-d", "Phiếu xuất", "Phiếu xuất", "export.ico", @"This PC\D: ACCOUNTING\Phiếu xuất", VirtualNodeType.Folder, BusinessModule.Accounting, false, 50),
-            CreateNode("accounting-debt", "drive-d", "Công nợ", "Công nợ", "debt.ico", @"This PC\D: ACCOUNTING\Công nợ", VirtualNodeType.Folder, BusinessModule.Accounting, false, 60),
-            CreateNode("accounting-report", "drive-d", "Báo cáo kế toán", "Báo cáo kế toán", "report.ico", @"This PC\D: ACCOUNTING\Báo cáo kế toán", VirtualNodeType.Report, BusinessModule.Accounting, false, 70)
+            CreateNetworkNode("net-sql", "SQL Server", "sql.ico", 10, databaseHealth),
+            CreateNetworkNode("net-api", "API Server", "api.ico", 20, apiHealth),
+            CreateNetworkNode("net-pos", "POS Terminals", "pos.ico", 30, posHealth),
+            CreateNetworkNode("net-fo", "FO Clients", "fo.ico", 40, foHealth),
+            CreateNetworkNode("net-share", "Shared Folders", EmptyFolderIcon, 50, sharedFolderHealth),
+            CreateNetworkNode("net-printer", "Printers", "printer.ico", 60, printerHealth)
         };
     }
 
-    private static IReadOnlyList<VirtualExplorerNodeDto> BuildSystemNodes()
+    private async Task<NetworkHealth> DescribePrintersAsync(CancellationToken cancellationToken)
     {
-        return new List<VirtualExplorerNodeDto>
+        if (_printerSettingsService is null)
         {
-            CreateNode("system-schema", "drive-c", "Database Schemas", "Database Schemas", "db.ico", @"This PC\C: SYSTEM\Database Schemas", VirtualNodeType.SystemTool, BusinessModule.System, false, 10),
-            CreateNode("system-tables", "drive-c", "Tables", "Tables", "table.ico", @"This PC\C: SYSTEM\Tables", VirtualNodeType.SystemTool, BusinessModule.System, false, 20),
-            CreateNode("system-views", "drive-c", "Views", "Views", "view.ico", @"This PC\C: SYSTEM\Views", VirtualNodeType.SystemTool, BusinessModule.System, false, 30),
-            CreateNode("system-proc", "drive-c", "Stored Procedures", "Stored Procedures", "code.ico", @"This PC\C: SYSTEM\Stored Procedures", VirtualNodeType.SystemTool, BusinessModule.System, false, 40),
-            CreateNode("system-backup", "drive-c", "Backup / Restore", "Backup / Restore", "backup.ico", @"This PC\C: SYSTEM\Backup / Restore", VirtualNodeType.SystemTool, BusinessModule.System, false, 50),
-            CreateNode("system-users", "drive-c", "Users & Roles", "Users & Roles", "user.ico", @"This PC\C: SYSTEM\Users & Roles", VirtualNodeType.SystemTool, BusinessModule.System, false, 60),
-            CreateNode("system-settings", "drive-c", "System Settings", "System Settings", "settings.ico", @"This PC\C: SYSTEM\System Settings", VirtualNodeType.SystemTool, BusinessModule.System, false, 70)
-        };
+            return new NetworkHealth("Windows printer provider chưa được đăng ký.", "Không khả dụng", true);
+        }
+
+        try
+        {
+            var printers = await _printerSettingsService.GetAvailablePrintersAsync(cancellationToken);
+            if (printers.Count == 0)
+            {
+                return new NetworkHealth(
+                    "Windows không trả về máy in nào; kiểm tra Print Spooler và quyền của tài khoản.",
+                    "Không phát hiện",
+                    true);
+            }
+
+            var problemCount = printers.Count(x =>
+                x.Status.Equals("Offline", StringComparison.OrdinalIgnoreCase)
+                || x.Status.Equals("Error", StringComparison.OrdinalIgnoreCase));
+            var sample = string.Join(" · ", printers.Take(4).Select(x => $"{x.Name} ({x.Status})"));
+            var remainingCount = printers.Count - Math.Min(printers.Count, 4);
+            var suffix = remainingCount > 0 ? $" · +{remainingCount} máy in" : string.Empty;
+            var description = $"Windows liệt kê {printers.Count} máy in · {sample}{suffix}";
+            return problemCount > 0
+                ? new NetworkHealth($"{description} · {problemCount} máy in cần kiểm tra", "Cần kiểm tra", true)
+                : new NetworkHealth(description, "Sẵn sàng", false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new NetworkHealth(
+                $"Không đọc được danh sách máy in từ Windows ({ex.GetType().Name}).",
+                "Không khả dụng",
+                true);
+        }
     }
 
-    private static IReadOnlyList<VirtualExplorerNodeDto> BuildSalesNodes()
+    private async Task<NetworkHealth> DescribeDatabaseAsync(CancellationToken cancellationToken)
     {
-        return new List<VirtualExplorerNodeDto>
+        var target = "Database provider";
+        try
         {
-            CreateNode("sales-fo", "drive-e", "FO", "FO", "fo.ico", @"This PC\E: SALES\FO", VirtualNodeType.Folder, BusinessModule.Sales, false, 10),
-            CreateNode("sales-pos", "drive-e", "POS", "POS", "pos.ico", @"This PC\E: SALES\POS", VirtualNodeType.Folder, BusinessModule.Sales, false, 20),
-            CreateNode("sales-orders", "drive-e", "Đơn hàng", "Đơn hàng", "order.ico", @"This PC\E: SALES\Đơn hàng", VirtualNodeType.Folder, BusinessModule.Sales, false, 30),
-            CreateNode("sales-shift", "drive-e", "Ca bán hàng", "Ca bán hàng", "shift.ico", @"This PC\E: SALES\Ca bán hàng", VirtualNodeType.Folder, BusinessModule.Sales, false, 40),
-            CreateNode("sales-revenue", "drive-e", "Doanh thu", "Doanh thu", "report.ico", @"This PC\E: SALES\Doanh thu", VirtualNodeType.Report, BusinessModule.Sales, false, 50)
-        };
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            if (dbContext.Database.IsRelational())
+            {
+                var connection = dbContext.Database.GetDbConnection();
+                target = FormatDatabaseTarget(connection.DataSource, connection.Database);
+            }
+            else
+            {
+                target = dbContext.Database.ProviderName ?? target;
+            }
+
+            var connected = await dbContext.Database.CanConnectAsync(cancellationToken);
+            return connected
+                ? new NetworkHealth($"Đã kết nối · {target}", "Đã kết nối", false)
+                : new NetworkHealth($"Không kết nối được · {target}", "Không khả dụng", true);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is DbUpdateException or InvalidOperationException or System.Data.Common.DbException)
+        {
+            return new NetworkHealth($"Không kết nối được · {target}", "Không khả dụng", true);
+        }
     }
 
-    private static IReadOnlyList<VirtualExplorerNodeDto> BuildHrNodes()
+    private static string FormatDatabaseTarget(string? dataSource, string? database)
     {
-        return new List<VirtualExplorerNodeDto>
-        {
-            CreateNode("hr-people", "drive-f", "Nhân sự", "Nhân sự", "people.ico", @"This PC\F: HR\Nhân sự", VirtualNodeType.Folder, BusinessModule.HR, false, 10),
-            CreateNode("hr-attendance", "drive-f", "Chấm công", "Chấm công", "clock.ico", @"This PC\F: HR\Chấm công", VirtualNodeType.Folder, BusinessModule.HR, false, 20),
-            CreateNode("hr-payroll", "drive-f", "Lương", "Lương", "salary.ico", @"This PC\F: HR\Lương", VirtualNodeType.Folder, BusinessModule.HR, false, 30),
-            CreateNode("hr-shift", "drive-f", "Phân ca", "Phân ca", "shift.ico", @"This PC\F: HR\Phân ca", VirtualNodeType.Folder, BusinessModule.HR, false, 40)
-        };
+        var source = string.IsNullOrWhiteSpace(dataSource) ? "SQL Server" : dataSource.Trim();
+        return string.IsNullOrWhiteSpace(database) ? source : $"{source} · {database.Trim()}";
     }
 
-    private static IReadOnlyList<VirtualExplorerNodeDto> BuildLogNodes()
+    private static VirtualExplorerNodeDto CreateNetworkNode(
+        string id,
+        string displayName,
+        string icon,
+        int sortOrder,
+        NetworkHealth health)
     {
-        return new List<VirtualExplorerNodeDto>
-        {
-            CreateNode("log-audit", "drive-g", "Audit Logs", "Audit Logs", "audit.ico", @"This PC\G: LOGS\Audit Logs", VirtualNodeType.Folder, BusinessModule.Logs, false, 10),
-            CreateNode("log-error", "drive-g", "Error Logs", "Error Logs", "error.ico", @"This PC\G: LOGS\Error Logs", VirtualNodeType.Folder, BusinessModule.Logs, false, 20),
-            CreateNode("log-sync", "drive-g", "Sync Logs", "Sync Logs", "sync.ico", @"This PC\G: LOGS\Sync Logs", VirtualNodeType.Folder, BusinessModule.Logs, false, 30),
-            CreateNode("log-login", "drive-g", "Login Logs", "Login Logs", "login.ico", @"This PC\G: LOGS\Login Logs", VirtualNodeType.Folder, BusinessModule.Logs, false, 40),
-            CreateNode("log-backup", "drive-g", "Backup Logs", "Backup Logs", "backup.ico", @"This PC\G: LOGS\Backup Logs", VirtualNodeType.Folder, BusinessModule.Logs, false, 50)
-        };
+        return CreateNode(
+            id,
+            "network",
+            displayName,
+            displayName,
+            icon,
+            $"Network\\{displayName}",
+            VirtualNodeType.NetworkItem,
+            BusinessModule.Network,
+            false,
+            sortOrder,
+            description: health.Description,
+            status: health.Status,
+            isAlert: health.IsAlert);
     }
 
-    private static IReadOnlyList<VirtualExplorerNodeDto> BuildNetworkNodes()
+    private static async Task<NetworkHealth> DescribeEndpointAsync(
+        string? endpoint,
+        string? port,
+        bool? useHttps,
+        bool isPersisted,
+        CancellationToken cancellationToken)
     {
-        return new List<VirtualExplorerNodeDto>
+        if (string.IsNullOrWhiteSpace(endpoint))
         {
-            CreateNode("net-sql", "network", "SQL Server", "SQL Server", "sql.ico", @"Network\SQL Server", VirtualNodeType.NetworkItem, BusinessModule.Network, false, 10),
-            CreateNode("net-api", "network", "API Server", "API Server", "api.ico", @"Network\API Server", VirtualNodeType.NetworkItem, BusinessModule.Network, false, 20),
-            CreateNode("net-pos", "network", "POS Terminals", "POS Terminals", "pos.ico", @"Network\POS Terminals", VirtualNodeType.NetworkItem, BusinessModule.Network, false, 30),
-            CreateNode("net-fo", "network", "FO Clients", "FO Clients", "fo.ico", @"Network\FO Clients", VirtualNodeType.NetworkItem, BusinessModule.Network, false, 40),
-            CreateNode("net-share", "network", "Shared Folders", "Shared Folders", EmptyFolderIcon, @"Network\Shared Folders", VirtualNodeType.NetworkItem, BusinessModule.Network, false, 50),
-            CreateNode("net-printer", "network", "Printers", "Printers", "printer.ico", @"Network\Printers", VirtualNodeType.NetworkItem, BusinessModule.Network, false, 60)
-        };
+            return new NetworkHealth("Chưa cấu hình endpoint", "Chưa cấu hình", true);
+        }
+
+        var candidate = endpoint.Trim();
+        if (!candidate.Contains("://", StringComparison.Ordinal))
+        {
+            var scheme = useHttps is false ? "http" : "https";
+            candidate = $"{scheme}://{candidate}";
+        }
+
+        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            return new NetworkHealth("Endpoint không hợp lệ; giá trị URL được ẩn để bảo vệ thông tin xác thực.", "Không hợp lệ", true);
+        }
+
+        var configuredUri = uri;
+        if (configuredUri.IsDefaultPort && int.TryParse(port, out var parsedPort) && parsedPort is > 0 and <= 65535)
+        {
+            var builder = new UriBuilder(configuredUri) { Port = parsedPort };
+            configuredUri = builder.Uri;
+        }
+
+        var safeEndpoint = FormatEndpointAuthority(configuredUri);
+
+        if (!isPersisted)
+        {
+            return new NetworkHealth($"Mặc định, chưa lưu trong Settings Engine · {safeEndpoint}", "Mặc định", true);
+        }
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Head, configuredUri);
+            using var response = await EndpointProbeClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+
+            return response.IsSuccessStatusCode
+                ? new NetworkHealth($"Đã kiểm tra · {safeEndpoint} · HTTP {(int)response.StatusCode}", "Đã kết nối", false)
+                : new NetworkHealth($"Endpoint phản hồi HTTP {(int)response.StatusCode} · {safeEndpoint}", "Phản hồi lỗi", true);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new NetworkHealth($"Timeout khi kiểm tra · {safeEndpoint}", "Timeout", true);
+        }
+        catch (HttpRequestException ex)
+        {
+            return new NetworkHealth($"Không kết nối được · {safeEndpoint} · {ex.GetType().Name}", "Không khả dụng", true);
+        }
+    }
+
+    private static string FormatEndpointAuthority(Uri endpoint)
+    {
+        var safeUri = new UriBuilder(endpoint)
+        {
+            UserName = string.Empty,
+            Password = string.Empty,
+            Path = string.Empty,
+            Query = string.Empty,
+            Fragment = string.Empty
+        }.Uri;
+        return safeUri.GetLeftPart(UriPartial.Authority);
+    }
+
+    private static NetworkHealth DescribePath(string? configuredPath, string settingKey, bool isPersisted)
+    {
+        if (string.IsNullOrWhiteSpace(configuredPath))
+        {
+            return new NetworkHealth($"Chưa cấu hình {settingKey}", "Chưa cấu hình", true);
+        }
+
+        var path = Environment.ExpandEnvironmentVariables(configuredPath.Trim());
+        if (!Path.IsPathFullyQualified(path))
+        {
+            return new NetworkHealth($"Đường dẫn phải là đường dẫn tuyệt đối · {path}", "Không hợp lệ", true);
+        }
+
+        return Directory.Exists(path)
+            ? isPersisted
+                ? new NetworkHealth($"Đã kiểm tra · {path}", "Sẵn sàng", false)
+                : new NetworkHealth($"Mặc định, chưa lưu trong Settings Engine · {path}", "Mặc định", true)
+            : new NetworkHealth($"Không tìm thấy · {path}", "Không khả dụng", true);
     }
 
     private async Task<IReadOnlyList<VirtualFileCenterSeed.SupplierSeed>> GetSupplierSeedsAsync(CancellationToken cancellationToken)
     {
-        var dbSuppliers = await _dbContext.Suppliers
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var dbSuppliers = await dbContext.Suppliers
             .AsNoTracking()
             .OrderBy(x => x.SupplierName)
             .Select(x => new VirtualFileCenterSeed.SupplierSeed(
@@ -442,12 +1375,6 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
             .Distinct()
             .OrderByDescending(x => x)
             .ToList();
-
-        var currentYear = DateTime.Today.Year;
-        if (!years.Contains(currentYear))
-        {
-            years.Insert(0, currentYear);
-        }
 
         return years
             .Select((year, idx) =>
@@ -526,7 +1453,9 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
                 doc.EntityType,
                 doc.EntityId,
                 doc.Id,
-                doc.UpdatedAt))
+                doc.UpdatedAt,
+                physicalPath: doc.PhysicalFilePath,
+                fileSize: doc.FileSize))
             .ToList();
 
         var yearFolders = BuildDateFolders(
@@ -572,7 +1501,9 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
                 doc.EntityType,
                 doc.EntityId,
                 doc.Id,
-                doc.UpdatedAt))
+                doc.UpdatedAt,
+                physicalPath: doc.PhysicalFilePath,
+                fileSize: doc.FileSize))
             .ToList();
 
         var yearFolders = BuildDateFolders(supplierId, currentPath, documents, documentTypes)
@@ -611,7 +1542,9 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
                 doc.EntityType,
                 doc.EntityId,
                 doc.Id,
-                doc.UpdatedAt))
+                doc.UpdatedAt,
+                physicalPath: doc.PhysicalFilePath,
+                fileSize: doc.FileSize))
             .ToList();
     }
 
@@ -632,11 +1565,8 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
                 return _documentsCache;
             }
 
-        var seeded = VirtualFileCenterSeed.DefaultDocuments();
-        IReadOnlyList<BusinessDocumentDto> persistedDocuments;
-        try
-        {
-            persistedDocuments = await _dbContext.BusinessDocuments
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var persistedDocuments = await dbContext.BusinessDocuments
                 .AsNoTracking()
                 .Select(x => new BusinessDocumentDto
                 {
@@ -663,24 +1593,10 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
                     UpdatedAt = x.UpdatedAt
                 })
                 .ToListAsync(cancellationToken);
-        }
-        catch
-        {
-            persistedDocuments = Array.Empty<BusinessDocumentDto>();
-        }
 
-        IReadOnlyList<BusinessDocumentDto> approvedReceiptDocuments;
-        try
-        {
-            approvedReceiptDocuments = await BuildApprovedReceiptDocumentsAsync(cancellationToken);
-        }
-        catch
-        {
-            approvedReceiptDocuments = Array.Empty<BusinessDocumentDto>();
-        }
+        var approvedReceiptDocuments = await BuildApprovedReceiptDocumentsAsync(cancellationToken);
 
-        var merged = seeded
-            .Concat(persistedDocuments)
+        var merged = persistedDocuments
             .Concat(approvedReceiptDocuments)
             .Concat(await BuildPayableDebtStatementDocumentsAsync(cancellationToken))
             .Concat(await BuildSupplierQuickCheckDocumentsAsync(cancellationToken))
@@ -720,7 +1636,8 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
 
     private async Task<IReadOnlyList<BusinessDocumentDto>> BuildApprovedReceiptDocumentsAsync(CancellationToken cancellationToken)
     {
-        var approvedReceipts = await _dbContext.StockReceipts
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var approvedReceipts = await dbContext.StockReceipts
             .AsNoTracking()
             .Where(x => x.IsApproved)
             .OrderByDescending(x => x.ReceiptDate)
@@ -741,7 +1658,7 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var auditLogByReceiptNo = await _dbContext.AuditLogs
+        var auditLogByReceiptNo = await dbContext.AuditLogs
             .AsNoTracking()
             .Where(x => receiptNos.Contains(x.Detail)
                         && (x.Action == "APPROVE_RECEIPT" || x.Action == "CREATE_RECEIPT" || x.Action == "UPDATE_RECEIPT"))
@@ -749,7 +1666,7 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
             .Select(g => new { ReceiptNo = g.Key, LastAt = g.Max(x => x.CreatedAt) })
             .ToDictionaryAsync(x => x.ReceiptNo, x => x.LastAt, StringComparer.OrdinalIgnoreCase, cancellationToken);
 
-        var suppliers = await _dbContext.Suppliers
+        var suppliers = await dbContext.Suppliers
             .AsNoTracking()
             .Select(x => new { x.Id, x.SupplierCode, x.SupplierName })
             .ToListAsync(cancellationToken);
@@ -769,7 +1686,9 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
                 : x.ReceiptDate;
             return new BusinessDocumentDto
             {
-                Id = Guid.NewGuid(),
+                // Generated from a persisted receipt, therefore its virtual
+                // document identity must remain stable across cache reloads.
+                Id = GuidUtility.Create(GuidUtility.UrlNamespace, $"stock-receipt:{x.Id}"),
                 Code = x.ReceiptNo,
                 Title = $"Phiếu nhập {x.ReceiptNo}",
                 Module = BusinessModule.Accounting,
@@ -794,7 +1713,8 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
 
     private async Task<IReadOnlyList<BusinessDocumentDto>> BuildPayableDebtStatementDocumentsAsync(CancellationToken cancellationToken)
     {
-        var suppliers = await _dbContext.Suppliers
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var suppliers = await dbContext.Suppliers
             .AsNoTracking()
             .OrderBy(x => x.SupplierName)
             .Select(x => new { x.Id, x.SupplierCode, x.SupplierName })
@@ -808,7 +1728,7 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
             BusinessDocumentType.AdvancePayment
         };
 
-        var documents = await _dbContext.BusinessDocuments
+        var documents = await dbContext.BusinessDocuments
             .AsNoTracking()
             .Where(x => x.EntityType == BusinessEntityType.Supplier && payableTypes.Contains(x.DocumentType))
             .Select(x => new
@@ -822,7 +1742,7 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
             })
             .ToListAsync(cancellationToken);
 
-        var approvedReceipts = await _dbContext.StockReceipts
+        var approvedReceipts = await dbContext.StockReceipts
             .AsNoTracking()
             .Where(x => x.IsApproved)
             .Select(x => new
@@ -911,13 +1831,14 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
 
     private async Task<IReadOnlyList<BusinessDocumentDto>> BuildSupplierQuickCheckDocumentsAsync(CancellationToken cancellationToken)
     {
-        var suppliers = await _dbContext.Suppliers
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var suppliers = await dbContext.Suppliers
             .AsNoTracking()
             .OrderBy(x => x.SupplierName)
             .Select(x => new { x.Id, x.SupplierCode, x.SupplierName })
             .ToListAsync(cancellationToken);
 
-        var documents = await _dbContext.BusinessDocuments
+        var documents = await dbContext.BusinessDocuments
             .AsNoTracking()
             .Where(x => x.EntityType == BusinessEntityType.Supplier)
             .Select(x => new
@@ -930,7 +1851,7 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
             })
             .ToListAsync(cancellationToken);
 
-        var approvedReceipts = await _dbContext.StockReceipts
+        var approvedReceipts = await dbContext.StockReceipts
             .AsNoTracking()
             .Where(x => x.IsApproved)
             .Select(x => new
@@ -1031,46 +1952,73 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
 
     private async Task<IReadOnlyList<VirtualExplorerNodeDto>> BuildCustomerFoldersAsync(CancellationToken cancellationToken)
     {
-        var customers = await _dbContext.Customers
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var customers = await dbContext.Customers
             .AsNoTracking()
             .OrderBy(x => x.CustomerName)
             .Select(x => new
             {
+                x.Id,
                 x.CustomerCode,
                 x.CustomerName
             })
             .ToListAsync(cancellationToken);
 
+        var customerIds = customers
+            .Select(x => GuidUtility.Create(GuidUtility.UrlNamespace, $"customer:{x.Id}"))
+            .ToHashSet();
+        var documents = await GetDocumentsAsync(cancellationToken);
+        var customersWithDocuments = documents
+            .Where(x => x.EntityType == BusinessEntityType.Customer && customerIds.Contains(x.EntityId))
+            .Select(x => x.EntityId)
+            .ToHashSet();
+
         return customers
-            .Select((c, idx) => CreateNode(
-                $"customer-{VirtualFileCenterSeed.StableGuid($"customer:{c.CustomerName.ToUpperInvariant()}")}",
-                "accounting-customers",
-                c.CustomerName,
-                c.CustomerName,
-                "customer.ico",
-                $@"This PC\D: ACCOUNTING\Khách hàng\{c.CustomerName}",
-                VirtualNodeType.EntityFolder,
-                BusinessModule.Accounting,
-                false,
-                idx + 1,
-                BusinessEntityType.Customer,
-                VirtualFileCenterSeed.StableGuid($"customer:{c.CustomerName.ToUpperInvariant()}")))
+            .Select((c, idx) =>
+            {
+                var customerId = GuidUtility.Create(GuidUtility.UrlNamespace, $"customer:{c.Id}");
+                var segment = string.IsNullOrWhiteSpace(c.CustomerCode) ? $"customer-{c.Id}" : c.CustomerCode;
+                return CreateNode(
+                    $"customer-{customerId:N}",
+                    "accounting-customers",
+                    string.IsNullOrWhiteSpace(c.CustomerCode) ? c.CustomerName : c.CustomerCode,
+                    c.CustomerName,
+                    "customer.ico",
+                    $@"This PC\D: ACCOUNTING\Khách hàng\{segment}",
+                    VirtualNodeType.EntityFolder,
+                    BusinessModule.Accounting,
+                    customersWithDocuments.Contains(customerId),
+                    idx + 1,
+                    BusinessEntityType.Customer,
+                    customerId);
+            })
             .ToList();
     }
 
-    private static IReadOnlyList<VirtualExplorerNodeDto> BuildCustomerRootFolders(string customerName)
+    private static IReadOnlyList<VirtualExplorerNodeDto> BuildCustomerDocumentNodes(
+        string virtualPath,
+        Guid customerId,
+        IReadOnlyList<BusinessDocumentDto> documents)
     {
-        var customerId = VirtualFileCenterSeed.StableGuid($"customer:{customerName.ToUpperInvariant()}");
-        var basePath = $@"This PC\D: ACCOUNTING\Khách hàng\{customerName}";
-
-        return new List<VirtualExplorerNodeDto>
-        {
-            CreateNode($"{customerId}-profile", $"customer-{customerId}", "01. Hồ sơ khách hàng", "01. Hồ sơ khách hàng", EmptyFolderIcon, basePath + @"\01. Hồ sơ khách hàng", VirtualNodeType.Folder, BusinessModule.Accounting, false, 10, BusinessEntityType.Customer, customerId),
-            CreateNode($"{customerId}-contract", $"customer-{customerId}", "02. Hợp đồng", "02. Hợp đồng", EmptyFolderIcon, basePath + @"\02. Hợp đồng", VirtualNodeType.Folder, BusinessModule.Accounting, false, 20, BusinessEntityType.Customer, customerId),
-            CreateNode($"{customerId}-advance", $"customer-{customerId}", "03. Tạm ứng hợp đồng", "03. Tạm ứng hợp đồng", EmptyFolderIcon, basePath + @"\03. Tạm ứng hợp đồng", VirtualNodeType.Folder, BusinessModule.Accounting, false, 30, BusinessEntityType.Customer, customerId),
-            CreateNode($"{customerId}-debt", $"customer-{customerId}", "04. Công nợ", "04. Công nợ", EmptyFolderIcon, basePath + @"\04. Công nợ", VirtualNodeType.Folder, BusinessModule.Accounting, false, 40, BusinessEntityType.Customer, customerId),
-            CreateNode($"{customerId}-report", $"customer-{customerId}", "05. In ấn - báo cáo", "05. In ấn - báo cáo", EmptyFolderIcon, basePath + @"\05. In ấn - báo cáo", VirtualNodeType.Report, BusinessModule.Accounting, false, 50, BusinessEntityType.Customer, customerId)
-        };
+        return documents
+            .Select((document, index) => CreateNode(
+                $"doc-{document.Id:N}",
+                $"customer-{customerId:N}",
+                string.IsNullOrWhiteSpace(document.FileName) ? document.Code : document.FileName,
+                string.IsNullOrWhiteSpace(document.Title) ? document.Code : document.Title,
+                "document.ico",
+                $"{virtualPath}\\{document.Id:N}{document.FileExtension}",
+                VirtualNodeType.Document,
+                document.Module,
+                false,
+                index + 1,
+                document.EntityType,
+                document.EntityId,
+                document.Id,
+                document.UpdatedAt,
+                physicalPath: document.PhysicalFilePath,
+                fileSize: document.FileSize))
+            .ToList();
     }
 
     private static bool TryResolveSupplierPath(string path, out string supplierName, out string tailPath)
@@ -1117,6 +2065,21 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
         customerName = parts[0];
         tailPath = string.Join('\\', parts.Skip(1));
         return true;
+    }
+
+    private static bool IsDynamicBusinessDataPath(string path)
+    {
+        if (TryGetAccountingDocumentType(path, out _)
+            || TryResolveSupplierPath(path, out _, out _)
+            || TryResolveCustomerPath(path, out _, out _))
+        {
+            return true;
+        }
+
+        return path.Equals(@"This PC\D: ACCOUNTING\Nhà cung cấp", StringComparison.OrdinalIgnoreCase)
+            || path.Equals(@"This PC\D: ACCOUNTING\Khách hàng", StringComparison.OrdinalIgnoreCase)
+            || path.Equals(@"This PC\E: SALES\POS", StringComparison.OrdinalIgnoreCase)
+            || path.Equals(@"This PC\E: SALES\Đơn hàng", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryResolveDatePath(string path, out int? year, out int? month, out int? day, out BusinessDocumentType documentType, out bool includeAdvancePayment)
@@ -1192,7 +2155,14 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
         BusinessEntityType? entityType = null,
         Guid? entityId = null,
         Guid? documentId = null,
-        DateTime? dateModified = null)
+        DateTime? dateModified = null,
+        string? description = null,
+        string? status = null,
+        string? physicalPath = null,
+        long fileSize = 0,
+        double? usedPercent = null,
+        bool hasUsageMetric = false,
+        bool isAlert = false)
     {
         return new VirtualExplorerNodeDto
         {
@@ -1210,8 +2180,49 @@ public sealed class VirtualExplorerRepository : IVirtualExplorerRepository
             DocumentId = documentId,
             DateModified = dateModified,
             HasChildren = hasChildren,
-            SortOrder = sortOrder
+            SortOrder = sortOrder,
+            Description = description,
+            Status = status,
+            PhysicalPath = physicalPath,
+            FileSize = fileSize,
+            UsedPercent = usedPercent,
+            HasUsageMetric = hasUsageMetric,
+            IsAlert = isAlert
         };
+    }
+
+    private sealed record ConfiguredDrive(
+        string Code,
+        string DisplayName,
+        string Icon,
+        string? PathKey,
+        string? EnabledKey,
+        BusinessModule Module,
+        int SortOrder);
+
+    private sealed record DriveSetting(
+        string? PathKey,
+        string? EnabledKey,
+        BusinessModule Module);
+
+    private sealed record DriveHealth(
+        string Description,
+        string Status,
+        double? UsedPercent,
+        bool HasUsageMetric,
+        bool IsAlert);
+
+    private sealed record NetworkHealth(
+        string Description,
+        string Status,
+        bool IsAlert);
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024d:0.0} KB";
+        if (bytes < 1024L * 1024 * 1024) return $"{bytes / (1024d * 1024):0.0} MB";
+        return $"{bytes / (1024d * 1024 * 1024):0.0} GB";
     }
 
     private static string ResolveGlyph(VirtualNodeType nodeType, BusinessModule module, string name)

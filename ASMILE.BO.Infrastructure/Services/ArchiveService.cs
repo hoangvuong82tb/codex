@@ -35,6 +35,65 @@ public sealed class ArchiveService : IArchiveService
         _currentUserService = currentUserService;
     }
 
+    public async Task<IReadOnlyList<DataRetentionPolicyDto>> GetRetentionPoliciesAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureDefaultPoliciesAsync(cancellationToken);
+        var policies = await _dbContext.DataRetentionPolicies.AsNoTracking()
+            .OrderBy(x => x.Module)
+            .ThenBy(x => x.EntityName)
+            .ToListAsync(cancellationToken);
+        return policies.Select(ToPolicyDto).ToArray();
+    }
+
+    public async Task<DataRetentionPolicyDto> SaveRetentionPolicyAsync(DataRetentionPolicyDto policy, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+        if (policy.Id == Guid.Empty)
+        {
+            throw new ArgumentException("A persisted retention policy is required.", nameof(policy));
+        }
+
+        if (policy.RetentionDays is < 1 or > 36500
+            || policy.ArchiveAfterDays is < 1 or > 36500
+            || policy.DeleteAfterDays is < 1 or > 36500
+            || policy.DeleteAfterDays < policy.ArchiveAfterDays)
+        {
+            throw new ArgumentOutOfRangeException(nameof(policy), "Retention values must be between 1 and 36500 days, and deletion cannot precede archival.");
+        }
+
+        var entity = await _dbContext.DataRetentionPolicies
+            .FirstOrDefaultAsync(x => x.Id == policy.Id, cancellationToken)
+            ?? throw new InvalidOperationException("Retention policy no longer exists. Refresh the list and try again.");
+        var before = new
+        {
+            entity.RetentionDays,
+            entity.ArchiveAfterDays,
+            entity.DeleteAfterDays,
+            entity.CompressArchivedPayload,
+            entity.IsEnabled
+        };
+        entity.RetentionDays = policy.RetentionDays;
+        entity.ArchiveAfterDays = policy.ArchiveAfterDays;
+        entity.DeleteAfterDays = policy.DeleteAfterDays;
+        entity.CompressArchivedPayload = policy.CompressArchivedPayload;
+        entity.IsEnabled = policy.IsEnabled;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (_auditService is not null)
+        {
+            await _auditService.LogAsync(
+                "DataRetentionPolicy",
+                entity.Id.ToString(),
+                "Update",
+                before,
+                new { entity.RetentionDays, entity.ArchiveAfterDays, entity.DeleteAfterDays, entity.CompressArchivedPayload, entity.IsEnabled },
+                correlationId: _correlationService?.CurrentCorrelationId,
+                cancellationToken: cancellationToken);
+        }
+
+        return ToPolicyDto(entity);
+    }
+
     public async Task<IReadOnlyList<RetentionPreviewDto>> PreviewRetentionAsync(CancellationToken cancellationToken = default)
     {
         await EnsureDefaultPoliciesAsync(cancellationToken);
@@ -85,7 +144,7 @@ public sealed class ArchiveService : IArchiveService
         foreach (var policy in policies)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var items = await ArchivePolicyAsync(batch, policy, compressArchivedPayload, cancellationToken);
+            var items = await ArchivePolicyAsync(batch, policy, compressArchivedPayload && policy.CompressArchivedPayload, cancellationToken);
             itemCount += items;
             progress?.Report(itemCount);
         }
@@ -537,5 +596,25 @@ public sealed class ArchiveService : IArchiveService
             DeletedAtUtc = batch.DeletedAtUtc,
             CreatedBy = batch.CreatedBy,
             CorrelationId = batch.CorrelationId
+        };
+
+    private static DataRetentionPolicyDto ToPolicyDto(DataRetentionPolicy policy)
+        => new()
+        {
+            Id = policy.Id,
+            CompanyId = policy.CompanyId,
+            BranchId = policy.BranchId,
+            Module = policy.Module,
+            EntityName = policy.EntityName,
+            RetentionDays = policy.RetentionDays,
+            ArchiveAfterDays = policy.ArchiveAfterDays,
+            DeleteAfterDays = policy.DeleteAfterDays,
+            CompressArchivedPayload = policy.CompressArchivedPayload,
+            EncryptArchive = policy.EncryptArchive,
+            IsEnabled = policy.IsEnabled,
+            CreatedAtUtc = policy.CreatedAtUtc,
+            CreatedBy = policy.CreatedBy,
+            CorrelationId = policy.CorrelationId,
+            MetadataJson = policy.MetadataJson
         };
 }

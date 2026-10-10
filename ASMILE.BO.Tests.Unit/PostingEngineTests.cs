@@ -14,7 +14,7 @@ public sealed class PostingEngineTests
         var request = PostingRequest.Create(
             new PostingSource(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null),
             Guid.NewGuid(), 500000, "Room night 2026-07-18", RevenueBucket.Rooms,
-            new DateOnly(2026, 7, 18), DateTime.UtcNow, null);
+            new DateOnly(2026, 7, 18), DateTime.UtcNow, null, 10, 5);
 
         Guid capturedEntry = Guid.Empty;
         var result = pipeline.Process(request, (r, tax, sc, net) => capturedEntry = r.RequestId);
@@ -88,11 +88,15 @@ public sealed class PostingEngineTests
     }
 
     [Fact]
-    public void POSTING_U_006_tax_rates_by_bucket()
+    public void POSTING_U_006_tax_rates_are_explicit_on_the_request()
     {
-        PostingPolicies.DefaultTaxRate(RevenueBucket.Rooms).Should().Be(10);
-        PostingPolicies.DefaultTaxRate(RevenueBucket.FoodAndBeverage).Should().Be(8);
-        PostingPolicies.DefaultTaxRate(RevenueBucket.OtherRevenue).Should().Be(0);
+        var request = PostingRequest.Create(
+            new PostingSource(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null),
+            Guid.NewGuid(), 500000, "Room", RevenueBucket.Rooms,
+            new DateOnly(2026, 7, 18), DateTime.UtcNow, null, 10, 5);
+
+        request.TaxRate.Should().Be(10);
+        request.ServiceChargeRate.Should().Be(5);
     }
 
     [Fact]
@@ -127,10 +131,14 @@ public sealed class PostingEngineTests
     }
 
     [Fact]
-    public void POSTING_U_009_service_charge_only_for_rooms_and_fb()
+    public void POSTING_U_009_service_charge_is_explicit_not_defaulted()
     {
-        PostingPolicies.DefaultServiceChargeRate(RevenueBucket.Rooms).Should().Be(5);
-        PostingPolicies.DefaultServiceChargeRate(RevenueBucket.FoodAndBeverage).Should().Be(5);
-        PostingPolicies.DefaultServiceChargeRate(RevenueBucket.Laundry).Should().Be(0);
+        var request = PostingRequest.Create(
+            new PostingSource(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null),
+            Guid.NewGuid(), 500000, "Room", RevenueBucket.Rooms,
+            new DateOnly(2026, 7, 18), DateTime.UtcNow, null, 0, 5);
+
+        request.TaxRate.Should().Be(0);
+        request.ServiceChargeRate.Should().Be(5);
     }
 }

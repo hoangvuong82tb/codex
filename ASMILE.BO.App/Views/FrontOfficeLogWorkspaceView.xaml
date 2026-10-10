@@ -14,12 +14,12 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Style="{StaticResource HubContainerStyle}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Button Content="← Quay lại Lễ tân" Command="{Binding BackCommand}" Style="{StaticResource HubBackButtonStyle}"/>
+        <Button Content="← Quay lại Quản lý khách sạn" Command="{Binding BackCommand}" Style="{StaticResource HubBackButtonStyle}"/>
                 <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,32">
                     <TextBlock Text="Nhật ký FO" Style="{StaticResource HubHeaderStyle}" FontSize="32"/>
                     <TextBlock Text="Nhật ký vận hành và bàn giao ca lễ tân." Style="{StaticResource HubSubtitleStyle}" FontSize="16"/>
                 </StackPanel>
-                <WrapPanel Grid.Row="2" HorizontalAlignment="Center" MaxWidth="1060">
+                <WrapPanel Grid.Row="2" HorizontalAlignment="Center" MaxWidth="1400">
                     <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnShiftLog"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4A8EFF" Offset="0"/><GradientStop Color="#1765F2" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE823;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                         <TextBlock Grid.Column="1" Text="Nhật ký ca" Style="{StaticResource HubCardTitleStyle}"/></Grid></Border>

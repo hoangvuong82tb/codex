@@ -1,6 +1,7 @@
 <UserControl x:Class="ASMILE.BO.App.Views.ReservationWorkspaceView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
              UseLayoutRounding="True" SnapsToDevicePixels="True"
              Loaded="OnLoaded" PreviewKeyDown="OnPreviewKeyDown">
     <UserControl.InputBindings>
@@ -79,8 +80,7 @@
                     </Border>
                     <DockPanel Grid.Row="1" Margin="14" LastChildFill="False">
                         <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding TotalCount, StringFormat=Tong: {0}}"/>
-                        <Button DockPanel.Dock="Right" Content="Sau" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Style="{StaticResource FluentSecondaryButton}" Margin="8,0,0,0"/>
-                        <Button DockPanel.Dock="Right" Content="Truoc" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Style="{StaticResource FluentSecondaryButton}"/>
+                        <controls:ServerPagerControl DockPanel.Dock="Right" DataContext="{Binding}"/>
                     </DockPanel>
                 </Grid>
             </Border>

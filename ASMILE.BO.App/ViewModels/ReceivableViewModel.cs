@@ -15,6 +15,7 @@ namespace ASMILE.BO.App.ViewModels;
 public sealed partial class ReceivableViewModel : ViewModelBase
 {
     private readonly IReceivableService _service;
+    private readonly IEmailDispatchService _emailDispatchService;
     private readonly INotificationService _notification;
     private readonly IDialogService _dialog;
     private bool _isRefreshing;
@@ -78,9 +79,14 @@ public sealed partial class ReceivableViewModel : ViewModelBase
     public string StatusBarText => $"Khách hàng: {TotalCustomerCount} • Tổng còn nợ: {RemainingAmount:N0} • Quá hạn: {OverdueAmount:N0} • Cập nhật: {LastRefreshAt:HH:mm:ss} • Nguồn: SQL Server";
     private IEnumerable<ReceivableTransactionDto> DashboardTransactions => AllTransactions.Count > 0 ? AllTransactions : Transactions;
 
-    public ReceivableViewModel(IReceivableService service, INotificationService notification, IDialogService dialog)
+    public ReceivableViewModel(
+        IReceivableService service,
+        IEmailDispatchService emailDispatchService,
+        INotificationService notification,
+        IDialogService dialog)
     {
         _service = service;
+        _emailDispatchService = emailDispatchService;
         _notification = notification;
         _dialog = dialog;
         _ = RefreshAsync();
@@ -332,14 +338,66 @@ public sealed partial class ReceivableViewModel : ViewModelBase
     private async Task ReceivePaymentAsync() => await CollectAsync();
 
     [RelayCommand]
-    private async Task CreateReconciliationAsync() => await PrintAsync();
+    private async Task CreateReconciliationAsync()
+    {
+        if (SelectedSummary is null)
+        {
+            _dialog.Info("Vui lòng chọn khách hàng cần đối chiếu.", "Đối chiếu công nợ");
+            return;
+        }
+
+        // The current data contract only provides the persisted receivable
+        // transactions and summary. Do not pretend to create a customer
+        // confirmation record that has no backend storage yet; open the real
+        // detail workspace instead.
+        await OpenReconciliationDetailModalAsync();
+    }
 
     [RelayCommand]
     private async Task SendReminderAsync()
     {
-        var targetCount = OverdueCustomers.Count();
-        _dialog.Info($"Đã chuẩn bị gửi nhắc nợ cho {targetCount} khách hàng quá hạn.", "Gửi nhắc nợ");
-        await Task.CompletedTask;
+        var overdue = OverdueCustomers.ToList();
+        if (overdue.Count == 0)
+        {
+            _dialog.Info("Không có khách hàng quá hạn cần gửi nhắc nợ.", "Gửi nhắc nợ");
+            return;
+        }
+
+        var recipients = overdue
+            .Where(x => !string.IsNullOrWhiteSpace(x.Email))
+            .ToList();
+        var missingEmailCount = overdue.Count - recipients.Count;
+        var queuedCount = 0;
+        var failedCount = 0;
+
+        foreach (var customer in recipients)
+        {
+            try
+            {
+                await _emailDispatchService.QueueAsync(new EmailDispatchRequestDto
+                {
+                    Recipient = customer.Email.Trim(),
+                    Subject = $"Nhắc thanh toán công nợ - {customer.CustomerName}",
+                    Body = $"Kính gửi {customer.CustomerName},\n\n" +
+                           $"Số tiền quá hạn hiện tại: {customer.OverdueAmount:N0} VND.\n" +
+                           "Vui lòng liên hệ bộ phận kế toán để đối chiếu và thanh toán.\n\nTrân trọng.",
+                    SourceType = "ReceivableReminder"
+                }, CancellationToken.None);
+                queuedCount++;
+            }
+            catch
+            {
+                failedCount++;
+            }
+        }
+
+        var suffix = missingEmailCount > 0
+            ? $" Bỏ qua {missingEmailCount} khách chưa có email."
+            : string.Empty;
+        _dialog.Info(
+            $"Đã xếp hàng {queuedCount} email nhắc nợ vào outbox." +
+            (failedCount > 0 ? $" {failedCount} email lỗi." : string.Empty) + suffix,
+            "Gửi nhắc nợ");
     }
 
     [RelayCommand]

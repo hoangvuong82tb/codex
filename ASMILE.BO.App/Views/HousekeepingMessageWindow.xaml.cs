@@ -4,6 +4,10 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using ASMILE.BO.Application.FrontOffice.Foundation.Contexts;
+using ASMILE.BO.Application.FrontOffice.Housekeeping;
+using ASMILE.BO.Core.FrontOffice.Housekeeping;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ASMILE.BO.App.Views;
 
@@ -12,41 +16,113 @@ public partial class HousekeepingMessageWindow : Window
     private List<HskRequest> _allRequests;
     private int _currentPage;
     private const int PageSize = 20;
+    private readonly IHousekeepingBoardService? _boardService;
+    private readonly IHousekeepingWorkflowService? _workflowService;
+    private readonly IFrontOfficeExecutionContextAccessor? _executionContext;
+    private readonly IServiceScope? _serviceScope;
+    private readonly string? _initialRoomNumber;
 
-    public HousekeepingMessageWindow()
+    public HousekeepingMessageWindow(string? initialRoomNumber = null)
     {
         InitializeComponent();
+        _initialRoomNumber = initialRoomNumber;
         Owner = System.Windows.Application.Current.MainWindow;
-        _allRequests = LoadMockData();
+        var services = (System.Windows.Application.Current as App)?.Services;
+        _serviceScope = services?.CreateScope();
+        var scopedServices = _serviceScope?.ServiceProvider ?? services;
+        _boardService = scopedServices?.GetService<IHousekeepingBoardService>();
+        _workflowService = scopedServices?.GetService<IHousekeepingWorkflowService>();
+        _executionContext = scopedServices?.GetService<IFrontOfficeExecutionContextAccessor>();
+        _allRequests = new List<HskRequest>();
         _currentPage = 0;
         ShowTab(0);
         UpdateMetrics();
         ApplyFilters();
+        Loaded += async (_, _) => await LoadPersistedTasksAsync();
+        Closed += (_, _) => _serviceScope?.Dispose();
     }
 
-    private static List<HskRequest> LoadMockData() => new()
+    private async Task LoadPersistedTasksAsync()
     {
-        new("Khẩn cấp","#FEE2E2","#DC2626","HSK-001","201","Dọn phòng ngay","Khách VIP vừa check-in, cần dọn phòng cấp tốc.","Lễ tân A","TB Hiền","10:15","12:00","Mới tạo","#DBEAFE","#2563EB","⚡"),
-        new("Cao","#FFF7ED","#EA580C","HSK-002","305","Kiểm tra Minibar","Kiểm tra Minibar trước khi khách trả phòng 12:00.","Lễ tân A","TB Hoa","10:20","11:30","Đang xử lý","#FFF7ED","#EA580C","⚠"),
-        new("Bình thường","#DBEAFE","#2563EB","HSK-003","108","Bổ sung đồ dùng","Khách yêu cầu thêm 2 khăn tắm, 1 chai nước.","Lễ tân B","TB Lan","10:30","11:00","Hoàn thành","#DCFCE7","#16A34A",""),
-        new("Khẩn cấp","#FEE2E2","#DC2626","HSK-004","402","Sửa thiết bị","Điều hòa phòng 402 không mát, khách phàn nàn.","Lễ tân C","KT Tuấn","10:35","11:00","Đang xử lý","#FFF7ED","#EA580C","⚡"),
-        new("Cao","#FFF7ED","#EA580C","HSK-005","210","Kiểm tra phòng","Kiểm tra phòng trước khi khách VIP check-in lúc 14:00.","Lễ tân A","GS Mai","10:40","13:30","Chờ xác nhận","#FEF9C3","#A16207","⚠"),
-        new("Bình thường","#DBEAFE","#2563EB","HSK-006","503","Thay ga/gối","Khách yêu cầu thay toàn bộ ga gối phòng Suite.","Lễ tân B","TB Hà","10:45","12:00","Hoàn thành","#DCFCE7","#16A34A",""),
-        new("Khẩn cấp","#FEE2E2","#DC2626","HSK-007","115","Lost & Found","Khách báo mất đồng hồ trong phòng, cần kiểm tra gấp.","Lễ tân A","GS Mai","11:00","11:30","Đang xử lý","#FFF7ED","#EA580C","⚡"),
-        new("Thấp","#F3F4F6","#64748B","HSK-008","301","Khác","Khách hỏi về dịch vụ giặt là, cần tư vấn thêm.","Lễ tân C","TB Hiền","11:05","14:00","Mới tạo","#DBEAFE","#2563EB",""),
-        new("Cao","#FFF7ED","#EA580C","HSK-009","220","Dọn phòng ngay","Phòng cần tổng vệ sinh sau khi khách check-out.","Lễ tân B","TB Lan","11:10","13:00","Chờ xác nhận","#FEF9C3","#A16207",""),
-        new("Bình thường","#DBEAFE","#2563EB","HSK-010","118","Bổ sung đồ dùng","Cần bổ sung amenities: bàn chải, kem đánh răng, dầu gội.","Lễ tân A","TB Hà","11:15","12:00","Hoàn thành","#DCFCE7","#16A34A",""),
-        new("Cao","#FFF7ED","#EA580C","HSK-011","405","Kiểm tra Minibar","Kiểm tra và chốt Minibar cho khách chuẩn bị check-out.","Lễ tân C","TB Hoa","11:20","12:00","Đang xử lý","#FFF7ED","#EA580C","⚠"),
-        new("Khẩn cấp","#FEE2E2","#DC2626","HSK-012","502","Sửa thiết bị","TV phòng Suite không bật được, khách VIP phàn nàn.","Lễ tân A","KT Tuấn","11:25","11:45","Quá hạn","#FEE2E2","#DC2626","⚡"),
-        new("Bình thường","#DBEAFE","#2563EB","HSK-013","303","Thay ga/gối","Thay ga gối định kỳ cho phòng Superior.","Lễ tân B","TB Lan","11:30","14:00","Mới tạo","#DBEAFE","#2563EB",""),
-        new("Cao","#FFF7ED","#EA580C","HSK-014","106","Dọn phòng ngay","Khách sắp check-in lúc 13:00, phòng cần dọn gấp.","Lễ tân A","TB Hiền","11:35","12:30","Đang xử lý","#FFF7ED","#EA580C","⚠"),
-        new("Bình thường","#DBEAFE","#2563EB","HSK-015","401","Kiểm tra phòng","Kiểm tra định kỳ phòng Junior trước cuối ca.","Lễ tân C","GS Mai","11:40","16:00","Chờ xác nhận","#FEF9C3","#A16207",""),
-        new("Thấp","#F3F4F6","#64748B","HSK-016","205","Khác","Ghi nhận phản hồi khách về mùi phòng, cần kiểm tra.","Lễ tân B","TB Hà","11:45","15:00","Mới tạo","#DBEAFE","#2563EB",""),
-        new("Khẩn cấp","#FEE2E2","#DC2626","HSK-017","504","Lost & Found","Phát hiện ví khách bỏ quên trong tủ, cần ghi nhận.","Lễ tân A","GS Mai","11:50","12:00","Quá hạn","#FEE2E2","#DC2626","⚡"),
-        new("Cao","#FFF7ED","#EA580C","HSK-018","209","Dọn phòng ngay","Phòng VIP cần kiểm tra và setup welcome amenities.","Lễ tân A","TB Hiền","11:55","14:00","Đang xử lý","#FFF7ED","#EA580C","⚠"),
-        new("Bình thường","#DBEAFE","#2563EB","HSK-019","310","Bổ sung đồ dùng","Thêm nước uống cho phòng Superior.","Lễ tân C","TB Hoa","12:00","13:00","Hoàn thành","#DCFCE7","#16A34A",""),
-        new("Cao","#FFF7ED","#EA580C","HSK-020","123","Sửa thiết bị","Vòi sen phòng Standard bị rò rỉ nước.","Lễ tân B","KT Tuấn","12:05","14:00","Chờ xác nhận","#FEF9C3","#A16207","⚠"),
-    };
+        if (_boardService is null || _executionContext?.Current is not { } context)
+        {
+            _allRequests.Clear();
+            ApplyFilters();
+            FooterTotal.Text = "Chưa cấu hình được Housekeeping service và property context dữ liệu thật.";
+            return;
+        }
+
+        try
+        {
+            var tasks = await _boardService.GetTaskBoardAsync(
+                context.Property.PropertyId.Value, null, null, null, CancellationToken.None);
+            _allRequests = tasks.Select(MapPersistedTask).ToList();
+            if (!string.IsNullOrWhiteSpace(_initialRoomNumber))
+                SearchBox.Text = _initialRoomNumber.Trim();
+            ApplyFilters();
+            FooterTotal.Text = $"Đã tải {_allRequests.Count:N0} yêu cầu nhà buồng từ dữ liệu thật.";
+        }
+        catch (Exception ex)
+        {
+            _allRequests.Clear();
+            ApplyFilters();
+            FooterTotal.Text = $"Không tải được yêu cầu nhà buồng thật: {ex.Message}";
+        }
+    }
+
+    private static HskRequest MapPersistedTask(HkTaskBoardDto task)
+    {
+        var priority = task.Priority switch
+        {
+            RoomPriority.VIP or RoomPriority.ManagerPriority => ("Khẩn cấp", "#FEE2E2", "#DC2626", "⚡"),
+            RoomPriority.ArrivingToday or RoomPriority.EarlyCheckIn or RoomPriority.LateCheckOut => ("Cao", "#FFF7ED", "#EA580C", "⚠"),
+            _ => ("Bình thường", "#DBEAFE", "#2563EB", "")
+        };
+        var status = task.TaskStatus switch
+        {
+            HousekeepingTaskStatus.Pending => ("Mới tạo", "#DBEAFE", "#2563EB"),
+            HousekeepingTaskStatus.Assigned or HousekeepingTaskStatus.Accepted => ("Chờ xác nhận", "#FEF9C3", "#A16207"),
+            HousekeepingTaskStatus.Cleaning or HousekeepingTaskStatus.Paused => ("Đang xử lý", "#FFF7ED", "#EA580C"),
+            HousekeepingTaskStatus.WaitingInspection => ("Chờ xác nhận", "#FEF9C3", "#A16207"),
+            HousekeepingTaskStatus.Completed => ("Hoàn thành", "#DCFCE7", "#16A34A"),
+            HousekeepingTaskStatus.Cancelled => ("Đã hủy", "#F1F5F9", "#64748B"),
+            _ => (task.TaskStatus.ToString(), "#F1F5F9", "#64748B")
+        };
+        var type = task.TaskType switch
+        {
+            HousekeepingTaskType.DepartureClean => "Dọn phòng ngay",
+            HousekeepingTaskType.StayoverService => "Thay ga/gối",
+            HousekeepingTaskType.DeepClean => "Kiểm tra phòng",
+            HousekeepingTaskType.Inspection => "Kiểm tra phòng",
+            HousekeepingTaskType.MaintenanceFollowUp => "Sửa thiết bị",
+            HousekeepingTaskType.VIPPreparation => "Dọn phòng ngay",
+            HousekeepingTaskType.ExtraBed => "Bổ sung đồ dùng",
+            _ => "Khác"
+        };
+        var deadline = task.StartedAt?.AddMinutes(task.EstimatedMinutesLeft ?? 0).ToString("HH:mm") ?? "—";
+        var alert = task.IsOverdue ? "⚡" : task.IsVip ? "★" : "";
+        return new HskRequest(
+            priority.Item1,
+            priority.Item2,
+            priority.Item3,
+            task.TaskNumber,
+            task.RoomNumber,
+            type,
+            $"Tác vụ {type} cho phòng {task.RoomNumber}",
+            "Housekeeping",
+            task.AssignedName ?? "Chưa phân công",
+            task.StartedAt?.ToLocalTime().ToString("HH:mm") ?? "—",
+            deadline,
+            status.Item1,
+            status.Item2,
+            status.Item3,
+            alert)
+        {
+            TaskId = task.TaskId,
+            AssignedHousekeeperId = task.AssignedHousekeeperId,
+            TaskStatus = task.TaskStatus
+        };
+    }
 
     private void ApplyFilters()
     {
@@ -101,51 +177,18 @@ public partial class HousekeepingMessageWindow : Window
 
     private void ShowChat(HskRequest r)
     {
-        var msgs = new[] {
-            (r.Assignee, "Nhà buồng", "10:35", "Đã nhận yêu cầu, đang kiểm tra."),
-            ("Lễ tân A", "Lễ tân", "10:38", "Cảm ơn, khách đang đợi."),
-            (r.Assignee, "Nhà buồng", "10:42", r.Priority == "Khẩn cấp" ? "Đã xong, vui lòng kiểm tra lại." : "Đang thực hiện, khoảng 15 phút nữa.")
-        };
-        var sp = new StackPanel();
-        foreach (var (who, dept, time, text) in msgs)
-        {
-            var isSelf = who.StartsWith("Lễ"); var align = isSelf ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-            var bg = isSelf ? "#DBEAFE" : "#F3F4F6"; var fg = isSelf ? "#1E40AF" : "#1F2937";
-            sp.Children.Add(new Border { Background = Cb(bg), CornerRadius = new CornerRadius(10), Padding = new Thickness(12, 8, 12, 8), Margin = new Thickness(isSelf ? 40 : 0, 0, isSelf ? 0 : 40, 6), HorizontalAlignment = align, Child = new StackPanel { Children = { T11($"{who} · {dept}", "#64748B", true), T12(text, fg, true), T10(time, "#94A3B8", false) } } });
-        }
-        TabContent.Children.Add(S("Trao đổi", sp));
+        TabContent.Children.Add(S("Trao đổi", R("Dữ liệu hội thoại", "Chưa có lịch sử trao đổi thật trong API Housekeeping"), R("Người phụ trách", r.Assignee), R("Trạng thái", r.Status)));
     }
 
     private void ShowHistory(HskRequest r)
     {
-        var events = new List<(string, string, string, string, string)> {
-            ("10:15","Lễ tân A","Lễ tân","Tạo yêu cầu",$"Yêu cầu {r.RequestType} cho phòng {r.RoomNumber}"),
-            ("10:20","GS Mai","Nhà buồng","Phân công",$"Phân công {r.Assignee} xử lý"),
-            ("10:25",r.Assignee,"Nhà buồng","Tiếp nhận","Đã nhận và bắt đầu xử lý"),
-            (r.Priority=="Khẩn cấp"?"10:35":"10:45",r.Assignee,"Nhà buồng","Cập nhật","Đang thực hiện"+(r.Status=="Hoàn thành"?", sắp xong":"...")),
-        };
-        if (r.Status == "Hoàn thành") events.Add(("10:50", r.Assignee, "Nhà buồng", "Hoàn thành", "Đã xử lý xong, chờ xác nhận."));
-        var sp = new StackPanel();
-        foreach (var (time, who, dept, action, detail) in events)
-        {
-            var grid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(55) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition());
-            grid.Children.Add(new TextBlock { Text = time, FontSize = 11, Foreground = C("#94A3B8"), VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) });
-            var dot = new Border { Width = 10, Height = 10, CornerRadius = new CornerRadius(5), Background = Cb("#2F6BFF"), Margin = new Thickness(0, 4, 0, 0), HorizontalAlignment = HorizontalAlignment.Center }; Grid.SetColumn(dot, 1); grid.Children.Add(dot);
-            var ds = new StackPanel(); Grid.SetColumn(ds, 2); ds.Children.Add(T12(action, "#17365D", true)); ds.Children.Add(T11($"{who} · {dept}", "#64748B", false)); ds.Children.Add(T11(detail, "#6F8198", false)); grid.Children.Add(ds);
-            sp.Children.Add(grid);
-        }
-        TabContent.Children.Add(S("Lịch sử", sp));
+        TabContent.Children.Add(S("Lịch sử", R("Thời điểm tạo", r.CreatedAt), R("Trạng thái hiện tại", r.Status), R("Chi tiết lịch sử", "Chưa có API audit trail Housekeeping để hiển thị các mốc thật")));
     }
 
     private void ShowRoom(HskRequest r)
     {
-        var rt = r.RoomNumber.StartsWith("5") ? "Suite" : r.RoomNumber.StartsWith("4") ? "Junior" : r.RoomNumber.StartsWith("3") ? "Superior" : r.RoomNumber.StartsWith("2") ? "Deluxe" : "Standard";
-        var guest = r.RoomNumber switch { "201" => "Nguyễn Văn An", "305" => "Mai Thị Mỹ", "402" => "Phạm Minh Đức", _ => "—" };
-        TabContent.Children.Add(S("Phòng", R("Số phòng", r.RoomNumber), R("Hạng phòng", rt), R("Tầng", r.RoomNumber[..1]), R("Trạng thái NB", r.Status == "Hoàn thành" ? "Sạch" : "Đang xử lý")));
-        TabContent.Children.Add(S("Khách", R("Tên", guest), R("VIP", r.RoomNumber is "201" or "502" ? "★ Có" : "Không")));
+        TabContent.Children.Add(S("Phòng", R("Số phòng", r.RoomNumber), R("Hạng phòng", "Chưa có dữ liệu room master trong response tác vụ"), R("Tầng", "Chưa có dữ liệu"), R("Trạng thái NB", r.Status)));
+        TabContent.Children.Add(S("Khách", R("Tên", "Chưa có dữ liệu khách trong response tác vụ"), R("VIP", "Chưa có dữ liệu")));
     }
 
     // Helpers
@@ -161,17 +204,278 @@ public partial class HousekeepingMessageWindow : Window
     private void OnFilterChanged(object s, SelectionChangedEventArgs e) => ApplyFilters();
     private void OnQuickFilterChanged(object s, RoutedEventArgs e) => ApplyFilters();
     private void OnClearFilter(object s, RoutedEventArgs e) { SearchBox.Text = ""; FloorFilter.SelectedIndex = 0; TypeFilter.SelectedIndex = 0; PriorityFilter.SelectedIndex = 0; StatusFilter.SelectedIndex = 0; ChkUrgent.IsChecked = false; ChkOverdue.IsChecked = false; ApplyFilters(); }
-    private void OnRefresh(object s, RoutedEventArgs e) => ApplyFilters();
+    private async void OnRefresh(object s, RoutedEventArgs e) => await LoadPersistedTasksAsync();
     private void OnPrevPage(object s, RoutedEventArgs e) { if (_currentPage > 0) { _currentPage--; ApplyFilters(); } }
     private void OnNextPage(object s, RoutedEventArgs e) { _currentPage++; ApplyFilters(); }
-    private void OnCreateRequest(object s, RoutedEventArgs e) => MessageBox.Show("═══ Tạo yêu cầu nhà buồng ═══\n\nChọn phòng: (click để chọn nhiều)\nLoại: (chọn)\nƯu tiên: (chọn)\nNội dung: (nhập)\n\nNút: [Hủy] [Lưu nháp] [Gửi yêu cầu]\n\nMockup: yêu cầu sẽ được thêm vào danh sách.", "Tạo yêu cầu", MessageBoxButton.OK, MessageBoxImage.Information);
-    private void OnUpdateProgress(object s, RoutedEventArgs e) => Msg("Cập nhật tiến độ");
-    private void OnAssign(object s, RoutedEventArgs e) => Msg("Phân công");
-    private void OnComplete(object s, RoutedEventArgs e) => Msg("Hoàn thành");
-    private void OnCancelRequest(object s, RoutedEventArgs e) => Msg("Hủy yêu cầu");
+    private async void OnCreateRequest(object s, RoutedEventArgs e)
+    {
+        if (_boardService is null || _workflowService is null || _executionContext?.Current is not { } context)
+        {
+            Msg("Chưa cấu hình được Housekeeping service và property context dữ liệu thật");
+            return;
+        }
+
+        IReadOnlyList<HkRoomSnapshot> rooms;
+        try
+        {
+            rooms = await _boardService.GetRoomSnapshotAsync(context.Property.PropertyId.Value, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Msg("Không tải được danh sách phòng thật: " + ex.Message);
+            return;
+        }
+
+        if (rooms.Count == 0)
+        {
+            Msg("Chưa có phòng thật để tạo yêu cầu Housekeeping.");
+            return;
+        }
+
+        var dialog = new Window
+        {
+            Title = "Tạo yêu cầu nhà buồng",
+            Width = 440,
+            Height = 330,
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false
+        };
+        var roomBox = new ComboBox { ItemsSource = rooms, DisplayMemberPath = nameof(HkRoomSnapshot.RoomNumber), SelectedIndex = 0, Margin = new Thickness(0, 4, 0, 10) };
+        var typeBox = new ComboBox { ItemsSource = Enum.GetValues<HousekeepingTaskType>(), SelectedIndex = 0, Margin = new Thickness(0, 4, 0, 10) };
+        var priorityBox = new ComboBox { ItemsSource = Enum.GetValues<RoomPriority>(), SelectedIndex = 0, Margin = new Thickness(0, 4, 0, 14) };
+        var save = new Button { Content = "Tạo yêu cầu", IsDefault = true, Padding = new Thickness(16, 6, 16, 6), HorizontalAlignment = HorizontalAlignment.Right };
+        save.Click += (_, _) =>
+        {
+            if (roomBox.SelectedItem is null || typeBox.SelectedItem is null || priorityBox.SelectedItem is null)
+                return;
+            dialog.DialogResult = true;
+            dialog.Close();
+        };
+
+        var panel = new StackPanel { Margin = new Thickness(18) };
+        panel.Children.Add(new TextBlock { Text = "Phòng", FontWeight = FontWeights.SemiBold });
+        panel.Children.Add(roomBox);
+        panel.Children.Add(new TextBlock { Text = "Loại yêu cầu", FontWeight = FontWeights.SemiBold });
+        panel.Children.Add(typeBox);
+        panel.Children.Add(new TextBlock { Text = "Ưu tiên", FontWeight = FontWeights.SemiBold });
+        panel.Children.Add(priorityBox);
+        panel.Children.Add(save);
+        dialog.Content = panel;
+
+        if (dialog.ShowDialog() != true
+            || roomBox.SelectedItem is not HkRoomSnapshot room
+            || typeBox.SelectedItem is not HousekeepingTaskType taskType
+            || priorityBox.SelectedItem is not RoomPriority priority)
+            return;
+
+        var result = await _workflowService.CreateTaskAsync(
+            new HkTaskCreateRequest(context.Property.PropertyId.Value, room.RoomId, taskType, priority),
+            CancellationToken.None);
+        if (result.IsFailure)
+        {
+            Msg(result.Error?.Message ?? "Không tạo được yêu cầu Housekeeping thật");
+            return;
+        }
+
+        await LoadPersistedTasksAsync();
+        Msg("Đã tạo yêu cầu Housekeeping trong CSDL.");
+    }
+    private async void OnUpdateProgress(object s, RoutedEventArgs e)
+    {
+        if (RequestGrid.SelectedItem is not HskRequest request)
+        {
+            Msg("Vui lòng chọn yêu cầu");
+            return;
+        }
+
+        var action = request.TaskStatus switch
+        {
+            HousekeepingTaskStatus.Assigned => HkTaskAction.Accept,
+            HousekeepingTaskStatus.Accepted => HkTaskAction.StartCleaning,
+            HousekeepingTaskStatus.Paused => HkTaskAction.ResumeCleaning,
+            HousekeepingTaskStatus.WaitingInspection => HkTaskAction.ApproveInspection,
+            _ => (HkTaskAction?)null
+        };
+        if (action is null)
+        {
+            Msg(request.TaskStatus == HousekeepingTaskStatus.Cleaning
+                ? "Yêu cầu đang được xử lý; dùng Hoàn thành khi đã dọn xong"
+                : "Không có bước tiến độ hợp lệ");
+            return;
+        }
+
+        await ExecuteTaskActionAsync(request, action.Value);
+    }
+
+    private async void OnAssign(object s, RoutedEventArgs e)
+    {
+        if (RequestGrid.SelectedItem is not HskRequest request)
+        {
+            Msg("Vui lòng chọn yêu cầu Housekeeping.");
+            return;
+        }
+
+        if (_workflowService is null)
+        {
+            Msg("Chưa cấu hình workflow Housekeeping thật.");
+            return;
+        }
+
+        IReadOnlyList<HkAssigneeDto> staff;
+        try
+        {
+            staff = await _workflowService.GetActiveAssigneesAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Msg("Không tải được danh sách nhân sự thật: " + ex.Message);
+            return;
+        }
+
+        if (staff.Count == 0)
+        {
+            Msg("Chưa có nhân sự Housekeeping đang hoạt động để phân công.");
+            return;
+        }
+
+        var dialog = new Window
+        {
+            Title = $"Phân công {request.RequestId}",
+            Width = 460,
+            Height = 220,
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false
+        };
+        var staffBox = new ComboBox
+        {
+            ItemsSource = staff,
+            DisplayMemberPath = nameof(HkAssigneeDto.DisplayName),
+            SelectedIndex = Math.Max(0, staff.ToList().FindIndex(person => person.UserId == request.AssignedHousekeeperId)),
+            Margin = new Thickness(0, 6, 0, 16)
+        };
+        var save = new Button
+        {
+            Content = "Phân công dữ liệu thật",
+            IsDefault = true,
+            Padding = new Thickness(16, 6, 16, 6),
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        save.Click += (_, _) =>
+        {
+            if (staffBox.SelectedItem is HkAssigneeDto)
+            {
+                dialog.DialogResult = true;
+                dialog.Close();
+            }
+        };
+        var panel = new StackPanel { Margin = new Thickness(18) };
+        panel.Children.Add(new TextBlock { Text = $"Yêu cầu {request.RequestId} · phòng {request.RoomNumber}", FontWeight = FontWeights.SemiBold });
+        panel.Children.Add(new TextBlock { Text = "Nhân viên Housekeeping", Margin = new Thickness(0, 12, 0, 0) });
+        panel.Children.Add(staffBox);
+        panel.Children.Add(save);
+        dialog.Content = panel;
+
+        if (dialog.ShowDialog() != true || staffBox.SelectedItem is not HkAssigneeDto selected)
+            return;
+
+        var assignmentAction = request.AssignedHousekeeperId.HasValue
+            ? HkTaskAction.Reassign
+            : HkTaskAction.Assign;
+        await ExecuteTaskActionAsync(request, assignmentAction, selected.UserId);
+    }
+
+    private async void OnComplete(object s, RoutedEventArgs e)
+    {
+        if (RequestGrid.SelectedItem is not HskRequest request)
+        {
+            Msg("Vui lòng chọn yêu cầu");
+            return;
+        }
+
+        var action = request.TaskStatus switch
+        {
+            HousekeepingTaskStatus.Cleaning or HousekeepingTaskStatus.Paused => HkTaskAction.CompleteCleaning,
+            HousekeepingTaskStatus.WaitingInspection => HkTaskAction.ApproveInspection,
+            _ => (HkTaskAction?)null
+        };
+        if (action is null)
+        {
+            Msg("Yêu cầu chưa ở trạng thái có thể hoàn thành");
+            return;
+        }
+
+        await ExecuteTaskActionAsync(request, action.Value);
+    }
+
+    private async void OnCancelRequest(object s, RoutedEventArgs e)
+    {
+        if (RequestGrid.SelectedItem is HskRequest request)
+            await ExecuteTaskActionAsync(request, HkTaskAction.Cancel);
+        else
+            Msg("Vui lòng chọn yêu cầu");
+    }
+
     private void OnMoreActions(object s, RoutedEventArgs e) => Msg("Thao tác khác");
-    private void Msg(string a) { if (RequestGrid.SelectedItem is HskRequest r) MessageBox.Show($"Mockup: {a} cho {r.RequestId}. Chưa kết nối backend.", "Nhắn nhà buồng", MessageBoxButton.OK, MessageBoxImage.Information); else MessageBox.Show("Vui lòng chọn yêu cầu.", "Nhắn nhà buồng", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    private async Task ExecuteTaskActionAsync(HskRequest request, HkTaskAction action, Guid? assignedUserId = null)
+    {
+        if (_workflowService is null || _executionContext?.Current is not { } context)
+        {
+            Msg("Chưa cấu hình workflow Housekeeping và property context dữ liệu thật");
+            return;
+        }
+
+        try
+        {
+            var result = await _workflowService.ExecuteTaskAsync(
+                new HkTaskActionRequest(
+                    context.Property.PropertyId.Value,
+                    request.TaskId,
+                    action,
+                    assignedUserId ?? request.AssignedHousekeeperId),
+                CancellationToken.None);
+            if (result.IsFailure)
+            {
+                Msg(result.Error?.Message ?? "Không thực hiện được thao tác trên dữ liệu thật");
+                return;
+            }
+
+            await LoadPersistedTasksAsync();
+        }
+        catch (Exception ex)
+        {
+            Msg("Không thể cập nhật Housekeeping thật: " + ex.Message);
+        }
+    }
+
+    private void Msg(string a)
+    {
+        MessageBox.Show(a, "Nhắn nhà buồng", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
     private void OnClose(object s, RoutedEventArgs e) => Close();
 }
 
-internal record HskRequest(string Priority, string PriorityBadge, string PriorityColor, string RequestId, string RoomNumber, string RequestType, string Content, string Creator, string Assignee, string CreatedAt, string Deadline, string Status, string StatusBadge, string StatusColor, string Alert);
+internal record HskRequest(
+    string Priority,
+    string PriorityBadge,
+    string PriorityColor,
+    string RequestId,
+    string RoomNumber,
+    string RequestType,
+    string Content,
+    string Creator,
+    string Assignee,
+    string CreatedAt,
+    string Deadline,
+    string Status,
+    string StatusBadge,
+    string StatusColor,
+    string Alert)
+{
+    public Guid TaskId { get; init; }
+    public Guid? AssignedHousekeeperId { get; init; }
+    public HousekeepingTaskStatus TaskStatus { get; init; }
+}

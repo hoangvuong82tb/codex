@@ -53,7 +53,7 @@ public partial class StockReceiptDetailModuleViewModel : ObservableObject
             "#3B6EF5",
             isPinned: false,
             showOnDesktop: false,
-            iconPath: @"D:\ASMILE-BO\Windows_Icon\Icons\applications\import.ico");
+            iconPath: ApplicationAssetPaths.Icon(@"Icons\applications\import.ico"));
 
         var previewVm = new StockReceiptPrintPreviewModuleViewModel(
             previewModuleKey,

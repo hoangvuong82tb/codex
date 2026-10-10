@@ -3,60 +3,203 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using ASMILE.BO.App.Controls;
+using ASMILE.BO.App.ViewModels;
+using ASMILE.BO.Application.FrontOffice.Foundation.Contexts;
+using ASMILE.BO.Application.FrontOffice.Folio;
+using ASMILE.BO.Application.FrontOffice.Guest;
+using ASMILE.BO.Application.FrontOffice.Housekeeping;
+using ASMILE.BO.Application.FrontOffice.Stay;
+using ASMILE.BO.Core.FrontOffice.Guest;
+using ASMILE.BO.Core.FrontOffice.Stay;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ASMILE.BO.App.Views;
 
 public partial class TodayDeparturesWindow : Window
 {
+    private readonly IServiceScope? _dataScope;
     private List<DepartureRow> _allDepartures;
-    private int _currentPage;
-    private const int PageSize = 20;
+    private readonly IHotelStayRepository? _stayRepository;
+    private readonly IHotelFolioRepository? _folioRepository;
+    private readonly IGuestProfileRepository? _guestProfileRepository;
+    private readonly IHousekeepingBoardService? _housekeepingBoardService;
+    private readonly IFrontOfficeExecutionContextAccessor? _executionContext;
+    private readonly TablePagerViewModel<DepartureRow> _pager = new() { ItemName = "khách", SelectedPageSize = "20 / trang" };
+    private readonly Dictionary<Guid, string> _guestDocumentsByProfile = new();
 
     public TodayDeparturesWindow()
     {
         InitializeComponent();
         Owner = System.Windows.Application.Current.MainWindow;
         BusinessDatePicker.SelectedDate = System.DateTime.Today;
-        _allDepartures = LoadMockData();
-        _currentPage = 0;
+        var rootServices = (System.Windows.Application.Current as App)?.Services;
+        _dataScope = rootServices?.CreateScope();
+        var services = _dataScope?.ServiceProvider;
+        _stayRepository = services?.GetService<IHotelStayRepository>();
+        _folioRepository = services?.GetService<IHotelFolioRepository>();
+        _guestProfileRepository = services?.GetService<IGuestProfileRepository>();
+        _housekeepingBoardService = services?.GetService<IHousekeepingBoardService>();
+        _executionContext = services?.GetService<IFrontOfficeExecutionContextAccessor>();
+        _allDepartures = new List<DepartureRow>();
+        AttachPager();
         ShowTab(0);
         UpdateMetrics();
         ApplyFilters();
+        Loaded += async (_, _) => await LoadPersistedAsync();
+        Closed += (_, _) => _dataScope?.Dispose();
     }
 
-    private static List<DepartureRow> LoadMockData() => new()
+    private async Task LoadPersistedAsync()
     {
-        new("Dự kiến đi","#DBEAFE","#2563EB","Đã cân","#DCFCE7","#16A34A","201","Nguyễn Văn An","24/07","12:00","3","Deluxe","0","★","⚡"),
-        new("Đã Check-out","#DCFCE7","#16A34A","Đã cân","#DCFCE7","#16A34A","202","Trần Thị Bình","24/07","10:00","4","Deluxe","0","",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Còn phải thu","#FEF9C3","#A16207","301","Lê Hoàng Cường","23/07","12:00","4","Superior","1.2M","","⚡"),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Vượt hạn mức","#FEE2E2","#DC2626","105","Vũ Quang Phúc","20/07","14:00","7","Standard","3.6M","","⚡⚡"),
-        new("Trả muộn","#FEE2E2","#DC2626","Còn phải thu","#FEF9C3","#A16207","210","Bùi Thanh Hà","15/07","18:00","11","Deluxe","5.8M","★","⚡⚡"),
-        new("Đã Check-out","#DCFCE7","#16A34A","Có tiền dư","#F3E8FF","#7C3AED","108","Đỗ Lan Khánh","14/07","09:00","12","Standard","-500K","",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Đã cân","#DCFCE7","#16A34A","302","Phạm Minh Đức","25/07","12:00","3","Superior","0","",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Chưa kiểm tra","#FFF7ED","#EA580C","401","Hoàng Thị Em","24/07","15:00","2","Junior","0","","⚡"),
-        new("Đã Check-out","#DCFCE7","#16A34A","Đã cân","#DCFCE7","#16A34A","501","Lý Văn Long","19/07","08:00","8","Suite","0","★",""),
-        new("Trả muộn","#FEE2E2","#DC2626","Còn phải thu","#FEF9C3","#A16207","305","Mai Thị Mỹ","18/07","20:00","9","Superior","4.2M","","⚡⚡"),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Đã cân","#DCFCE7","#16A34A","403","Trịnh Hoàng Nam","26/07","12:00","4","Junior","0","",""),
-        new("Gia hạn","#FFF7ED","#EA580C","Đã cân","#DCFCE7","#16A34A","203","Hồ Quang Ổn","22/07","12:00","8","Deluxe","0","",""),
-        new("Đã Check-out","#DCFCE7","#16A34A","Đã cân","#DCFCE7","#16A34A","402","Ngô Đức Inh","21/07","11:00","8","Junior","0","",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Còn phải thu","#FEF9C3","#A16207","118","Hà Thị Sen","24/07","12:00","3","Standard","800K","","⚡"),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Chờ Cty TT","#DBEAFE","#2563EB","503","Chu Văn Rạng","25/07","12:00","6","Suite","2.4M","★","⚡"),
-        new("Trả muộn","#FEE2E2","#DC2626","Vượt hạn mức","#FEE2E2","#DC2626","404","Vi Văn Tâm","12/07","22:00","16","Junior","8.1M","","⚡⚡⚡"),
-        new("Đã Check-out","#DCFCE7","#16A34A","Đã cân","#DCFCE7","#16A34A","106","Giàng Thị Út","21/07","07:00","6","Standard","0","",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Đã cân","#DCFCE7","#16A34A","204","Tô Văn Phú","26/07","14:00","2","Deluxe","0","",""),
-        new("Đã Check-out","#DCFCE7","#16A34A","Có tiền dư","#F3E8FF","#7C3AED","405","Phan Thị Quỳnh","20/07","10:00","10","Junior","-1.2M","★",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Đã cân","#DCFCE7","#16A34A","502","Đặng Kim Giang","27/07","12:00","2","Suite","0","",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Chưa kiểm tra","#FFF7ED","#EA580C","303","Bùi Thanh Hải","23/07","12:00","4","Superior","0","","⚡"),
-        new("Đã Check-out","#DCFCE7","#16A34A","Đã cân","#DCFCE7","#16A34A","119","Ngô Quang Hiếu","25/07","08:00","3","Standard","0","",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Còn phải thu","#FEF9C3","#A16207","205","Lê Thị Kim","22/07","12:00","5","Deluxe","1.8M","","⚡"),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Đã cân","#DCFCE7","#16A34A","306","Trần Hoàng Long","26/07","12:00","3","Superior","0","",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Còn phải thu","#FEF9C3","#A16207","120","Đỗ Quang Khải","26/07","15:00","2","Standard","600K","","⚡"),
-        new("Đã Check-out","#DCFCE7","#16A34A","Đã cân","#DCFCE7","#16A34A","307","Phan Văn Hùng","25/07","09:00","4","Superior","0","",""),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Vượt hạn mức","#FEE2E2","#DC2626","504","Lê Thanh Sơn","21/07","12:00","6","Suite","4.5M","","⚡⚡"),
-        new("Dự kiến đi","#DBEAFE","#2563EB","Đã cân","#DCFCE7","#16A34A","407","Trịnh Thị Mai","26/07","12:00","3","Junior","0","",""),
-        new("Đã Check-out","#DCFCE7","#16A34A","Đã cân","#DCFCE7","#16A34A","308","Nguyễn Đức Thắng","24/07","10:00","2","Superior","0","",""),
-        new("Trả muộn","#FEE2E2","#DC2626","Còn phải thu","#FEF9C3","#A16207","209","Bùi Quốc Anh","20/07","21:00","7","Deluxe","2.1M","★","⚡⚡"),
-    };
+        if (_stayRepository is null || _executionContext?.Current is null)
+        {
+            ApplyFilters();
+            FooterTotal.Text = "Chưa cấu hình được Stay service và property context dữ liệu thật.";
+            return;
+        }
+
+        try
+        {
+            var context = _executionContext.Current;
+            IReadOnlyList<HkRoomSnapshot> roomSnapshots = Array.Empty<HkRoomSnapshot>();
+            if (_housekeepingBoardService is not null)
+            {
+                try
+                {
+                    roomSnapshots = await _housekeepingBoardService.GetRoomSnapshotAsync(
+                        context.Property.PropertyId.Value,
+                        CancellationToken.None);
+                }
+                catch
+                {
+                    // Keep departures visible when the optional room snapshot is unavailable.
+                }
+            }
+
+            var roomByNumber = roomSnapshots
+                .Where(x => !string.IsNullOrWhiteSpace(x.RoomNumber))
+                .GroupBy(x => x.RoomNumber, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+            var stays = await _stayRepository.GetExpectedDeparturesAsync(context.Property.PropertyId.Value, context.BusinessDate.BusinessDate, CancellationToken.None);
+            _allDepartures = new List<DepartureRow>();
+            _guestDocumentsByProfile.Clear();
+            foreach (var stay in stays)
+            {
+                HotelFolioDto? folio = null;
+                FolioLedgerDto? ledger = null;
+                if (_folioRepository is not null)
+                {
+                    try
+                    {
+                        folio = await _folioRepository.GetByStayAsync(context.Property.PropertyId.Value, stay.HotelStayId, CancellationToken.None);
+                        if (folio is not null)
+                            ledger = await _folioRepository.GetLedgerAsync(context.Property.PropertyId.Value, folio.HotelFolioId, CancellationToken.None);
+                    }
+                    catch { /* Keep the departure visible without inventing a balance. */ }
+                }
+                GuestProfileDto? profile = null;
+                if (_guestProfileRepository is not null && stay.GuestId is Guid guestId)
+                {
+                    try
+                    {
+                        profile = await _guestProfileRepository.GetDtoAsync(context.Property.PropertyId.Value, guestId, CancellationToken.None);
+                        var fullProfile = await _guestProfileRepository.GetAsync(context.Property.PropertyId.Value, guestId, CancellationToken.None);
+                        _guestDocumentsByProfile[guestId] = fullProfile?.Documents.Count > 0
+                            ? string.Join(" · ", fullProfile.Documents.Select(x => $"{x.DocumentType}: {x.DocumentNumber}"))
+                            : "Chưa có giấy tờ thật";
+                    }
+                    catch { /* Keep the departure visible when the optional profile query fails. */ }
+                }
+                roomByNumber.TryGetValue(stay.RoomNumber, out var roomSnapshot);
+                var documents = stay.GuestId is Guid guestIdValue && _guestDocumentsByProfile.TryGetValue(guestIdValue, out var summary)
+                    ? summary
+                    : "Chưa tải được hồ sơ giấy tờ thật";
+                _allDepartures.Add(MapPersistedStay(stay, folio, ledger, profile, roomSnapshot, documents));
+            }
+            ApplyFilters();
+            FooterTotal.Text = $"Đã tải {_allDepartures.Count:N0} khách dự kiến đi từ dữ liệu Stay thật.";
+        }
+        catch (Exception ex)
+        {
+            _allDepartures = new List<DepartureRow>();
+            ApplyFilters();
+            FooterTotal.Text = $"Không tải được khách đi thật: {ex.Message}";
+        }
+    }
+
+    private static DepartureRow MapPersistedStay(
+        HotelStayDto stay,
+        HotelFolioDto? folio,
+        FolioLedgerDto? ledger,
+        GuestProfileDto? profile,
+        HkRoomSnapshot? roomSnapshot,
+        string documentSummary)
+    {
+        var checkedOut = stay.ActualCheckOutAtUtc.HasValue || stay.Status is HotelStayStatus.CheckedOut or HotelStayStatus.Completed;
+        var status = checkedOut ? ("Đã Check-out", "#DCFCE7", "#16A34A") : ("Dự kiến đi", "#DBEAFE", "#2563EB");
+        var nights = Math.Max(1, stay.ScheduledDepartureDate.DayNumber - stay.ScheduledArrivalDate.DayNumber);
+        var balance = folio is null ? "Chưa kiểm tra" : folio.OutstandingBalance <= 0 ? "0" : folio.OutstandingBalance.ToString("N0");
+        var folioStatus = folio is null ? "Chưa kiểm tra" : folio.OutstandingBalance > 0 ? "Còn phải thu" : "Bình thường";
+        var roomAlert = roomSnapshot is null
+            ? string.Empty
+            : IsRoomReady(roomSnapshot)
+                ? string.Empty
+                : "⚡";
+        var ledgerAlert = ledger is null && folio is not null ? "⚠" : string.Empty;
+        var alerts = roomAlert + ledgerAlert + (folio is not null && folio.OutstandingBalance > 0 ? "⚠" : string.Empty);
+        return new DepartureRow(
+            status.Item1,
+            status.Item2,
+            status.Item3,
+            folioStatus,
+            "#FEF9C3",
+            "#A16207",
+            stay.RoomNumber,
+            stay.GuestName,
+            stay.ScheduledArrivalDate.ToString("dd/MM"),
+            "—",
+            nights.ToString(),
+            stay.RoomTypeCode,
+            balance,
+            profile is not null && profile.VipLevel != VipLevel.Normal ? "★" : "",
+            alerts,
+            stay.HotelStayId,
+            stay.RowVersion,
+            folio?.FolioNumber,
+            profile?.Phone,
+            profile?.Email,
+            profile?.Nationality,
+            profile?.CompanyName,
+            profile?.VipLevel.ToString(),
+            profile?.Notes,
+            stay.Adults + stay.Children,
+            roomSnapshot?.OperationalStatus,
+            roomSnapshot?.HousekeepingStatus,
+            folio?.TotalCharges,
+            ledger?.Entries is null ? null : SummarizeLedger(ledger.Entries),
+            documentSummary);
+    }
+
+    private static bool IsRoomReady(HkRoomSnapshot snapshot)
+        => !IsProblemStatus(snapshot.OperationalStatus)
+           && !IsProblemStatus(snapshot.HousekeepingStatus);
+
+    private static bool IsProblemStatus(string? status)
+        => string.IsNullOrWhiteSpace(status)
+           || status.Contains("Dirty", StringComparison.OrdinalIgnoreCase)
+           || status.Contains("OutOf", StringComparison.OrdinalIgnoreCase)
+           || status.Contains("Maintenance", StringComparison.OrdinalIgnoreCase)
+           || status.Contains("Blocked", StringComparison.OrdinalIgnoreCase);
+
+    private static string SummarizeLedger(IReadOnlyList<HotelFolioEntryDto> entries)
+    {
+        if (entries.Count == 0) return "Không có giao dịch";
+        return string.Join(" · ", entries
+            .GroupBy(x => x.EntryType)
+            .OrderBy(x => x.Key.ToString())
+            .Select(x => $"{x.Key}: {x.Sum(y => y.Amount):N0}"));
+    }
 
     private void ApplyFilters()
     {
@@ -70,13 +213,13 @@ public partial class TodayDeparturesWindow : Window
         if (ChkVip.IsChecked == true) f = f.Where(r => r.Vip == "★");
         if (ChkNeedCheck.IsChecked == true) f = f.Where(r => !string.IsNullOrEmpty(r.Alerts));
 
-        var list = f.ToList(); _currentPage = 0; ApplyPage(list); UpdateMetrics(list);
+        var list = f.ToList(); ApplyPage(list); UpdateMetrics(list);
     }
 
     private void ApplyPage(List<DepartureRow> list)
     {
-        var paged = list.Skip(_currentPage * PageSize).Take(PageSize).ToList();
-        DepartureGrid.ItemsSource = paged;
+        _pager.SetSource(list);
+        DepartureGrid.ItemsSource = _pager.Items;
         ResultCount.Text = $"{list.Count} khách · {list.Select(r => r.RoomNumber).Distinct().Count()} phòng";
         FooterTotal.Text = $"Tổng: {list.Count} khách · {list.Select(r => r.RoomNumber).Distinct().Count()} phòng";
     }
@@ -103,8 +246,8 @@ public partial class TodayDeparturesWindow : Window
         var parts = r.FullName.Split(' '); DetailInitials.Text = parts.Length > 0 ? parts[^1][..1].ToUpper() : "?";
         DetailName.Text = r.FullName; DetailRoomMeta.Text = $"Phòng {r.RoomNumber} · {r.RoomType}"; DetailEtdMeta.Text = r.Etd;
         DetailVipBadge.Visibility = r.Vip == "★" ? Visibility.Visible : Visibility.Collapsed;
-        DetailNights.Text = r.Nights; DetailGuests.Text = r.Vip == "★" ? "2" : "1";
-        DetailBalance.Text = r.BalanceDue == "0" ? "0 VND" : r.BalanceDue + " VND";
+        DetailNights.Text = r.Nights; DetailGuests.Text = r.GuestCount.ToString();
+        DetailBalance.Text = r.BalanceDue == "0" ? "0 VND" : r.BalanceDue;
         DetailEtd.Text = r.Etd;
 
         // Readiness
@@ -121,32 +264,60 @@ public partial class TodayDeparturesWindow : Window
 
     private void ShowOverview(DepartureRow r)
     {
-        TabContent.Children.Add(S("Khách", R("Họ tên", r.FullName), R("Điện thoại", $"09{r.GetHashCode() % 90000000 + 10000000}"), R("Email", $"{r.FullName.Split(' ').LastOrDefault()?.ToLower()}@email.com"), R("Quốc tịch", "Việt Nam"), R("Số giấy tờ", "CCCD 079202012345"), R("VIP", r.Vip == "★" ? "Gold" : "—")));
-        TabContent.Children.Add(S("Lưu trú", R("Mã HS", $"STY-{24000 + _allDepartures.IndexOf(r)}"), R("Phòng", r.RoomNumber), R("Hạng", r.RoomType), R("Ngày đến", r.Arrival), R("Ngày đi", "27/07"), R("Giờ đi", r.Etd), R("Đêm", r.Nights), R("Nguồn", "Booking.com"), R("Company", "—")));
-        TabContent.Children.Add(S("Kế hoạch rời", R("Giờ rời", r.Etd), R("Di chuyển", r.Vip == "★" ? "Xe đưa đón" : "Tự túc"), R("Hành lý", r.Vip == "★" ? "2 kiện" : "1 kiện"), R("Gửi HL sau C/O", "Không"), R("Ghi chú", r.Alerts.Contains("⚡") ? "Cần hỗ trợ hành lý" : "—")));
+        TabContent.Children.Add(S("Khách", R("Họ tên", r.FullName), R("Điện thoại", r.Phone ?? "Chưa có dữ liệu"), R("Email", r.Email ?? "Chưa có dữ liệu"), R("Quốc tịch", r.Nationality ?? "Chưa có dữ liệu"), R("Giấy tờ", r.DocumentSummary ?? "Chưa có giấy tờ thật"), R("VIP", r.VipLevel ?? "Normal"), R("Ghi chú hồ sơ", r.Notes ?? "Chưa có dữ liệu")));
+        TabContent.Children.Add(S("Lưu trú",
+            R("Phòng", r.RoomNumber),
+            R("Hạng", r.RoomType),
+            R("Ngày đến", r.Arrival),
+            R("Ngày đi", "Theo business date"),
+            R("Giờ đi", r.Etd),
+            R("Đêm", r.Nights),
+            R("Số khách", r.GuestCount.ToString()),
+            R("Trạng thái vận hành phòng", r.RoomOperationalStatus ?? "Chưa có snapshot phòng"),
+            R("Trạng thái buồng phòng", r.HousekeepingStatus ?? "Chưa có snapshot buồng phòng"),
+            R("Nguồn", "Theo hồ sơ Stay + Room snapshot thật")));
+        TabContent.Children.Add(S("Kế hoạch rời", R("Giờ rời", r.Etd), R("Di chuyển", "Chưa tải yêu cầu khách"), R("Hành lý", "Chưa tải"), R("Gửi HL sau C/O", "Chưa tải"), R("Ghi chú", "Chưa tải")));
     }
 
     private void ShowFolio(DepartureRow r)
     {
-        TabContent.Children.Add(S("Folio", R("Mã Folio", $"FOL-{24000 + _allDepartures.IndexOf(r)}"), R("Trạng thái", r.FolioStatus), R("Người TT", r.FullName), R("Tiền phòng", $"{int.Parse(r.Nights) * 1200000:N0}"), R("Minibar", "150.000"), R("Dịch vụ", "200.000"), R("Thuế/phí", "185.000"), R("Đặt cọc", "1.000.000"), R("Đã TT", r.BalanceDue == "0" ? "Đủ" : "1.000.000"), R("Còn phải thu", r.BalanceDue == "0" ? "0" : r.BalanceDue), R("Tiền tệ", "VND"), R("Phương thức", "Tiền mặt / Thẻ")));
-        TabContent.Children.Add(new Button { Content = "Xem Folio", Style = FindResource("OutlineBtn") as Style, Height = 34, FontSize = 12, Margin = new Thickness(0, 0, 0, 6) });
+        TabContent.Children.Add(S("Folio",
+            R("Mã Folio", string.IsNullOrWhiteSpace(r.FolioNumber) ? "Chưa có Folio" : r.FolioNumber),
+            R("Trạng thái", r.FolioStatus),
+            R("Người thanh toán", r.FullName),
+            R("Tổng phát sinh", r.TotalCharges?.ToString("N0") ?? "Chưa có dữ liệu"),
+            R("Chi tiết giao dịch", r.LedgerSummary ?? "Chưa có ledger giao dịch"),
+            R("Còn phải thu", r.BalanceDue),
+            R("Tiền tệ", "Theo Folio"),
+            R("Phương thức", "Theo Payment/Folio ledger")));
+        var folioButton = new Button { Content = "Xem Folio", Style = TryFindResource("OutlineBtn") as Style, Height = 34, FontSize = 12, Margin = new Thickness(0, 0, 0, 6) };
+        folioButton.Click += OnViewFolio;
+        TabContent.Children.Add(folioButton);
     }
 
     private void ShowServices(DepartureRow r)
     {
-        TabContent.Children.Add(S("Dịch vụ cần chốt", R("Tiền phòng", $"{int.Parse(r.Nights) * 1200000:N0} VND"), R("Minibar", r.Alerts.Contains("⚡") ? "Chưa chốt" : "Đã chốt"), R("Nhà hàng", "Đã chốt"), R("Giặt là", r.Vip == "★" ? "350.000 — Chưa chốt" : "—"), R("Spa", "—"), R("Điện thoại", "—"), R("Vận chuyển", r.Vip == "★" ? "Đã chốt" : "—")));
-        TabContent.Children.Add(new Button { Content = "Yêu cầu chốt Minibar", Style = FindResource("OutlineBtn") as Style, Height = 34, FontSize = 12, Margin = new Thickness(0, 0, 0, 6) });
+        TabContent.Children.Add(S("Dịch vụ đã ghi nhận trong Folio", R("Các khoản thực tế", r.LedgerSummary ?? "Chưa có ledger giao dịch để phân loại"), R("Tổng phát sinh", r.TotalCharges?.ToString("N0") ?? "Chưa có dữ liệu"), R("Cảnh báo", string.IsNullOrWhiteSpace(r.Alerts) ? "Không có cảnh báo từ nguồn đã tải" : r.Alerts)));
+        var minibarButton = new Button { Content = "Yêu cầu chốt Minibar", Style = TryFindResource("OutlineBtn") as Style, Height = 34, FontSize = 12, Margin = new Thickness(0, 0, 0, 6) };
+        minibarButton.Click += OnSendHsk;
+        TabContent.Children.Add(minibarButton);
     }
 
     private void ShowHandover(DepartureRow r)
     {
-        var items = new[] { ("Trả chìa khóa/thẻ", "✓", "Lễ tân", "10:30"), ("Kiểm tra Minibar", r.Alerts.Contains("⚡") ? "○" : "✓", "Buồng phòng", "—"), ("Kiểm tra tài sản", "○", "Buồng phòng", "—"), ("Nhận hành lý", r.Vip == "★" ? "○" : "✓", "Bellman", "11:00"), ("Trả tài sản gửi", "—", "—", "—"), ("Thông báo buồng phòng", "○", "Lễ tân", "—"), ("Xác nhận hóa đơn", r.BalanceDue == "0" ? "○" : "✗", "Thu ngân", "—"), ("Lấy ý kiến khách", "○", "Lễ tân", "—") };
+        var items = new[]
+        {
+            ("Trạng thái phòng", r.RoomOperationalStatus ?? "Chưa có snapshot phòng", "Buồng phòng", "Dữ liệu thật"),
+            ("Trạng thái buồng phòng", r.HousekeepingStatus ?? "Chưa có snapshot buồng phòng", "Buồng phòng", "Dữ liệu thật"),
+            ("Xác nhận Folio", r.BalanceDue == "Chưa kiểm tra" ? "Chưa kiểm tra Folio" : r.BalanceDue == "0" ? "Đã cân bằng" : "Còn phải thu", "Thu ngân", "Theo Folio thật"),
+            ("Bàn giao chìa khóa/thẻ", "Chưa có nguồn task bàn giao", "Lễ tân", "Không giả trạng thái")
+        };
         var sp = new StackPanel();
         foreach (var (label, status, who, when) in items)
         {
             var row = new Grid { Margin = new Thickness(0, 0, 0, 6) }; row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(160) }); row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) }); row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) }); row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.Children.Add(new TextBlock { Text = label, FontSize = 12, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155")) });
-            var sc = status == "✓" ? "#16A34A" : status == "✗" ? "#DC2626" : "#94A3B8";
+            var sc = status.Contains("Chưa") ? "#A16207" : "#94A3B8";
             row.Children.Add(new TextBlock { Text = status, FontSize = 13, FontWeight = FontWeights.Bold, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(sc)), HorizontalAlignment = HorizontalAlignment.Center }); Grid.SetColumn(row.Children[^1], 1);
             row.Children.Add(new TextBlock { Text = who, FontSize = 11, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#64748B")) }); Grid.SetColumn(row.Children[^1], 2);
             row.Children.Add(new TextBlock { Text = when, FontSize = 11, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8")) }); Grid.SetColumn(row.Children[^1], 3);
@@ -157,13 +328,12 @@ public partial class TodayDeparturesWindow : Window
 
     private void ShowRequests(DepartureRow r)
     {
-        var reqs = new List<string>();
-        if (r.StatusText == "Trả muộn") reqs.Add("Late Check-out");
-        if (r.Vip == "★") { reqs.Add("Xe đưa đón sân bay"); reqs.Add("Gửi hành lý sau C/O"); }
-        if (r.Alerts.Length > 1) reqs.Add("In hóa đơn VAT");
-        if (r.Vip == "★") reqs.Add("Hóa đơn công ty");
-        if (r.Vip != "★") reqs.Add("Đánh thức 6:00");
-        reqs.Add("Ghi chú: Khách hài lòng" + (r.Alerts.Contains("⚡") ? ", cần hỗ trợ vali" : ""));
+        var reqs = new List<string>
+        {
+            string.IsNullOrWhiteSpace(r.Notes) ? "Hồ sơ khách không có ghi chú" : $"Ghi chú hồ sơ: {r.Notes}",
+            string.IsNullOrWhiteSpace(r.Company) ? "Hồ sơ khách không có công ty" : $"Công ty: {r.Company}",
+            "Chưa có nguồn dữ liệu yêu cầu vận hành riêng cho Stay này"
+        };
         var reqSp = new StackPanel();
         foreach (var req in reqs)
             reqSp.Children.Add(new Border { Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FAFBFD")), CornerRadius = new CornerRadius(8), Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(0, 0, 0, 4), Child = new TextBlock { Text = req, FontSize = 12, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155")) } });
@@ -178,17 +348,107 @@ public partial class TodayDeparturesWindow : Window
     private void OnFilterChanged(object s, SelectionChangedEventArgs e) => ApplyFilters();
     private void OnQuickFilterChanged(object s, RoutedEventArgs e) => ApplyFilters();
     private void OnClearFilter(object s, RoutedEventArgs e) { SearchBox.Text = ""; FloorFilter.SelectedIndex = 0; RoomTypeFilter.SelectedIndex = 0; EtdFilter.SelectedIndex = 0; StatusFilter.SelectedIndex = 0; ChkUnpaid.IsChecked = false; ChkLate.IsChecked = false; ChkVip.IsChecked = false; ChkNeedCheck.IsChecked = false; ApplyFilters(); }
-    private void OnRefresh(object s, RoutedEventArgs e) => ApplyFilters();
-    private void OnPrevPage(object s, RoutedEventArgs e) { if (_currentPage > 0) { _currentPage--; ApplyFilters(); } }
-    private void OnNextPage(object s, RoutedEventArgs e) { _currentPage++; ApplyFilters(); }
-    private void OnPrepCheckout(object s, RoutedEventArgs e) { if (DepartureGrid.SelectedItem is DepartureRow r) MessageBox.Show($"═══ Chuẩn bị Check-out ═══\n\nKhách: {r.FullName}\nPhòng: {r.RoomNumber}\nNgày đi: 27/07\nGiờ đi: {r.Etd}\n\nTài chính: {(r.BalanceDue == "0" ? "Đã cân" : "Còn " + r.BalanceDue + " VND")}\nDịch vụ: {(r.Alerts.Contains("⚡") ? "Minibar chưa chốt" : "Đã chốt")}\n\nNút: [Hủy] [Xem Folio] [Xác nhận chuẩn bị]", "Chuẩn bị Check-out", MessageBoxButton.OK, MessageBoxImage.Information); else MessageBox.Show("Vui lòng chọn một khách.", "Khách đi hôm nay", MessageBoxButton.OK, MessageBoxImage.Warning); }
-    private void OnExtendStay(object s, RoutedEventArgs e) { if (DepartureGrid.SelectedItem is DepartureRow r) MessageBox.Show($"═══ Gia hạn lưu trú ═══\n\nKhách: {r.FullName}\nPhòng: {r.RoomNumber}\nNgày đi hiện tại: 27/07\nNgày đi mới: (chọn)\nSố đêm thêm: —\n\nNút: [Kiểm tra] [Xác nhận mockup] [Hủy]", "Gia hạn lưu trú", MessageBoxButton.OK, MessageBoxImage.Information); else MessageBox.Show("Vui lòng chọn một khách.", "Khách đi hôm nay", MessageBoxButton.OK, MessageBoxImage.Warning); }
-    private void OnViewFolio(object s, RoutedEventArgs e) => Msg("Xem Folio");
-    private void OnSendHsk(object s, RoutedEventArgs e) => Msg("Gửi nhà buồng");
-    private void OnPrintFolio(object s, RoutedEventArgs e) => Msg("In tạm tính");
-    private void OnViewProfile(object s, RoutedEventArgs e) => Msg("Xem hồ sơ");
-    private void Msg(string a) { if (DepartureGrid.SelectedItem is DepartureRow r) MessageBox.Show($"Mockup: {a} cho {r.FullName}.", "Khách đi hôm nay", MessageBoxButton.OK, MessageBoxImage.Information); else MessageBox.Show("Vui lòng chọn khách.", "Khách đi hôm nay", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    private async void OnRefresh(object s, RoutedEventArgs e) => await LoadPersistedAsync();
+    private void OnPrevPage(object s, RoutedEventArgs e) { _pager.PreviousPageCommand.Execute(null); }
+    private void OnNextPage(object s, RoutedEventArgs e) { _pager.NextPageCommand.Execute(null); }
+
+    private void AttachPager()
+    {
+        if (FooterTotal.Parent is not Grid footer || footer.Children.Count < 2 || footer.Children[1] is not StackPanel actions)
+            return;
+
+        foreach (var child in actions.Children.OfType<Button>().Take(2))
+            child.Visibility = Visibility.Collapsed;
+
+        var pager = new ServerPagerControl { DataContext = _pager, Margin = new Thickness(0, 0, 8, 0) };
+        actions.Children.Insert(0, pager);
+    }
+    private void OnPrepCheckout(object s, RoutedEventArgs e)
+    {
+        if (DepartureGrid.SelectedItem is not DepartureRow r)
+        {
+            MessageBox.Show("Vui lòng chọn một khách.", "Khách đi hôm nay", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (r.StayId == Guid.Empty || r.RowVersion is not { Length: 8 })
+        {
+            MessageBox.Show("Hồ sơ Stay chưa có định danh/row version hợp lệ từ dữ liệu thật.", "Chuẩn bị Check-out", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        new CheckoutPreparationWindow(r.StayId).ShowDialog();
+    }
+    private void OnExtendStay(object s, RoutedEventArgs e)
+    {
+        if (DepartureGrid.SelectedItem is not DepartureRow r)
+        {
+            ShowSelectDepartureWarning();
+            return;
+        }
+
+        // ExtendStayWindow owns the real Stay/Rate/Reservation checks and mutation workflow.
+        if (r.StayId == Guid.Empty || r.RowVersion is not { Length: 8 })
+        {
+            ShowUnavailable("Stay chưa có định danh/row version hợp lệ để gia hạn");
+            return;
+        }
+
+        new ExtendStayWindow(r.StayId).ShowDialog();
+    }
+
+    private void OnViewFolio(object s, RoutedEventArgs e)
+    {
+        if (DepartureGrid.SelectedItem is not DepartureRow row || row.StayId == Guid.Empty)
+        {
+            ShowSelectDepartureWarning();
+            return;
+        }
+
+        new FolioWorkspaceWindow(row.StayId).ShowDialog();
+    }
+
+    private void OnSendHsk(object s, RoutedEventArgs e)
+    {
+        if (DepartureGrid.SelectedItem is not DepartureRow row)
+        {
+            ShowSelectDepartureWarning();
+            return;
+        }
+
+        new HousekeepingMessageWindow(row.RoomNumber).ShowDialog();
+    }
+
+    private void OnPrintFolio(object s, RoutedEventArgs e)
+    {
+        if (DepartureGrid.SelectedItem is not DepartureRow row)
+        {
+            ShowSelectDepartureWarning();
+            return;
+        }
+
+        var dialog = new PrintDialog();
+        if (dialog.ShowDialog() == true)
+            dialog.PrintVisual(DepartureGrid, $"Folio tạm tính - {row.FullName}");
+    }
+
+    private void OnViewProfile(object s, RoutedEventArgs e)
+    {
+        if (DepartureGrid.SelectedItem is not DepartureRow)
+        {
+            ShowSelectDepartureWarning();
+            return;
+        }
+
+        if (DepartureGrid.SelectedItem is DepartureRow row && row.StayId != Guid.Empty)
+            new StayProfileWindow(row.StayId).ShowDialog();
+        else
+            ShowSelectDepartureWarning();
+    }
+
+    private void ShowSelectDepartureWarning() => MessageBox.Show("Vui lòng chọn một khách trước.", "Khách đi hôm nay", MessageBoxButton.OK, MessageBoxImage.Warning);
+    private void ShowUnavailable(string message) => MessageBox.Show(message, "Khách đi hôm nay", MessageBoxButton.OK, MessageBoxImage.Information);
     private void OnClose(object s, RoutedEventArgs e) => Close();
 }
 
-internal record DepartureRow(string StatusText, string StatusBadgeBrush, string StatusColorBrush, string FolioStatus, string FolioBadgeBrush, string FolioColorBrush, string RoomNumber, string FullName, string Arrival, string Etd, string Nights, string RoomType, string BalanceDue, string Vip, string Alerts) { public string AlertColor => Alerts.Length > 1 ? "#DC2626" : string.IsNullOrEmpty(Alerts) ? "Transparent" : "#EA580C"; }
+internal record DepartureRow(string StatusText, string StatusBadgeBrush, string StatusColorBrush, string FolioStatus, string FolioBadgeBrush, string FolioColorBrush, string RoomNumber, string FullName, string Arrival, string Etd, string Nights, string RoomType, string BalanceDue, string Vip, string Alerts, Guid StayId = default, byte[]? RowVersion = null, string? FolioNumber = null, string? Phone = null, string? Email = null, string? Nationality = null, string? Company = null, string? VipLevel = null, string? Notes = null, int GuestCount = 1, string? RoomOperationalStatus = null, string? HousekeepingStatus = null, decimal? TotalCharges = null, string? LedgerSummary = null, string? DocumentSummary = null) { public string AlertColor => Alerts.Length > 1 ? "#DC2626" : string.IsNullOrEmpty(Alerts) ? "Transparent" : "#EA580C"; }

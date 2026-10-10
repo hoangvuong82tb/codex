@@ -22,33 +22,42 @@ public partial class ReconciliationListDialog : Window
         InitializeComponent();
         DataContext = this;
 
-        BuildRows(rows, selectedCustomer);
+        _allRows.AddRange(BuildRealRows(rows, selectedCustomer));
         _isReady = true;
         RefreshGrid();
     }
 
-    private void BuildRows(IEnumerable<ReceivableSummaryDto> rows, ReceivableSummaryDto? selectedCustomer)
+    public static IReadOnlyList<ReconciliationRowItem> BuildRealRows(
+        IEnumerable<ReceivableSummaryDto> rows,
+        ReceivableSummaryDto? selectedCustomer = null)
     {
-        _allRows.Clear();
+        ArgumentNullException.ThrowIfNull(rows);
 
-        if (selectedCustomer is not null)
-        {
-            var name = selectedCustomer.CustomerName;
-            _allRows.Add(new ReconciliationRowItem(1, "Tháng 04/2026", name, new DateTime(2026, 4, 30), 120_000_000, 120_000_000, 0, "Khớp", "Nguyễn Văn A"));
-            _allRows.Add(new ReconciliationRowItem(2, "Tháng 03/2026", name, new DateTime(2026, 3, 31), 95_000_000, 95_000_000, 0, "Khớp", "Nguyễn Văn A"));
-            _allRows.Add(new ReconciliationRowItem(3, "Tháng 02/2026", name, new DateTime(2026, 2, 28), 75_000_000, 70_000_000, 5_000_000, "Chênh lệch", "Nguyễn Văn A"));
-            _allRows.Add(new ReconciliationRowItem(4, "Tháng 01/2026", name, new DateTime(2026, 1, 31), 50_000_000, 50_000_000, 0, "Khớp", "Nguyễn Văn A"));
-            return;
-        }
+        var source = selectedCustomer is null
+            ? rows
+            : rows.Where(x => x.CustomerId == selectedCustomer.CustomerId);
 
-        _allRows.Add(new ReconciliationRowItem(1, "Tháng 04/2026", "Công ty TNHH An Phát", new DateTime(2026, 4, 30), 120_000_000, 120_000_000, 0, "Khớp", "Nguyễn Văn A"));
-        _allRows.Add(new ReconciliationRowItem(2, "Tháng 03/2026", "Công ty TNHH An Phát", new DateTime(2026, 3, 31), 95_000_000, 95_000_000, 0, "Khớp", "Nguyễn Văn A"));
-        _allRows.Add(new ReconciliationRowItem(3, "Tháng 02/2026", "Công ty TNHH An Phát", new DateTime(2026, 2, 28), 75_000_000, 70_000_000, 5_000_000, "Chênh lệch", "Nguyễn Văn A"));
-        _allRows.Add(new ReconciliationRowItem(4, "Tháng 01/2026", "Công ty TNHH An Phát", new DateTime(2026, 1, 31), 50_000_000, 50_000_000, 0, "Khớp", "Nguyễn Văn A"));
-        _allRows.Add(new ReconciliationRowItem(5, "Tháng 04/2026", "Công ty CP ABC", new DateTime(2026, 4, 30), 98_500_000, 98_500_000, 0, "Khớp", "Trần Thị B"));
-        _allRows.Add(new ReconciliationRowItem(6, "Tháng 03/2026", "Công ty CP ABC", new DateTime(2026, 3, 31), 90_500_000, 88_000_000, 2_500_000, "Chênh lệch", "Trần Thị B"));
-        _allRows.Add(new ReconciliationRowItem(7, "Tháng 04/2026", "Công ty Minh Tâm", new DateTime(2026, 4, 30), 75_000_000, 75_000_000, 0, "Khớp", "Lê Văn C"));
-        _allRows.Add(new ReconciliationRowItem(8, "Tháng 04/2026", "Cửa hàng Hoa Sen", new DateTime(2026, 4, 30), 45_500_000, 45_500_000, 0, "Khớp", "Phạm Thị D"));
+        return source
+            .OrderBy(x => x.CustomerName)
+            .Select((summary, index) =>
+            {
+                var lastTransactionDate = summary.LastTransactionDate;
+                var period = lastTransactionDate.HasValue
+                    ? $"Lũy kế đến {lastTransactionDate.Value:MM/yyyy}"
+                    : "Theo dữ liệu hiện có";
+
+                return new ReconciliationRowItem(
+                    index + 1,
+                    period,
+                    summary.CustomerName,
+                    lastTransactionDate,
+                    summary.ClosingBalance,
+                    customerConfirmedBalance: null,
+                    difference: null,
+                    status: "Chưa đối chiếu",
+                    reviewer: "Chưa có xác nhận khách hàng");
+            })
+            .ToList();
     }
 
     private void RefreshGrid()
@@ -176,22 +185,22 @@ public sealed class ReconciliationRowItem
     public int Index { get; }
     public string Period { get; }
     public string CustomerName { get; }
-    public DateTime ReconcileDate { get; }
+    public DateTime? ReconcileDate { get; }
     public decimal DebtA { get; }
-    public decimal DebtB { get; }
-    public decimal Diff { get; }
+    public decimal? DebtB { get; }
+    public decimal? Diff { get; }
     public string Status { get; }
     public string Reviewer { get; }
-    public bool IsMatched => Diff == 0;
+    public bool IsMatched => DebtB.HasValue && Diff == 0;
 
     public ReconciliationRowItem(
         int index,
         string period,
         string customerName,
-        DateTime reconcileDate,
+        DateTime? reconcileDate,
         decimal debtA,
-        decimal debtB,
-        decimal diff,
+        decimal? customerConfirmedBalance,
+        decimal? difference,
         string status,
         string reviewer)
     {
@@ -200,8 +209,8 @@ public sealed class ReconciliationRowItem
         CustomerName = customerName;
         ReconcileDate = reconcileDate;
         DebtA = debtA;
-        DebtB = debtB;
-        Diff = diff;
+        DebtB = customerConfirmedBalance;
+        Diff = difference;
         Status = status;
         Reviewer = reviewer;
     }

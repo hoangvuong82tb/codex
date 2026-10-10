@@ -6,11 +6,19 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Serilog;
+using ASMILE.BO.Application.FrontOffice.Foundation.Contexts;
+using ASMILE.BO.Application.FrontOffice.Foundation.Cqrs;
+using ASMILE.BO.Application.FrontOffice.HotelMasterData;
+using ASMILE.BO.Application.FrontOffice.Stay;
+using ASMILE.BO.Core.FrontOffice.HotelMasterData;
+using ASMILE.BO.Shared.Foundation;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ASMILE.BO.App.Views;
 
 public partial class RoomMoveWindow : Window
 {
+    private readonly IServiceScope? _dataScope;
     private static readonly string[] StepNames =
     {
         "Chọn khách",
@@ -20,8 +28,8 @@ public partial class RoomMoveWindow : Window
         "Xác nhận"
     };
 
-    private readonly List<RoomMoveGuestInfo> allGuests;
-    private readonly List<RoomMoveRoomInfo> allRooms;
+    private readonly List<RoomMoveGuestInfo> allGuests = new();
+    private readonly List<RoomMoveRoomInfo> allRooms = new();
     private readonly HashSet<string> handoverChecks = new(StringComparer.Ordinal);
 
     private List<RoomMoveGuestInfo> filteredGuests = new();
@@ -34,15 +42,31 @@ public partial class RoomMoveWindow : Window
     private int guestPageSize = 20;
     private int roomPageSize = 20;
     private bool isInitializing = true;
+    private bool isSubmitting;
+    private readonly IHotelStayRepository? stayRepository;
+    private readonly IHotelRoomMasterDataRepository? roomRepository;
+    private readonly HotelStayApplicationService? stayService;
+    private readonly IFrontOfficeExecutionContextAccessor? contextAccessor;
+    private readonly Guid? initialStayId;
 
     public int CurrentStep { get; private set; } = 1;
 
-    public RoomMoveWindow()
+    public RoomMoveWindow() : this(null)
     {
+    }
+
+    public RoomMoveWindow(Guid? initialStayId)
+    {
+        this.initialStayId = initialStayId;
         InitializeComponent();
 
-        allGuests = CreateMockGuests();
-        allRooms = CreateMockRooms();
+        var rootServices = (System.Windows.Application.Current as App)?.Services;
+        _dataScope = rootServices?.CreateScope();
+        var services = _dataScope?.ServiceProvider;
+        stayRepository = services?.GetService<IHotelStayRepository>();
+        roomRepository = services?.GetService<IHotelRoomMasterDataRepository>();
+        stayService = services?.GetService<HotelStayApplicationService>();
+        contextAccessor = services?.GetService<IFrontOfficeExecutionContextAccessor>();
 
         InitializeFilters();
         isInitializing = false;
@@ -50,6 +74,75 @@ public partial class RoomMoveWindow : Window
         RefreshRoomPage(resetPage: true);
         EffectiveDatePicker.SelectedDate = DateTime.Today;
         RenderCurrentStep();
+        Loaded += OnLoadedAsync;
+        Closed += (_, _) => _dataScope?.Dispose();
+    }
+
+    private async void OnLoadedAsync(object? sender, RoutedEventArgs e)
+    {
+        if (stayRepository is null || roomRepository is null || contextAccessor?.Current is not { } context)
+        {
+            FooterStatusText.Text = "Chưa cấu hình Stay/Room service và property context dữ liệu thật.";
+            return;
+        }
+
+        try
+        {
+            var propertyId = context.Property.PropertyId.Value;
+            var stays = await stayRepository.GetCurrentInHouseAsync(propertyId, CancellationToken.None);
+            var rooms = await roomRepository.SearchRoomsAsync(
+                propertyId, null, null, null, null, HotelRoomOperationalStatus.Available, true,
+                new PageRequest(1, 500), "number", true, CancellationToken.None);
+
+            allGuests.Clear();
+            allGuests.AddRange(stays.Select(stay => new RoomMoveGuestInfo(
+                stay.RoomNumber,
+                stay.GuestName,
+                stay.StayNumber,
+                stay.ScheduledArrivalDate.ToDateTime(TimeOnly.MinValue),
+                stay.ScheduledDepartureDate.ToDateTime(TimeOnly.MinValue),
+                stay.RoomTypeCode,
+                stay.Adults + stay.Children,
+                false,
+                stay.StayNumber,
+                "Đang lưu trú",
+                stay.HotelStayId,
+                stay.RoomId,
+                stay.RoomTypeId,
+                stay.RowVersion)));
+
+            if (initialStayId is { } requestedStayId && requestedStayId != Guid.Empty)
+            {
+                selectedGuest = allGuests.FirstOrDefault(guest => guest.StayId == requestedStayId);
+                if (selectedGuest is not null)
+                    UpdateGuestDetails();
+            }
+
+            allRooms.Clear();
+            allRooms.AddRange(rooms.Items.Select(room => new RoomMoveRoomInfo(
+                room.RoomNumber,
+                room.HotelRoomTypeCode,
+                room.Floor ?? "—",
+                "—",
+                room.OperationalStatus == HotelRoomOperationalStatus.Available ? "Sẵn sàng" : room.OperationalStatus.ToString(),
+                "—",
+                null,
+                room.HotelRoomId,
+                room.HotelRoomTypeId,
+                room.RowVersion)));
+
+            RefreshGuestPage(resetPage: true);
+            RefreshRoomPage(resetPage: true);
+            FooterStatusText.Text = $"Dữ liệu thật · {allGuests.Count:N0} stay · {allRooms.Count:N0} phòng khả dụng";
+        }
+        catch (Exception ex)
+        {
+            allGuests.Clear();
+            allRooms.Clear();
+            RefreshGuestPage(resetPage: true);
+            RefreshRoomPage(resetPage: true);
+            FooterStatusText.Text = "Không thể tải dữ liệu đổi phòng thật: " + ex.Message;
+        }
     }
 
     private void InitializeFilters()
@@ -87,70 +180,6 @@ public partial class RoomMoveWindow : Window
     {
         comboBox.ItemsSource = values;
         comboBox.SelectedIndex = 0;
-    }
-
-    private static List<RoomMoveGuestInfo> CreateMockGuests()
-    {
-        var names = new[]
-        {
-            "Nguyễn Văn An", "Trần Thị Bình", "Lê Hoàng Cường", "Phạm Minh Đức",
-            "Hoàng Thị Em", "Vũ Quang Phúc", "Đặng Kim Giang", "Bùi Thanh Hà",
-            "Ngô Đức Anh", "Đỗ Lan Khánh", "Lý Văn Long", "Mai Thị Mỹ",
-            "Trịnh Hoàng Nam", "Hồ Quang Ổn", "Chu Văn Rạng", "Hà Thị Sen",
-            "Vi Văn Tâm", "Tô Văn Phú", "Phan Thị Quỳnh", "Giàng Thị Út"
-        };
-        var roomTypes = new[] { "Standard", "Superior", "Deluxe", "Junior", "Suite" };
-        var folioStatuses = new[] { "Đang mở", "Chờ đối soát", "Đã bảo lãnh" };
-        var random = new Random(42);
-        var result = new List<RoomMoveGuestInfo>(120);
-
-        for (var index = 1; index <= 120; index++)
-        {
-            var arrival = DateTime.Today.AddDays(-random.Next(1, 8));
-            var departure = DateTime.Today.AddDays(random.Next(1, 8));
-            var name = names[(index - 1) % names.Length] + (index > names.Length ? $" {index}" : string.Empty);
-            result.Add(new RoomMoveGuestInfo(
-                Room: $"{random.Next(1, 6)}{random.Next(1, 19):D2}",
-                Name: name,
-                ProfileCode: $"STY-{24000 + index}",
-                ArrivalDate: arrival,
-                DepartureDate: departure,
-                RoomType: roomTypes[random.Next(roomTypes.Length)],
-                GuestCount: random.Next(1, 5),
-                IsVip: index % 11 == 0,
-                Folio: $"FOL-{24000 + index}",
-                FolioStatus: folioStatuses[index % folioStatuses.Length]));
-        }
-
-        return result;
-    }
-
-    private static List<RoomMoveRoomInfo> CreateMockRooms()
-    {
-        var roomTypes = new[] { "Standard", "Superior", "Deluxe", "Junior", "Suite" };
-        var statuses = new[] { "Sẵn sàng", "Sạch", "Đang dọn", "Có khách đến", "Khóa", "OOO" };
-        var housekeepingStatuses = new[] { "Sạch", "Đã KT", "Đang dọn", "Bẩn" };
-        var prices = new[] { 800_000m, 1_050_000m, 1_250_000m, 1_500_000m, 1_850_000m };
-        var random = new Random(99);
-        var result = new List<RoomMoveRoomInfo>(80);
-
-        for (var index = 1; index <= 80; index++)
-        {
-            var typeIndex = random.Next(roomTypes.Length);
-            var status = statuses[index % statuses.Length];
-            var housekeeping = status is "Khóa" or "OOO" ? "—" : housekeepingStatuses[index % housekeepingStatuses.Length];
-            var price = prices[typeIndex];
-            result.Add(new RoomMoveRoomInfo(
-                Room: $"{((index - 1) % 5) + 1}{index:D2}",
-                RoomType: roomTypes[typeIndex],
-                Floor: (((index - 1) % 5) + 1).ToString(CultureInfo.InvariantCulture),
-                Bed: index % 2 == 0 ? "King" : "Twin",
-                Status: status,
-                HousekeepingStatus: housekeeping,
-                Price: price));
-        }
-
-        return result;
     }
 
     private void RenderCurrentStep()
@@ -207,9 +236,10 @@ public partial class RoomMoveWindow : Window
                 ? $"{selectedGuest.Room} → Chưa chọn"
                 : $"{selectedGuest.Room} → {selectedNewRoom.Room}";
         SummaryEffectiveText.Text = BuildEffectiveDisplay();
-        SummaryDifferenceText.Text = selectedNewRoom is null
-            ? "—"
-            : FormatSignedCurrency(CalculateDifference(selectedNewRoom));
+        var summaryDifference = selectedNewRoom is null ? null : CalculateDifference(selectedNewRoom);
+        SummaryDifferenceText.Text = summaryDifference.HasValue
+            ? FormatSignedCurrency(summaryDifference.Value)
+            : "Chưa có giá thật";
 
         var isReady = IsReadyToConfirm();
         SummaryReadinessBadge.Background = Brush(isReady ? "#DCFCE7" : "#FEF3C7");
@@ -431,20 +461,16 @@ public partial class RoomMoveWindow : Window
             .Where(room => status is null or "Tất cả" || room.Status == status)
             .Where(room => housekeeping is null or "Tất cả" || room.HousekeepingStatus == housekeeping)
             .Where(room => price is null or "Tất cả" ||
-                price == "Dưới 1 triệu" && room.Price < 1_000_000m ||
-                price == "1–1,5 triệu" && room.Price >= 1_000_000m && room.Price <= 1_500_000m ||
-                price == "Trên 1,5 triệu" && room.Price > 1_500_000m)
+                room.Price is { } roomPrice &&
+                (price == "Dưới 1 triệu" && roomPrice < 1_000_000m ||
+                 price == "1–1,5 triệu" && roomPrice >= 1_000_000m && roomPrice <= 1_500_000m ||
+                 price == "Trên 1,5 triệu" && roomPrice > 1_500_000m))
             .Where(room => !readyOnly || room.IsSelectable)
             .ToList();
 
         var totalPages = Math.Max(1, (int)Math.Ceiling(filteredRooms.Count / (double)roomPageSize));
         roomPage = Math.Clamp(roomPage, 0, totalPages - 1);
         var pageRows = filteredRooms.Skip(roomPage * roomPageSize).Take(roomPageSize).ToList();
-        foreach (var room in pageRows)
-        {
-            room.CurrentRoomPrice = selectedGuest is null ? null : GetRoomTypePrice(selectedGuest.RoomType);
-        }
-
         RoomGrid.ItemsSource = pageRows;
         RoomGrid.SelectedItem = previewRoom;
         UpdateRoomPager(totalPages);
@@ -554,16 +580,15 @@ public partial class RoomMoveWindow : Window
                 ? "Chưa chọn phòng mới. Bước Điều chỉnh vẫn hiển thị; hãy chọn phòng để tính chênh lệch."
                 : string.Empty;
 
-        var oldPrice = selectedGuest is null ? (decimal?)null : GetRoomTypePrice(selectedGuest.RoomType);
-        OldPriceText.Text = oldPrice is null ? "—" : FormatCurrency(oldPrice.Value);
+        OldPriceText.Text = selectedGuest is null ? "—" : "Chưa có rate plan thật";
         NewPriceText.Text = selectedNewRoom is null ? "—" : selectedNewRoom.PriceDisplay;
         var difference = selectedNewRoom is null ? (decimal?)null : CalculateDifference(selectedNewRoom);
-        PriceDifferenceText.Text = difference is null ? "—" : FormatSignedCurrency(difference.Value);
+        PriceDifferenceText.Text = difference is null ? "Chưa có giá thật" : FormatSignedCurrency(difference.Value);
         var remainingNights = selectedGuest is null
             ? 0
             : Math.Max(1, (selectedGuest.DepartureDate.Date - DateTime.Today).Days);
         RemainingNightsText.Text = selectedGuest is null ? "—" : $"{remainingNights} đêm";
-        TotalDifferenceText.Text = difference is null ? "—" : FormatSignedCurrency(difference.Value * remainingNights);
+        TotalDifferenceText.Text = difference is null ? "Chưa có giá thật" : FormatSignedCurrency(difference.Value * remainingNights);
 
         var pricePolicy = PricePolicyBox.SelectedItem?.ToString();
         NegotiatedPriceBox.IsEnabled = hasRequiredSelection && pricePolicy == "Giá thỏa thuận";
@@ -627,8 +652,11 @@ public partial class RoomMoveWindow : Window
         ConfirmReasonText.Text = ReasonBox.SelectedItem?.ToString() ?? "Khách yêu cầu";
         ConfirmPriceText.Text = selectedGuest is null
             ? "—"
-            : $"{FormatCurrency(GetRoomTypePrice(selectedGuest.RoomType))} → {selectedNewRoom?.PriceDisplay ?? "—"}";
-        ConfirmDifferenceText.Text = selectedNewRoom is null ? "—" : FormatSignedCurrency(CalculateDifference(selectedNewRoom));
+            : $"Chưa có rate plan thật → {selectedNewRoom?.PriceDisplay ?? "—"}";
+        var confirmationDifference = selectedNewRoom is null ? null : CalculateDifference(selectedNewRoom);
+        ConfirmDifferenceText.Text = confirmationDifference.HasValue
+            ? FormatSignedCurrency(confirmationDifference.Value)
+            : "Chưa có giá thật";
         ConfirmApproverText.Text = string.IsNullOrWhiteSpace(ApprovedByBox.Text) ? "Chưa nhập" : ApprovedByBox.Text.Trim();
         ConfirmHandoverText.Text = $"{handoverChecks.Count}/18 tác vụ đã đánh dấu";
 
@@ -657,9 +685,9 @@ public partial class RoomMoveWindow : Window
         ReadinessPanel.Background = Brush(isReady ? "#DCFCE7" : "#FEF3C7");
         ReadinessTitleText.Foreground = Brush(isReady ? "#15803D" : "#A16207");
         ReadinessDescriptionText.Foreground = Brush(isReady ? "#166534" : "#92400E");
-        ReadinessTitleText.Text = isReady ? "Sẵn sàng xác nhận mockup" : "Chưa đủ thông tin";
+        ReadinessTitleText.Text = isReady ? "Sẵn sàng xác nhận" : "Chưa đủ thông tin";
         ReadinessDescriptionText.Text = isReady
-            ? "Khách và phòng mới đã hợp lệ. Xác nhận chỉ mở dialog minh họa, không gọi backend."
+            ? "Khách và phòng mới đã hợp lệ. Sau khi xác nhận, hệ thống sẽ ghi đổi phòng vào dữ liệu thật."
             : "Hoàn thiện các mục bắt buộc trước khi xác nhận.";
 
         if (issues.Count == 0)
@@ -683,29 +711,61 @@ public partial class RoomMoveWindow : Window
         ConfirmButton.IsEnabled = isReady;
     }
 
-    private void OnConfirm(object sender, RoutedEventArgs e)
+    private async void OnConfirm(object sender, RoutedEventArgs e)
     {
-        if (!IsReadyToConfirm() || selectedGuest is null || selectedNewRoom is null)
+        if (isSubmitting || !IsReadyToConfirm() || selectedGuest is null || selectedNewRoom is null)
         {
             return;
         }
 
-        var confirmation = new RoomMoveConfirmationWindow(new RoomMoveConfirmationSummary(
-            GuestName: selectedGuest.Name,
-            OldRoom: $"{selectedGuest.Room} · {selectedGuest.RoomType}",
-            NewRoom: $"{selectedNewRoom.Room} · {selectedNewRoom.RoomType}",
-            EffectiveAt: BuildEffectiveDisplay(),
-            Reason: ReasonBox.SelectedItem?.ToString() ?? "Khách yêu cầu",
-            PriceDifference: FormatSignedCurrency(CalculateDifference(selectedNewRoom)),
-            RemainingTasks: 18 - handoverChecks.Count))
+        isSubmitting = true;
+        ConfirmButton.IsEnabled = false;
+        try
         {
-            Owner = this,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
+            var confirmation = new RoomMoveConfirmationWindow(new RoomMoveConfirmationSummary(
+                GuestName: selectedGuest.Name,
+                OldRoom: $"{selectedGuest.Room} · {selectedGuest.RoomType}",
+                NewRoom: $"{selectedNewRoom.Room} · {selectedNewRoom.RoomType}",
+                EffectiveAt: BuildEffectiveDisplay(),
+                Reason: ReasonBox.SelectedItem?.ToString() ?? "Khách yêu cầu",
+                PriceDifference: CalculateDifference(selectedNewRoom) is { } difference
+                    ? FormatSignedCurrency(difference)
+                    : "Chưa có giá thật",
+                RemainingTasks: 18 - handoverChecks.Count))
+            {
+                Owner = this,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
 
-        if (confirmation.ShowDialog() == true)
+            if (confirmation.ShowDialog() == true)
+            {
+                if (stayService is null || selectedGuest.StayId == Guid.Empty || selectedNewRoom.RoomId == Guid.Empty || selectedGuest.RowVersion is not { Length: 8 })
+                {
+                    MessageBox.Show("Chưa đủ dữ liệu thật để đổi phòng: cần stay, phòng đích và row-version.", "Đổi phòng", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var reason = ReasonBox.SelectedItem?.ToString() ?? "Khách yêu cầu";
+                var result = await stayService.MoveRoomAsync(new MoveRoomCommand(selectedGuest.StayId, selectedNewRoom.RoomId, reason, selectedGuest.RowVersion), CancellationToken.None);
+                if (result.IsFailure)
+                {
+                    MessageBox.Show(result.Error?.Message ?? "Không thể đổi phòng.", "Đổi phòng", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                FooterStatusText.Text = $"Đã đổi phòng thật: {result.Value!.StayNumber} → {result.Value.RoomNumber}.";
+                MessageBox.Show($"Đã đổi phòng stay {result.Value.StayNumber} sang phòng {result.Value.RoomNumber}.", "Đổi phòng", MessageBoxButton.OK, MessageBoxImage.Information);
+                Close();
+            }
+        }
+        catch (Exception ex)
         {
-            FooterStatusText.Text = "Đã xác nhận bản mockup · không gọi backend và không ghi database.";
+            MessageBox.Show("Không thể hoàn tất đổi phòng: " + ex.Message, "Đổi phòng", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            isSubmitting = false;
+            if (IsLoaded) UpdateConfirmationStep();
         }
     }
 
@@ -722,7 +782,8 @@ public partial class RoomMoveWindow : Window
         OnClearGuestFilters(sender, e);
         OnClearRoomFilters(sender, e);
         CurrentStep = 1;
-        FooterStatusText.Text = "Dữ liệu minh họa · chưa kết nối backend";
+        FooterStatusText.Text = "Đang tải lại dữ liệu thật…";
+        OnLoadedAsync(this, new RoutedEventArgs());
         RenderCurrentStep();
     }
 
@@ -732,8 +793,10 @@ public partial class RoomMoveWindow : Window
         selectedGuest is not null &&
         selectedNewRoom is { IsSelectable: true };
 
-    private decimal CalculateDifference(RoomMoveRoomInfo room) =>
-        selectedGuest is null ? 0m : room.Price - GetRoomTypePrice(selectedGuest.RoomType);
+    private decimal? CalculateDifference(RoomMoveRoomInfo room) =>
+        room.Price is { } newPrice && room.CurrentRoomPrice is { } currentPrice
+            ? newPrice - currentPrice
+            : null;
 
     private string BuildEffectiveDisplay()
     {
@@ -750,15 +813,6 @@ public partial class RoomMoveWindow : Window
 
         return $"{(EffectiveDatePicker.SelectedDate ?? DateTime.Today):dd/MM/yyyy} · {EffectiveTimeBox.Text.Trim()}";
     }
-
-    private static decimal GetRoomTypePrice(string roomType) => roomType switch
-    {
-        "Suite" => 1_850_000m,
-        "Junior" => 1_500_000m,
-        "Deluxe" => 1_250_000m,
-        "Superior" => 1_050_000m,
-        _ => 800_000m
-    };
 
     private static string FormatCurrency(decimal value) =>
         $"{value:N0} ₫".Replace(",", ".", StringComparison.Ordinal);
@@ -845,7 +899,11 @@ internal sealed record RoomMoveGuestInfo(
     int GuestCount,
     bool IsVip,
     string Folio,
-    string FolioStatus)
+    string FolioStatus,
+    Guid StayId = default,
+    Guid RoomId = default,
+    Guid RoomTypeId = default,
+    byte[]? RowVersion = null)
 {
     public string Arrival => ArrivalDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
     public string Departure => DepartureDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
@@ -859,11 +917,16 @@ internal sealed record RoomMoveRoomInfo(
     string Bed,
     string Status,
     string HousekeepingStatus,
-    decimal Price)
+    decimal? Price,
+    Guid RoomId = default,
+    Guid RoomTypeId = default,
+    byte[]? RowVersion = null)
 {
     public decimal? CurrentRoomPrice { get; set; }
     public bool IsSelectable => Status is not ("Khóa" or "OOO" or "Có khách đến");
-    public string PriceDisplay => $"{Price:N0} ₫".Replace(",", ".", StringComparison.Ordinal);
+    public string PriceDisplay => Price is { } price
+        ? $"{price:N0} ₫".Replace(",", ".", StringComparison.Ordinal)
+        : "Chưa có giá thật";
     public string DifferenceDisplay
     {
         get
@@ -873,7 +936,12 @@ internal sealed record RoomMoveRoomInfo(
                 return "—";
             }
 
-            var difference = Price - CurrentRoomPrice.Value;
+            if (Price is not { } price)
+            {
+                return "Chưa có giá thật";
+            }
+
+            var difference = price - CurrentRoomPrice.Value;
             var prefix = difference > 0 ? "+" : difference < 0 ? "−" : string.Empty;
             return $"{prefix}{Math.Abs(difference):N0} ₫".Replace(",", ".", StringComparison.Ordinal);
         }

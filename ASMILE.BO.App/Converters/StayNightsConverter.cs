@@ -14,5 +14,5 @@ public sealed class StayNightsConverter : IMultiValueConverter
     }
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        => throw new NotSupportedException();
+        => [Binding.DoNothing];
 }

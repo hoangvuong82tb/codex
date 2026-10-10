@@ -20,11 +20,23 @@ public readonly record struct PostingRequest(
     RevenueBucket RevenueBucket,
     DateOnly BusinessDate,
     DateTime CreatedAtUtc,
-    Guid? CreatedBy
+    Guid? CreatedBy,
+    decimal TaxRate = 0,
+    decimal ServiceChargeRate = 0
 )
 {
-    public static PostingRequest Create(PostingSource source, Guid folioId, decimal amount, string description, RevenueBucket bucket, DateOnly businessDate, DateTime nowUtc, ActorId? actorId) =>
-        new(Uuid7.NewGuid(), source, folioId, amount, description, bucket, businessDate, nowUtc, actorId?.Value);
+    public static PostingRequest Create(
+        PostingSource source,
+        Guid folioId,
+        decimal amount,
+        string description,
+        RevenueBucket bucket,
+        DateOnly businessDate,
+        DateTime nowUtc,
+        ActorId? actorId,
+        decimal taxRate = 0,
+        decimal serviceChargeRate = 0) =>
+        new(Uuid7.NewGuid(), source, folioId, amount, description, bucket, businessDate, nowUtc, actorId?.Value, taxRate, serviceChargeRate);
 }
 
 public readonly record struct PostingResult(
@@ -72,25 +84,6 @@ public sealed class PostingRule
 
 public static class PostingPolicies
 {
-    public static decimal DefaultTaxRate(RevenueBucket bucket) => bucket switch
-    {
-        RevenueBucket.Rooms => 10m,
-        RevenueBucket.FoodAndBeverage => 8m,
-        RevenueBucket.SpaAndWellness => 10m,
-        RevenueBucket.Laundry => 10m,
-        RevenueBucket.Telephone => 10m,
-        RevenueBucket.MiniBar => 10m,
-        _ => 0
-    };
-
-    public static decimal DefaultServiceChargeRate(RevenueBucket bucket) => bucket switch
-    {
-        RevenueBucket.Rooms => 5m,
-        RevenueBucket.FoodAndBeverage => 5m,
-        RevenueBucket.SpaAndWellness => 5m,
-        _ => 0
-    };
-
     public static RevenueBucket MapSourceToBucket(PostingSourceType source) => source switch
     {
         PostingSourceType.RoomCharge => RevenueBucket.Rooms,
@@ -104,6 +97,8 @@ public static class PostingPolicies
     };
 
     public static bool IsAmountValid(decimal amount) => amount != 0 && amount >= -99_999_999 && amount <= 99_999_999;
+
+    public static bool IsRateValid(decimal rate) => rate >= 0 && rate <= 1000;
 }
 
 // =============================================================================
@@ -127,8 +122,9 @@ public sealed class PostingPipeline
         if (!PostingPolicies.IsAmountValid(request.Amount))
             return PostingResult.Failure(request.RequestId, "POSTING_AMOUNT_INVALID", $"Amount {request.Amount} is invalid.");
 
-        var bucket = request.RevenueBucket == RevenueBucket.OtherRevenue
-            ? PostingPolicies.MapSourceToBucket(request.Source.SourceType) : request.RevenueBucket;
+        if (!PostingPolicies.IsRateValid(request.TaxRate)
+            || !PostingPolicies.IsRateValid(request.ServiceChargeRate))
+            return PostingResult.Failure(request.RequestId, "POSTING_RATE_INVALID", "Tax and service-charge rates must be between 0 and 1000 percent.");
 
         // Run validation rules
         foreach (var rule in _rules.Where(r => r.IsActive).OrderBy(r => r.Priority))
@@ -138,11 +134,8 @@ public sealed class PostingPipeline
         }
 
         // Calculate tax and service charge
-        var taxRate = PostingPolicies.DefaultTaxRate(bucket);
-        var scRate = PostingPolicies.DefaultServiceChargeRate(bucket);
-        var taxAmount = Math.Round(request.Amount * taxRate / 100, 2);
-        var scAmount = Math.Round(request.Amount * scRate / 100, 2);
-        var netAmount = request.Amount + taxAmount + scAmount;
+        var taxAmount = Math.Round(request.Amount * request.TaxRate / 100, 2);
+        var scAmount = Math.Round(request.Amount * request.ServiceChargeRate / 100, 2);
 
         // Apply custom rules (override defaults)
         foreach (var rule in _rules.Where(r => r.IsActive))
@@ -152,6 +145,8 @@ public sealed class PostingPipeline
             var customSc = rule.CalculateServiceCharge(request);
             if (customSc != 0) scAmount = customSc;
         }
+
+        var netAmount = request.Amount + taxAmount + scAmount;
 
         // Domain event for audit
         appendToFolio(request, taxAmount, scAmount, request.RequestId);

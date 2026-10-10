@@ -19,42 +19,44 @@ public partial class ReconciliationDetailDialog : Window
         InitializeComponent();
         DataContext = this;
 
-        BuildMockRows();
+        BuildRows(summary, transactions);
     }
 
-    private void BuildMockRows()
+    private void BuildRows(ReceivableSummaryDto? summary, IEnumerable<ReceivableTransactionDto> transactions)
     {
         CompanyReconciliationRows.Clear();
         CustomerReconciliationRows.Clear();
 
-        var company = new[]
+        if (summary is null) return;
+
+        var rows = new List<ReconciliationDetailRow>
         {
-            new ReconciliationDetailRow("", "", "Số dư đầu kỳ", 0, 0, 100000000),
-            new ReconciliationDetailRow("05/04/2026", "INV0001", "Hóa đơn bán hàng", 100000000, 0, 200000000),
-            new ReconciliationDetailRow("10/04/2026", "INV0002", "Hóa đơn bán hàng", 120000000, 0, 320000000),
-            new ReconciliationDetailRow("15/04/2026", "PT0001", "Phiếu thu", 0, 120000000, 200000000),
-            new ReconciliationDetailRow("20/04/2026", "INV0003", "Hóa đơn bán hàng", 130000000, 0, 330000000),
-            new ReconciliationDetailRow("25/04/2026", "PT0002", "Phiếu thu", 0, 100000000, 230000000),
-            new ReconciliationDetailRow("28/04/2026", "PT0003", "Phiếu thu", 0, 80000000, 150000000),
-            new ReconciliationDetailRow("30/04/2026", "ADJ0001", "Điều chỉnh công nợ", 0, 30000000, 120000000),
-            new ReconciliationDetailRow("Tổng cộng", "", "", 420000000, 330000000, 120000000, true),
+            new("", "", "Số dư đầu kỳ", 0, 0, summary.OpeningBalance)
         };
 
-        var customer = new[]
+        foreach (var transaction in transactions.OrderBy(x => x.TransactionDate).ThenBy(x => x.DocumentNo))
         {
-            new ReconciliationDetailRow("", "", "Số dư đầu kỳ", 0, 0, 100000000),
-            new ReconciliationDetailRow("05/04/2026", "HD0001", "Hóa đơn", 100000000, 0, 200000000),
-            new ReconciliationDetailRow("10/04/2026", "HD0002", "Hóa đơn", 120000000, 0, 320000000),
-            new ReconciliationDetailRow("15/04/2026", "PC0001", "Phiếu chi", 0, 120000000, 200000000),
-            new ReconciliationDetailRow("20/04/2026", "HD0003", "Hóa đơn", 130000000, 0, 330000000),
-            new ReconciliationDetailRow("25/04/2026", "PC0002", "Phiếu chi", 0, 100000000, 230000000),
-            new ReconciliationDetailRow("28/04/2026", "PC0003", "Phiếu chi", 0, 80000000, 150000000),
-            new ReconciliationDetailRow("30/04/2026", "PC0004", "Phiếu chi", 0, 30000000, 120000000),
-            new ReconciliationDetailRow("Tổng cộng", "", "", 420000000, 330000000, 120000000, true),
-        };
+            rows.Add(new ReconciliationDetailRow(
+                transaction.TransactionDate.ToString("dd/MM/yyyy"),
+                transaction.DocumentNo,
+                string.IsNullOrWhiteSpace(transaction.Description) ? transaction.DocumentType.ToString() : transaction.Description,
+                transaction.DebitAmount,
+                transaction.CreditAmount,
+                transaction.BalanceAmount));
+        }
 
-        foreach (var row in company) CompanyReconciliationRows.Add(row);
-        foreach (var row in customer) CustomerReconciliationRows.Add(row);
+        rows.Add(new ReconciliationDetailRow(
+            "Tổng cộng", "", "",
+            summary.TotalDebit,
+            summary.TotalCredit,
+            summary.ClosingBalance,
+            true));
+
+        foreach (var row in rows)
+        {
+            CompanyReconciliationRows.Add(row);
+            CustomerReconciliationRows.Add(row);
+        }
     }
 }
 

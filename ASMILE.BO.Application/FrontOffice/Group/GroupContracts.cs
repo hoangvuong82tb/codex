@@ -53,7 +53,7 @@ public sealed record RoomingListImportResult(
 public sealed record GroupBillingSetup(
     Guid GroupId, bool UseMasterFolio, ChargeRouting DefaultRouting,
     bool AllowIndividualFolios, decimal? SplitPercentage,
-    Guid? MasterFolioId, Guid? DepositRequired
+    Guid? MasterFolioId, bool DepositRequired
 );
 
 public sealed record BillingSummaryDto(
@@ -61,6 +61,28 @@ public sealed record BillingSummaryDto(
     decimal TotalDeposits, decimal Outstanding, int MasterFolioCount,
     int IndividualFolioCount, bool IsBalanced
 );
+
+public sealed record GroupDepositDto(
+    Guid GroupDepositId, Guid PropertyId, Guid GroupReservationId,
+    string GroupCode, string GroupName, decimal Amount, string CurrencyCode,
+    string PaymentMethod, string? ExternalReference, DateOnly BusinessDate,
+    string? Note, GroupDepositStatus Status, DateTime CreatedAtUtc,
+    DateTime? ReversedAtUtc, string? ReversalReason, byte[]? RowVersion);
+
+public sealed record RecordGroupDepositRequest(
+    Guid GroupReservationId, decimal Amount, string CurrencyCode,
+    string PaymentMethod, DateOnly BusinessDate, string? ExternalReference,
+    string? Note);
+
+public sealed record ReverseGroupDepositRequest(
+    Guid GroupDepositId, byte[] ExpectedRowVersion, string Reason);
+
+public interface IGroupDepositService
+{
+    Task<IReadOnlyList<GroupDepositDto>> GetAsync(Guid propertyId, Guid groupReservationId, CancellationToken ct);
+    Task<GroupDepositDto> RecordAsync(RecordGroupDepositRequest request, CancellationToken ct);
+    Task<GroupDepositDto> ReverseAsync(ReverseGroupDepositRequest request, CancellationToken ct);
+}
 
 // =============================================================================
 // GROUP DASHBOARD
@@ -78,6 +100,171 @@ public sealed record GroupRevenueDashboardDto(
     Guid GroupId, string GroupName, decimal RoomRevenue, decimal FbRevenue,
     decimal OtherRevenue, decimal TotalRevenue, decimal AveragePerRoom,
     decimal RevenuePerAvailableRoom, decimal ForecastAccuracy
+);
+
+public sealed record GroupReservationSummaryDto(
+    Guid GroupReservationId, Guid PropertyId, string GroupCode, string GroupName,
+    string? CompanyName, string? AgencyName, string? ContactPerson, string? ContactPhone,
+    string? ContactEmail, DateOnly ArrivalDate, DateOnly DepartureDate,
+    int ExpectedRooms, int ConfirmedRooms, int TotalAdults, int TotalChildren,
+    int CheckedInGuests, GroupReservationStatus Status, string? Source,
+    string? SalesManager, string? MarketSegment, bool IsVip, ChargeRouting Routing,
+    decimal TotalDeposit, decimal TotalRevenue, decimal OutstandingBalance,
+    DateTime CreatedAtUtc, IReadOnlyList<RoomingListItemDto> RoomingList
+);
+
+public sealed record CreateGroupServiceDraft(
+    string ServiceName, string Category, DateOnly ServiceDate, TimeOnly ServiceTime,
+    int DurationMinutes, int Quantity, decimal UnitPrice, decimal DiscountRate,
+    decimal TaxRate, decimal ServiceChargeRate, string ChargeTo,
+    string? SubCategory = null, string? Department = null, string? Provider = null,
+    string? Location = null, string? GuestName = null, string? Remark = null
+);
+
+public sealed record CreateGroupRoomBlockDraft(
+    Guid RoomTypeId, int Rooms, DateOnly ArrivalDate, DateOnly DepartureDate,
+    DateOnly? CutoffDate, decimal? NegotiatedRate
+);
+
+public sealed record CreateGroupRequest(
+    Guid PropertyId, string? GroupCode, string GroupName,
+    DateOnly ArrivalDate, DateOnly DepartureDate, int ExpectedRooms,
+    int TotalAdults, int TotalChildren, string? CompanyName,
+    string? AgencyName, string? ContactPerson, string? ContactPhone,
+    string? ContactEmail, string? Source, string? SalesManager,
+    string? MarketSegment, bool IsVip, ChargeRouting Routing,
+    string? SpecialRequests, string? Notes,
+    IReadOnlyCollection<CreateGroupServiceDraft>? ServiceDrafts = null,
+    IReadOnlyCollection<CreateGroupRoomBlockDraft>? RoomBlockDrafts = null
+);
+
+public sealed record CreatedGroupDto(
+    Guid GroupReservationId, Guid PropertyId, string GroupCode,
+    string GroupName, GroupReservationStatus Status, DateTime CreatedAtUtc
+);
+
+public sealed record GroupStatusChangeDto(
+    Guid GroupReservationId, Guid PropertyId, string GroupCode,
+    GroupReservationStatus Status, DateTime UpdatedAtUtc
+);
+
+public sealed record GroupDepositScheduleDraft(DateOnly DueDate, decimal Percent);
+
+public sealed record GroupDepositPolicyDraft(
+    bool DepositRequired,
+    string? GuaranteeType,
+    DateOnly? CutoffDate,
+    DateOnly? ReleaseDate,
+    IReadOnlyCollection<GroupDepositScheduleDraft> Schedules
+);
+
+public sealed record ConfigureGroupBookingRequest(
+    Guid GroupReservationId,
+    IReadOnlyCollection<CreateGroupRoomBlockDraft> RoomBlockDrafts,
+    bool Confirm,
+    GroupDepositPolicyDraft? DepositPolicy = null
+);
+
+public sealed record ConfiguredGroupBookingDto(
+    Guid GroupReservationId,
+    Guid PropertyId,
+    string GroupCode,
+    GroupReservationStatus Status,
+    int RoomBlockCount,
+    DateTime SavedAtUtc
+);
+
+public sealed record GroupCheckInResult(
+    Guid GroupReservationId, string GroupCode, GroupReservationStatus Status,
+    int CheckedInRooms, int CheckedInGuests, DateTime CheckedInAtUtc
+);
+
+public sealed record GroupCheckOutResult(
+    Guid GroupReservationId, string GroupCode, GroupReservationStatus Status,
+    int CheckedOutRooms, int CheckedOutGuests, DateTime CheckedOutAtUtc,
+    int InvoicesGenerated = 0,
+    int HousekeepingTasksCreated = 0
+);
+
+public sealed record AssignGroupRoomRequest(
+    Guid GroupReservationId, Guid HotelRoomId, Guid? GuestId,
+    string? GuestName, int Adults, int Children
+);
+
+public sealed record AssignGroupRoomItem(
+    Guid HotelRoomId, Guid? GuestId, string? GuestName, int Adults, int Children
+);
+
+public sealed record ReplaceGroupRoomAssignmentsRequest(
+    Guid GroupReservationId, IReadOnlyCollection<AssignGroupRoomItem> Assignments
+);
+
+public sealed record ReplaceGroupRoomAssignmentsResult(
+    Guid GroupReservationId, int AssignmentCount, DateTime SavedAtUtc
+);
+
+public sealed record GroupRoomAssignmentDto(
+    Guid AssignmentId, Guid GroupReservationId, Guid PropertyId,
+    Guid HotelRoomId, string RoomNumber, string RoomType, Guid? GuestId,
+    string? GuestName, int Adults, int Children, bool IsCheckedIn, bool IsCheckedOut
+);
+
+// =============================================================================
+// GROUP SERVICE ORDERS
+// =============================================================================
+
+public sealed record GroupServiceOrderDto(
+    Guid GroupServiceOrderId, Guid PropertyId, Guid GroupReservationId,
+    string ServiceCode, string ServiceName, string Category, string? SubCategory,
+    string? Department, string? Provider, string? Location, DateOnly ServiceDate,
+    TimeOnly ServiceTime, int DurationMinutes, int Quantity, decimal UnitPrice,
+    decimal DiscountRate, decimal TaxRate, decimal ServiceChargeRate,
+    decimal SubTotal, decimal DiscountAmount, decimal TaxAmount,
+    decimal ServiceChargeAmount, decimal TotalAmount, decimal PaidAmount,
+    decimal Balance, GroupServiceOrderStatus Status, string ChargeTo,
+    string GroupCode, string GroupName, string? GuestName, string? Remark,
+    DateTime CreatedAtUtc, DateTime UpdatedAtUtc, byte[]? RowVersion
+);
+
+public sealed record CreateGroupServiceOrderRequest(
+    Guid GroupReservationId, string ServiceName, string Category, string? SubCategory,
+    string? Department, string? Provider, string? Location, DateOnly ServiceDate,
+    TimeOnly ServiceTime, int DurationMinutes, int Quantity, decimal UnitPrice,
+    decimal DiscountRate, decimal TaxRate, decimal ServiceChargeRate,
+    string ChargeTo, string? GuestName, string? Remark
+);
+
+public sealed record UpdateGroupServiceOrderRequest(
+    Guid GroupServiceOrderId, string ServiceName, string Category, string? SubCategory,
+    string? Department, string? Provider, string? Location, DateOnly ServiceDate,
+    TimeOnly ServiceTime, int DurationMinutes, int Quantity, decimal UnitPrice,
+    decimal DiscountRate, decimal TaxRate, decimal ServiceChargeRate,
+    string ChargeTo, string? GuestName, string? Remark, byte[]? ExpectedRowVersion
+);
+
+public sealed record ChangeGroupServiceOrderStatusRequest(
+    Guid GroupServiceOrderId, GroupServiceOrderStatus Status, string? Reason
+);
+
+public sealed record PostGroupServiceOrderToFolioRequest(
+    Guid GroupServiceOrderId, Guid? TargetFolioId = null
+);
+
+public sealed record PostGroupServiceOrdersToFolioRequest(
+    IReadOnlyCollection<Guid> GroupServiceOrderIds, Guid TargetFolioId
+);
+
+public sealed record GroupServiceBatchPostResult(
+    Guid TargetFolioId, IReadOnlyList<Guid> GroupServiceOrderIds,
+    int PostedCount, decimal TotalAmount
+);
+
+public sealed record BatchChangeGroupServiceOrderStatusRequest(
+    IReadOnlyCollection<Guid> GroupServiceOrderIds, GroupServiceOrderStatus Status, string? Reason = null
+);
+
+public sealed record GroupServiceBatchStatusResult(
+    IReadOnlyList<Guid> GroupServiceOrderIds, GroupServiceOrderStatus Status
 );
 
 // =============================================================================
@@ -115,6 +302,54 @@ public interface IGroupBillingService
 public interface IGroupDashboardService
 {
     Task<GroupDashboardDto> GetDashboardAsync(Guid propertyId, CancellationToken ct);
+}
+
+public interface IGroupReservationQueryService
+{
+    Task<IReadOnlyList<GroupReservationSummaryDto>> GetGroupsAsync(Guid propertyId, CancellationToken ct);
+}
+
+public interface IGroupReservationCommandService
+{
+    Task<CreatedGroupDto> CreateAsync(CreateGroupRequest request, CancellationToken ct);
+    Task<ConfiguredGroupBookingDto> ConfigureBookingAsync(ConfigureGroupBookingRequest request, CancellationToken ct);
+    Task<GroupStatusChangeDto> ConfirmAsync(Guid groupId, CancellationToken ct);
+    Task<GroupStatusChangeDto> CancelAsync(Guid groupId, string reason, CancellationToken ct);
+    Task<GroupStatusChangeDto> CloseAsync(Guid groupId, CancellationToken ct);
+    Task DeleteDraftAsync(Guid groupId, CancellationToken ct);
+}
+
+public interface IGroupCheckInCommandService
+{
+    Task<GroupCheckInResult> CheckInAsync(Guid groupId, IReadOnlyCollection<Guid> assignmentIds, CancellationToken ct);
+}
+
+public interface IGroupCheckOutCommandService
+{
+    Task<GroupCheckOutResult> CheckOutAsync(Guid groupId, IReadOnlyCollection<Guid> assignmentIds, DateTime checkOutAtUtc, CancellationToken ct);
+    Task<GroupCheckOutResult> CheckOutAndIssueInvoicesAsync(Guid groupId, IReadOnlyCollection<Guid> assignmentIds, DateTime checkOutAtUtc, CancellationToken ct);
+}
+
+public interface IGroupRoomAssignmentCommandService
+{
+    Task<GroupRoomAssignmentDto> AssignAsync(AssignGroupRoomRequest request, CancellationToken ct);
+    Task RemoveAsync(Guid groupId, Guid hotelRoomId, CancellationToken ct);
+    Task<ReplaceGroupRoomAssignmentsResult> ReplaceAsync(ReplaceGroupRoomAssignmentsRequest request, CancellationToken ct);
+}
+
+public interface IGroupServiceOrderQueryService
+{
+    Task<IReadOnlyList<GroupServiceOrderDto>> SearchAsync(Guid propertyId, Guid? groupReservationId, CancellationToken ct);
+}
+
+public interface IGroupServiceOrderCommandService
+{
+    Task<GroupServiceOrderDto> CreateAsync(CreateGroupServiceOrderRequest request, CancellationToken ct);
+    Task<GroupServiceOrderDto> UpdateAsync(UpdateGroupServiceOrderRequest request, CancellationToken ct);
+    Task<GroupServiceOrderDto> ChangeStatusAsync(ChangeGroupServiceOrderStatusRequest request, CancellationToken ct);
+    Task<GroupServiceBatchStatusResult> ChangeBatchStatusAsync(BatchChangeGroupServiceOrderStatusRequest request, CancellationToken ct);
+    Task<GroupServiceOrderDto> PostToFolioAsync(PostGroupServiceOrderToFolioRequest request, CancellationToken ct);
+    Task<GroupServiceBatchPostResult> PostBatchToFolioAsync(PostGroupServiceOrdersToFolioRequest request, CancellationToken ct);
 }
 
 // =============================================================================

@@ -73,12 +73,14 @@
 
                 <Grid Width="360" Height="42">
                     <PasswordBox x:Name="PasswordBox"
+                                 AutomationProperties.AutomationId="LoginPasswordInput"
                                  Style="{StaticResource Win11PillPasswordBoxStyle}"
                                  Padding="16,0,86,0"
                                  PasswordChanged="PasswordBox_OnPasswordChanged"
                                  KeyDown="PasswordInput_OnKeyDown"/>
 
                     <TextBox x:Name="PasswordText"
+                             AutomationProperties.AutomationId="LoginPasswordInput"
                              Style="{StaticResource Win11PillTextBoxStyle}"
                              Padding="16,0,86,0"
                              Text="{Binding VisiblePassword, UpdateSourceTrigger=PropertyChanged}"

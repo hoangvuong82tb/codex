@@ -298,6 +298,10 @@
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Họ và tên *" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="GuestName" Style="{StaticResource ModTextBox}" TabIndex="1"/></Grid>
                         <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Điện thoại" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="GuestPhone" Style="{StaticResource ModTextBox}" TabIndex="2"/></Grid>
                     </Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,14">
+                        <Button Content="Chọn khách cũ" Click="OnFindGuestClick" Style="{StaticResource GrayBtn}" Margin="0,0,8,0"/>
+                        <Button Content="Tạo hồ sơ khách mới" Click="OnCreateGuestClick" Style="{StaticResource BlueBtn}"/>
+                    </StackPanel>
                     <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Loại giấy tờ" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><ComboBox Grid.Column="1" Style="{StaticResource ModCombo}" TabIndex="3"><ComboBoxItem Content="CCCD"/><ComboBoxItem Content="Hộ chiếu"/><ComboBoxItem Content="CMND"/><ComboBoxItem Content="Khác"/></ComboBox></Grid>
                         <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Số giấy tờ" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium"/><TextBox Grid.Column="1" x:Name="DocNumber" Style="{StaticResource ModTextBox}" TabIndex="4"/></Grid>

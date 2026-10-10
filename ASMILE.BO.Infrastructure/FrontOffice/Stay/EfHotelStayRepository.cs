@@ -18,6 +18,18 @@ public sealed class EfHotelStayRepository(AppDbContext dbContext) : IHotelStayRe
     }
 
     public Task<HotelStayAggregate?> GetAsync(Guid propertyId, Guid stayId, CancellationToken cancellationToken = default) => dbContext.HotelStays.SingleOrDefaultAsync(x => x.PropertyId == propertyId && x.HotelStayId == stayId, cancellationToken);
+    public Task<HotelStayAggregate?> GetActiveForReservationAsync(Guid propertyId, Guid reservationId, CancellationToken cancellationToken = default)
+        => dbContext.HotelStays
+            .Where(x => x.PropertyId == propertyId && x.ReservationId == reservationId
+                && (x.Status == HotelStayStatus.PendingArrival
+                    || x.Status == HotelStayStatus.PreArrival
+                    || x.Status == HotelStayStatus.CheckedIn
+                    || x.Status == HotelStayStatus.InHouse
+                    || x.Status == HotelStayStatus.RoomMoved
+                    || x.Status == HotelStayStatus.Extended
+                    || x.Status == HotelStayStatus.ExpectedDeparture))
+            .OrderByDescending(x => x.UpdatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
     public Task<HotelStayDto?> GetDtoAsync(Guid propertyId, Guid stayId, CancellationToken cancellationToken = default) => dbContext.HotelStays.AsNoTracking().Where(x => x.PropertyId == propertyId && x.HotelStayId == stayId).Select(ToDto).SingleOrDefaultAsync(cancellationToken);
     public Task<HotelStayDto?> GetByNumberAsync(Guid propertyId, string stayNumber, CancellationToken cancellationToken = default) => dbContext.HotelStays.AsNoTracking().Where(x => x.PropertyId == propertyId && x.StayNumber == stayNumber).Select(ToDto).SingleOrDefaultAsync(cancellationToken);
 
@@ -41,11 +53,31 @@ public sealed class EfHotelStayRepository(AppDbContext dbContext) : IHotelStayRe
         return new PageResult<HotelStayDto>(items, total, page.Page, page.PageSize);
     }
 
-    public async Task<IReadOnlyList<HotelStayDto>> GetCurrentInHouseAsync(Guid propertyId, CancellationToken cancellationToken = default) => await dbContext.HotelStays.AsNoTracking().Where(x => x.PropertyId == propertyId && x.Status == HotelStayStatus.InHouse).OrderBy(x => x.RoomNumberSnapshot).Select(ToDto).ToListAsync(cancellationToken);
+    public async Task<IReadOnlyList<HotelStayDto>> GetCurrentInHouseAsync(Guid propertyId, CancellationToken cancellationToken = default) => await dbContext.HotelStays.AsNoTracking().Where(x => x.PropertyId == propertyId && (x.Status == HotelStayStatus.CheckedIn || x.Status == HotelStayStatus.InHouse || x.Status == HotelStayStatus.RoomMoved || x.Status == HotelStayStatus.Extended || x.Status == HotelStayStatus.ExpectedDeparture)).OrderBy(x => x.RoomNumberSnapshot).Select(ToDto).ToListAsync(cancellationToken);
     public async Task<IReadOnlyList<HotelStayDto>> GetExpectedArrivalsAsync(Guid propertyId, DateOnly businessDate, CancellationToken cancellationToken = default) => await dbContext.HotelStays.AsNoTracking().Where(x => x.PropertyId == propertyId && x.Status == HotelStayStatus.PendingArrival && x.ScheduledArrivalDate == businessDate).OrderBy(x => x.RoomNumberSnapshot).Select(ToDto).ToListAsync(cancellationToken);
     public async Task<IReadOnlyList<HotelStayDto>> GetExpectedDeparturesAsync(Guid propertyId, DateOnly businessDate, CancellationToken cancellationToken = default) => await dbContext.HotelStays.AsNoTracking().Where(x => x.PropertyId == propertyId && x.Status == HotelStayStatus.InHouse && x.ScheduledDepartureDate == businessDate).OrderBy(x => x.RoomNumberSnapshot).Select(ToDto).ToListAsync(cancellationToken);
-    public Task<bool> ExistsActiveForReservationAsync(Guid propertyId, Guid reservationId, CancellationToken cancellationToken = default) => dbContext.HotelStays.AsNoTracking().AnyAsync(x => x.PropertyId == propertyId && x.ReservationId == reservationId && x.Status.IsActive(), cancellationToken);
-    public Task<bool> ExistsInHouseForRoomAsync(Guid propertyId, Guid roomId, Guid? excludingStayId = null, CancellationToken cancellationToken = default) => dbContext.HotelStays.AsNoTracking().AnyAsync(x => x.PropertyId == propertyId && x.RoomId == roomId && x.Status.IsOccupying() && (excludingStayId == null || x.HotelStayId != excludingStayId), cancellationToken);
+    public Task<bool> ExistsActiveForReservationAsync(Guid propertyId, Guid reservationId, CancellationToken cancellationToken = default)
+        => dbContext.HotelStays.AsNoTracking().AnyAsync(x =>
+            x.PropertyId == propertyId
+            && x.ReservationId == reservationId
+            && (x.Status == HotelStayStatus.PendingArrival
+                || x.Status == HotelStayStatus.PreArrival
+                || x.Status == HotelStayStatus.CheckedIn
+                || x.Status == HotelStayStatus.InHouse
+                || x.Status == HotelStayStatus.RoomMoved
+                || x.Status == HotelStayStatus.Extended
+                || x.Status == HotelStayStatus.ExpectedDeparture), cancellationToken);
+
+    public Task<bool> ExistsInHouseForRoomAsync(Guid propertyId, Guid roomId, Guid? excludingStayId = null, CancellationToken cancellationToken = default)
+        => dbContext.HotelStays.AsNoTracking().AnyAsync(x =>
+            x.PropertyId == propertyId
+            && x.RoomId == roomId
+            && (x.Status == HotelStayStatus.CheckedIn
+                || x.Status == HotelStayStatus.InHouse
+                || x.Status == HotelStayStatus.RoomMoved
+                || x.Status == HotelStayStatus.Extended
+                || x.Status == HotelStayStatus.ExpectedDeparture)
+            && (excludingStayId == null || x.HotelStayId != excludingStayId), cancellationToken);
     public Task AppendHistoryAsync(HotelStayHistory history, CancellationToken cancellationToken = default) { dbContext.HotelStayHistories.Add(history); return Task.CompletedTask; }
     public void ApplyExpectedRowVersion(HotelStayAggregate stay, byte[] expectedRowVersion) => dbContext.Entry(stay).Property(x => x.RowVersion).OriginalValue = expectedRowVersion;
 
@@ -63,5 +95,5 @@ public sealed class EfHotelStayRepository(AppDbContext dbContext) : IHotelStayRe
         orderby room.RoomNumber
         select new RoomOccupancyDto(room.HotelRoomId, room.RoomNumber, type.Code, room.OperationalStatus.ToString(), stay == null ? "Vacant" : "Occupied", stay == null ? null : stay.StayNumber)).ToListAsync(cancellationToken);
 
-    private static readonly Expression<Func<HotelStayAggregate, HotelStayDto>> ToDto = x => new HotelStayDto(x.HotelStayId, x.StayNumber, x.PropertyId, x.ReservationId, x.ReservationNumberSnapshot, x.GuestId, x.GuestNameSnapshot, x.RoomId, x.RoomNumberSnapshot, x.RoomTypeId, x.RoomTypeCodeSnapshot, x.ScheduledArrivalDate, x.ScheduledDepartureDate, x.ActualCheckInAtUtc, x.ActualCheckOutAtUtc, x.Adults, x.Children, x.Status, x.Source, x.ExtensionCount, x.CreatedAtUtc, x.UpdatedAtUtc, x.RowVersion);
+    private static readonly Expression<Func<HotelStayAggregate, HotelStayDto>> ToDto = x => new HotelStayDto(x.HotelStayId, x.StayNumber, x.PropertyId, x.ReservationId, x.ReservationNumberSnapshot, x.GuestId, x.GuestNameSnapshot, x.RoomId, x.RoomNumberSnapshot, x.RoomTypeId, x.RoomTypeCodeSnapshot, x.ScheduledArrivalDate, x.ScheduledDepartureDate, x.ActualCheckInAtUtc, x.ActualCheckOutAtUtc, x.Adults, x.Children, x.Status, x.Source, x.ExtensionCount, x.CreatedAtUtc, x.UpdatedAtUtc, x.RowVersion, x.IsDepartureApproved, x.GuestPhoneSnapshot, x.SpecialRequests, x.InternalNotes);
 }

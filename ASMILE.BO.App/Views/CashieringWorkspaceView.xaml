@@ -14,19 +14,19 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Style="{StaticResource HubContainerStyle}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Button Content="← Quay lại Lễ tân" Command="{Binding BackCommand}" Style="{StaticResource HubBackButtonStyle}"/>
+                <Button Content="← Quay lại Quản lý khách sạn" Command="{Binding BackCommand}" Style="{StaticResource HubBackButtonStyle}"/>
                 <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,32">
-                    <TextBlock Text="Thu ngân / Folio" Style="{StaticResource HubHeaderStyle}" FontSize="32"/>
-                    <TextBlock Text="Quản lý Folio và giao dịch Front Office." Style="{StaticResource HubSubtitleStyle}" FontSize="16"/>
+                    <TextBlock Text="Folio" Style="{StaticResource HubHeaderStyle}" FontSize="32"/>
+                    <TextBlock Text="Quản lý Folio và các nghiệp vụ liên quan." Style="{StaticResource HubSubtitleStyle}" FontSize="16"/>
                 </StackPanel>
                 <WrapPanel Grid.Row="2" HorizontalAlignment="Center" MaxWidth="1060">
-                    <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnCollect"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Visibility="Collapsed" Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnCollect"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4A8EFF" Offset="0"/><GradientStop Color="#1765F2" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE677;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                         <TextBlock Grid.Column="1" Text="Thu tiền" Style="{StaticResource HubCardTitleStyle}"/></Grid></Border>
-                    <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnDeposit"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Visibility="Collapsed" Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnDeposit"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#31C9B8" Offset="0"/><GradientStop Color="#00A58F" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE719;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                         <TextBlock Grid.Column="1" Text="Đặt cọc" Style="{StaticResource HubCardTitleStyle}"/></Grid></Border>
-                    <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnRefund"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Visibility="Collapsed" Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnRefund"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFAD39" Offset="0"/><GradientStop Color="#ED7900" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE716;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                         <TextBlock Grid.Column="1" Text="Hoàn tiền" Style="{StaticResource HubCardTitleStyle}"/></Grid></Border>
                     <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnFolio"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

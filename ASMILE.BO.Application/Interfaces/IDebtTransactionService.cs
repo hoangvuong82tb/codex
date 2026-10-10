@@ -9,6 +9,8 @@ public interface IDebtTransactionService
     Task<IReadOnlyList<ReceivableTransaction>> GetReceivablesAsync(Guid? customerId = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PayableTransaction>> GetPayablesAsync(Guid? supplierId = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default);
     Task<PaymentAllocation> AllocatePaymentAsync(string paymentSourceType, Guid? paymentSourceId, Guid? paymentJournalHeaderId, string targetType, Guid targetTransactionId, decimal allocatedAmount, DateTime allocationDate, string? createdBy = null, CancellationToken cancellationToken = default);
+    Task<int> AutoAllocatePaymentAsync(Guid paymentSourceId, string? createdBy = null, CancellationToken cancellationToken = default);
+    Task<int> UndoPaymentAllocationsAsync(Guid paymentSourceId, string? createdBy = null, CancellationToken cancellationToken = default);
     Task RecalculateBalancesAsync(string targetType, Guid? partnerId = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AgingSnapshot>> BuildAgingSnapshotAsync(DateTime snapshotDate, CancellationToken cancellationToken = default);
 }

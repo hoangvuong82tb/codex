@@ -13,5 +13,7 @@ public sealed class UserAccountDto
     public int FailedLoginCount { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public IReadOnlyList<string> Roles { get; set; } = [];
+    public IReadOnlyList<Guid> RoleIds { get; set; } = [];
+    public IReadOnlyList<string> PermissionCodes { get; set; } = [];
     public string? Notes { get; set; }
 }

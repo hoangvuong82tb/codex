@@ -1,0 +1,102 @@
+<Window x:Class="ASMILE.BO.App.Views.RefundManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Hoàn tiền" Width="1420" Height="880" MinWidth="1220" MinHeight="740"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis"/>
+        <Style x:Key="FieldLabel" TargetType="TextBlock"><Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="#94A3B8"/><Setter Property="Margin" Value="0,0,0,3"/></Style>
+        <Style x:Key="ModernTextBox" TargetType="TextBox"><Setter Property="Height" Value="38"/><Setter Property="Padding" Value="12,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModernComboBox" TargetType="ComboBox"><Setter Property="Height" Value="38"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions><ContentPresenter Grid.Column="0" Margin="12,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}"/><Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7B8DA6" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="6" Stretch="Uniform"/></Grid></Border><Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"><Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="9" Margin="0,2"><ScrollViewer MaxHeight="220"><ItemsPresenter/></ScrollViewer></Border></Popup></Grid></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="PrimaryButton" TargetType="Button"><Setter Property="Height" Value="36"/><Setter Property="Background" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="SecondaryButton" TargetType="Button"><Setter Property="Height" Value="36"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="14,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="PagerButtonStyle" TargetType="Button"><Setter Property="Width" Value="32"/><Setter Property="Height" Value="30"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="11"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="2,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModernDataGrid" TargetType="DataGrid"><Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/><Setter Property="Background" Value="Transparent"/><Setter Property="RowBackground" Value="Transparent"/><Setter Property="AlternatingRowBackground" Value="#FAFBFD"/><Setter Property="BorderThickness" Value="0"/><Setter Property="ColumnHeaderHeight" Value="42"/><Setter Property="RowHeight" Value="42"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/><Setter Property="ColumnHeaderStyle"><Setter.Value><Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="#F2F6FC"/><Setter Property="Foreground" Value="#475569"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="12"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/><Setter Property="Padding" Value="8,0"/></Style></Setter.Value></Setter></Style>
+        <Style x:Key="PanelCard" TargetType="Border"><Setter Property="Background" Value="White"/><Setter Property="CornerRadius" Value="12"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/></Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock"><Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#102E5A"/><Setter Property="Margin" Value="0,0,0,10"/></Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border Padding="20,14" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="42" Height="42" CornerRadius="11"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#DC2626" Offset="0"/><GradientStop Color="#B91C1C" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE716;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" Margin="12,0,0,0"><TextBlock Text="Hoàn tiền" FontSize="18" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Kiểm tra, tính toán và chuẩn bị hoàn trả các khoản thu hoặc đặt cọc." FontSize="12" Foreground="#64748B"/></StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal"><Button Content="Làm mới" Click="OnRefresh" Style="{StaticResource SecondaryButton}"/><Button Content="Đóng" Click="OnClose" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/></StackPanel>
+            </Grid>
+        </Border>
+        <Border Grid.Row="1" Padding="20,0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1"><StackPanel x:Name="StepBar" Orientation="Horizontal" HorizontalAlignment="Center"/></Border>
+        <Border Grid.Row="2" Padding="20,8" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1"><StackPanel x:Name="SummaryStrip" Orientation="Horizontal" HorizontalAlignment="Center"/></Border>
+        <Grid Grid.Row="3" Margin="20,12">
+            <Grid x:Name="Step1Content"><Grid.ColumnDefinitions><ColumnDefinition Width="65*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="35*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="0"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Border Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1"><WrapPanel>
+                        <StackPanel Width="235" Margin="0,0,8,6"><TextBlock Text="Từ khóa" Style="{StaticResource FieldLabel}"/><TextBox x:Name="RefSearchBox" Style="{StaticResource ModernTextBox}"/></StackPanel>
+                        <StackPanel Width="100" Margin="0,0,8,6"><TextBlock Text="Loại" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="RefTypeFilter" Style="{StaticResource ModernComboBox}"/></StackPanel>
+                        <StackPanel Width="120" Margin="0,0,8,6"><TextBlock Text="Trạng thái" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="RefStatusFilter" Style="{StaticResource ModernComboBox}"/></StackPanel>
+                        <Button Margin="0,15,6,6" Content="Tìm" Click="OnApplyRefFilters" Style="{StaticResource PrimaryButton}"/><Button Margin="0,15,0,6" Content="Xóa lọc" Click="OnClearRefFilters" Style="{StaticResource SecondaryButton}"/>
+                    </WrapPanel></Border>
+                    <DataGrid x:Name="RefGrid" Grid.Row="1" Style="{StaticResource ModernDataGrid}" SelectionChanged="OnRefPreviewChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mã GD" Binding="{Binding Code}" Width="90"/><DataGridTextColumn Header="Loại" Binding="{Binding Type}" Width="70"/>
+                            <DataGridTextColumn Header="Khách" Binding="{Binding Name}" Width="140"/><DataGridTextColumn Header="Phòng" Binding="{Binding Room}" Width="55"/>
+                            <DataGridTextColumn Header="Phương thức" Binding="{Binding Method}" Width="80"/><DataGridTextColumn Header="Gốc" Binding="{Binding OrigDisplay}" Width="90"/>
+                            <DataGridTextColumn Header="Đã hoàn" Binding="{Binding DoneDisplay}" Width="80"/><DataGridTextColumn Header="Còn" Binding="{Binding LeftDisplay}" Width="80"/>
+                            <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Border Grid.Row="2" Padding="12,9" Background="#FBFCFE" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="RefPagerSummary" VerticalAlignment="Center" FontSize="11" Foreground="#64748B"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button x:Name="RefPrevBtn" Content="←" Click="OnRefPrevPage" Style="{StaticResource PagerButtonStyle}"/><StackPanel x:Name="RefPageBtns" Orientation="Horizontal"/>
+                                <Button x:Name="RefNextBtn" Content="→" Click="OnRefNextPage" Style="{StaticResource PagerButtonStyle}"/><ComboBox x:Name="RefPageSizeBox" Width="118" Margin="8,0,0,0" SelectionChanged="OnRefPageSizeChanged" Style="{StaticResource ModernComboBox}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid></Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="14"><StackPanel>
+                    <TextBlock Text="Chi tiết giao dịch" Style="{StaticResource SectionTitle}"/>
+                    <Border x:Name="RefEmptyState" Padding="16" Background="#F8FAFC" CornerRadius="10"><StackPanel><TextBlock Text="Chưa chọn giao dịch" FontSize="14" FontWeight="SemiBold" Foreground="#52657D"/><TextBlock Margin="0,4,0,0" Text="Chọn một giao dịch để xem điều kiện và số tiền có thể hoàn." TextWrapping="Wrap" FontSize="12" Foreground="#94A3B8"/></StackPanel></Border>
+                    <StackPanel x:Name="RefDetailPanel" Visibility="Collapsed">
+                        <TextBlock x:Name="RDName" FontSize="18" FontWeight="SemiBold" Foreground="#17365D"/><TextBlock x:Name="RDMeta" Margin="0,3,0,14" FontSize="12" Foreground="#64748B"/>
+                        <Border Height="1" Margin="0,0,0,12" Background="#E2E8F0"/>
+                        <TextBlock x:Name="RDInfo1" Margin="0,3" FontSize="12" Foreground="#334155"/><TextBlock x:Name="RDInfo2" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                        <TextBlock x:Name="RDInfo3" Margin="0,3" FontSize="12" Foreground="#334155"/><TextBlock x:Name="RDInfo4" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                        <Button x:Name="BtnSelectRef" Content="Chọn giao dịch này" Click="OnSelectRef" Style="{StaticResource PrimaryButton}" Margin="0,10,0,0" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </StackPanel></Border>
+            </Grid>
+            <Grid x:Name="Step2Content" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step2Left"/></Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step2Right"/></Border>
+            </Grid>
+            <Grid x:Name="Step3Content" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step3Left"/></Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step3Right"/></Border>
+            </Grid>
+            <Grid x:Name="Step4Content" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step4Left"/></Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step4Right"/></Border>
+            </Grid>
+            <Grid x:Name="Step5Content" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step5Left"/></Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step5Right"/></Border>
+            </Grid>
+            <Grid x:Name="Step6Content" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step6Left"/></Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="14"><StackPanel x:Name="Step6Right"/></Border>
+            </Grid>
+        </Grid>
+        <Border Grid.Row="4" Padding="16,10" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="FooterStepLabel" Text="Bước 1/6 · Chọn giao dịch" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Hủy" Click="OnClose" Style="{StaticResource SecondaryButton}"/><Button x:Name="BtnBack" Content="← Quay lại" Click="OnBack" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" IsEnabled="False"/>
+                    <Button x:Name="BtnNext" Content="Tiếp tục →" Click="OnNext" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"/>
+                    <Button x:Name="BtnConfirm" Content="Xác nhận hoàn tiền" Click="OnConfirm" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Visibility="Collapsed"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

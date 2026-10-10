@@ -1,10 +1,14 @@
 using System.Collections.Concurrent;
+using System.Data;
 using System.Diagnostics;
 using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Interfaces.Settings;
 using ASMILE.BO.Core.Entities;
+using ASMILE.BO.Core.Entities.Settings;
 using ASMILE.BO.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -16,11 +20,13 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
     private static readonly ConcurrentDictionary<Guid, CancellationTokenSource> ActiveExecutionTokens = new();
     private static readonly SemaphoreSlim DefaultsGate = new(1, 1);
     private static readonly TimeSpan DefaultStaleWindow = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan ExecutionRecoveryGracePeriod = TimeSpan.FromMinutes(2);
     private static readonly IReadOnlyList<BackgroundJobSeed> DefaultJobs =
     [
         new("DEPRECIATION", "Depreciation run", "Run fixed asset depreciation jobs.", 1440, 2, 300),
         new("TOOL_ALLOCATION", "Tool allocation run", "Run tool asset allocation jobs.", 1440, 2, 300),
         new("VAT_SYNC", "VAT sync", "Synchronize VAT documents.", 240, 2, 240),
+        new("EINVOICE_ISSUE_QUEUE", "E-invoice issue queue", "Process queued e-invoice issuance requests through the configured provider.", 1, 2, 300),
         new("REPORT_SNAPSHOT_CLEANUP", "Report snapshot cleanup", "Clean stale report snapshots.", 720, 1, 300),
         new("AUDIT_CLEANUP", "Audit cleanup", "Clean expired audit operational rows.", 1440, 1, 300),
         new("TEMP_CLEANUP", "Temp cleanup", "Clean temporary files.", 720, 1, 180),
@@ -29,7 +35,8 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
         new("ARCHIVE_CLEANUP", "Archive cleanup", "Purge expired archive batches.", 720, 1, 180),
         new("RETENTION_ENFORCEMENT", "Retention enforcement", "Archive expired retained data.", 360, 2, 240),
         new("INTEGRITY_VERIFICATION", "Integrity verification", "Validate archive and recovery integrity.", 720, 1, 180),
-        new("TELEMETRY_CLEANUP", "Telemetry cleanup", "Archive stale telemetry records.", 720, 1, 180)
+        new("TELEMETRY_CLEANUP", "Telemetry cleanup", "Archive stale telemetry records.", 720, 1, 180),
+        new("DATABASE_BACKUP", "Database backup", "Create and verify a SQL Server backup from the persisted backup policy.", 1440, 2, 360)
     ];
 
     private readonly IServiceScopeFactory _scopeFactory;
@@ -39,9 +46,10 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
     private readonly IAuditCorrelationService? _auditCorrelationService;
     private readonly IRuntimeTelemetryService? _runtimeTelemetryService;
     private readonly IWorkflowResilienceService? _workflowResilienceService;
+    private readonly ISettingsService? _settingsService;
     private bool _disposed;
 
-    public BackgroundSchedulerService(IServiceScopeFactory scopeFactory, AppDbContext dbContext, ILogger<BackgroundSchedulerService> logger, IAuditService? auditService = null, IAuditCorrelationService? auditCorrelationService = null, IRuntimeTelemetryService? runtimeTelemetryService = null, IWorkflowResilienceService? workflowResilienceService = null)
+    public BackgroundSchedulerService(IServiceScopeFactory scopeFactory, AppDbContext dbContext, ILogger<BackgroundSchedulerService> logger, IAuditService? auditService = null, IAuditCorrelationService? auditCorrelationService = null, IRuntimeTelemetryService? runtimeTelemetryService = null, IWorkflowResilienceService? workflowResilienceService = null, ISettingsService? settingsService = null)
     {
         _scopeFactory = scopeFactory;
         _dbContext = dbContext;
@@ -50,6 +58,7 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
         _auditCorrelationService = auditCorrelationService;
         _runtimeTelemetryService = runtimeTelemetryService;
         _workflowResilienceService = workflowResilienceService;
+        _settingsService = settingsService;
     }
 
     public async Task EnsureDefaultsAsync(CancellationToken cancellationToken = default)
@@ -57,6 +66,12 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
         await DefaultsGate.WaitAsync(cancellationToken);
         try
         {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            if (string.Equals(_dbContext.Database.ProviderName, "Microsoft.EntityFrameworkCore.SqlServer", StringComparison.Ordinal))
+            {
+                await AcquireSqlServerSchedulerMutationLockAsync(cancellationToken);
+            }
+
             _dbContext.ChangeTracker.Clear();
 
             var now = DateTime.UtcNow;
@@ -129,6 +144,9 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
+
+            await ApplyDatabaseBackupPolicyAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         finally
         {
@@ -216,6 +234,8 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
                 AllowConcurrentExecution = x.AllowConcurrentExecution,
                 RetryCount = x.RetryCount,
                 TimeoutSeconds = x.TimeoutSeconds,
+                IntervalMinutes = x.Schedules.OrderBy(s => s.NextRunAtUtc).Select(s => s.IntervalMinutes).FirstOrDefault(),
+                CronExpression = x.Schedules.OrderBy(s => s.NextRunAtUtc).Select(s => s.CronExpression).FirstOrDefault(),
                 NextRunAtUtc = x.Schedules.OrderBy(s => s.NextRunAtUtc).Select(s => s.NextRunAtUtc).FirstOrDefault(),
                 IsPaused = x.Schedules.Select(s => s.IsPaused).FirstOrDefault()
             })
@@ -335,6 +355,12 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
     {
         await EnsureDefaultsAsync(cancellationToken);
 
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        if (string.Equals(_dbContext.Database.ProviderName, "Microsoft.EntityFrameworkCore.SqlServer", StringComparison.Ordinal))
+        {
+            await AcquireSqlServerSchedulerMutationLockAsync(cancellationToken);
+        }
+
         var dueSchedules = await _dbContext.BackgroundJobSchedules
             .Include(x => x.JobDefinition)
             .Where(x => !x.IsPaused && x.NextRunAtUtc != null && x.NextRunAtUtc <= utcNow && x.JobDefinition != null && x.JobDefinition.IsEnabled)
@@ -368,23 +394,69 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return queued;
+    }
+
+    private async Task AcquireSqlServerSchedulerMutationLockAsync(CancellationToken cancellationToken)
+    {
+        var connection = _dbContext.Database.GetDbConnection();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            DECLARE @lockResult int;
+            EXEC @lockResult = sys.sp_getapplock
+                @Resource = N'ASMILE.BO.BackgroundScheduler.Mutations',
+                @LockMode = N'Exclusive',
+                @LockOwner = N'Transaction',
+                @LockTimeout = 10000,
+                @DbPrincipal = N'public';
+            SELECT @lockResult;
+            """;
+        command.CommandTimeout = 15;
+        command.Transaction = _dbContext.Database.CurrentTransaction?.GetDbTransaction();
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        var lockResult = Convert.ToInt32(result, System.Globalization.CultureInfo.InvariantCulture);
+        if (lockResult < 0)
+        {
+            throw new InvalidOperationException($"Could not acquire the SQL Server scheduler queue lock (sp_getapplock={lockResult}).");
+        }
     }
 
     public async Task<bool> ExecuteNextQueuedAsync(CancellationToken cancellationToken = default)
     {
-        var queued = await _dbContext.BackgroundJobExecutions
-            .Include(x => x.JobDefinition)
-            .Where(x => x.Status == "Queued")
-            .OrderBy(x => x.QueuedAtUtc ?? x.StartedAtUtc ?? x.CompletedAtUtc)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (queued?.JobDefinition is null)
+        Guid? executionId;
+        await using (var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken))
         {
-            return false;
+            if (string.Equals(_dbContext.Database.ProviderName, "Microsoft.EntityFrameworkCore.SqlServer", StringComparison.Ordinal))
+            {
+                await AcquireSqlServerSchedulerMutationLockAsync(cancellationToken);
+            }
+
+            var queued = await _dbContext.BackgroundJobExecutions
+                .Include(x => x.JobDefinition)
+                .Where(x => x.Status == "Queued" && x.JobDefinition != null)
+                .OrderBy(x => x.QueuedAtUtc ?? x.StartedAtUtc ?? x.CompletedAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (queued is null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return false;
+            }
+
+            // Persist the claim before releasing the cross-process lock so another
+            // desktop/worker instance cannot execute the same queued row.
+            queued.Status = "Running";
+            queued.StartedAtUtc = DateTime.UtcNow;
+            queued.StartedAt = queued.StartedAtUtc.Value;
+            queued.Message = "Execution claimed by scheduler.";
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            executionId = queued.Id;
+            await transaction.CommitAsync(cancellationToken);
         }
 
-        await ExecuteAsync(queued.Id, cancellationToken);
+        await ExecuteAsync(executionId.Value, cancellationToken);
         return true;
     }
 
@@ -483,10 +555,22 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
 
     public async Task<int> RecoverStaleExecutionsAsync(DateTime utcNow, TimeSpan staleAfter, CancellationToken cancellationToken = default)
     {
-        var cutoff = utcNow.Subtract(staleAfter > TimeSpan.Zero ? staleAfter : DefaultStaleWindow);
-        var stale = await _dbContext.BackgroundJobExecutions
+        var recoveryWindow = staleAfter > TimeSpan.Zero ? staleAfter : DefaultStaleWindow;
+        var cutoff = utcNow.Subtract(recoveryWindow);
+        var candidates = await _dbContext.BackgroundJobExecutions
+            .Include(x => x.JobDefinition)
             .Where(x => (x.Status == "Running" || x.Status == "Cancelling") && (x.StartedAtUtc ?? x.StartedAt) < cutoff)
             .ToListAsync(cancellationToken);
+        var stale = candidates
+            .Where(execution =>
+            {
+                var startedAt = execution.StartedAtUtc ?? execution.StartedAt;
+                var timeoutSeconds = Math.Max(1, execution.JobDefinition?.TimeoutSeconds ?? 0);
+                var executionWindow = TimeSpan.FromSeconds(timeoutSeconds) + ExecutionRecoveryGracePeriod;
+                var requiredWindow = executionWindow > recoveryWindow ? executionWindow : recoveryWindow;
+                return startedAt < utcNow.Subtract(requiredWindow);
+            })
+            .ToList();
 
         foreach (var execution in stale)
         {
@@ -684,9 +768,14 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
 
     private async Task ExecuteKnownJobAsync(string jobCode, CancellationToken cancellationToken, AppDbContext db, BackgroundJobExecution execution, int timeoutSeconds)
     {
-        var delay = timeoutSeconds <= 1
-            ? 1500
-            : jobCode switch
+        var delay = jobCode == "CANCEL_TEST"
+            // The internal cancellation probe must stay alive long enough for
+            // the caller to observe Running and issue CancelAsync. It is not a
+            // production job code and is used only by the scheduler test suite.
+            ? 5000
+            : timeoutSeconds <= 1
+                ? 1500
+                : jobCode switch
         {
                 "DEPRECIATION" => 120,
                 "TOOL_ALLOCATION" => 120,
@@ -736,6 +825,32 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
             {
                 await _runtimeTelemetryService.CleanupTelemetryAsync(DateTime.UtcNow, TimeSpan.FromDays(90), cancellationToken);
             }
+        }
+        else if (jobCode is "EINVOICE_ISSUE_QUEUE")
+        {
+            using var invoiceScope = _scopeFactory.CreateScope();
+            var invoiceService = invoiceScope.ServiceProvider.GetRequiredService<IEInvoiceService>();
+            var processed = 0;
+            const int maxPerTick = 25;
+            while (processed < maxPerTick)
+            {
+                var result = await invoiceService.ProcessNextQueuedIssueAsync(cancellationToken);
+                if (result.Status is "Idle" or "Busy")
+                {
+                    break;
+                }
+
+                processed++;
+            }
+
+            await LogScopedAsync(db, execution.Id, "Information", $"E-invoice issue queue processed {processed} item(s).", null, cancellationToken);
+        }
+        else if (jobCode is "DATABASE_BACKUP")
+        {
+            using var backupScope = _scopeFactory.CreateScope();
+            var backup = backupScope.ServiceProvider.GetRequiredService<IBackupService>();
+            var record = await backup.BackupNowAsync(cancellationToken);
+            await LogScopedAsync(db, execution.Id, "Information", $"Database backup created and verified: {record.FileName}.", null, cancellationToken);
         }
         else
         {
@@ -807,27 +922,62 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
             return false;
         }
 
-        var candidate = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, utcNow.Hour, utcNow.Minute, 0, DateTimeKind.Utc).AddMinutes(1);
-        for (var i = 0; i < 60 * 24 * 366; i++)
+        var earliestCandidate = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, utcNow.Hour, utcNow.Minute, 0, DateTimeKind.Utc).AddMinutes(1);
+        var allowedMinutes = Enumerable.Range(0, 60).Where(value => MatchesCronField(value, parts[0], 0, 59)).ToArray();
+        var allowedHours = Enumerable.Range(0, 24).Where(value => MatchesCronField(value, parts[1], 0, 23)).ToArray();
+        if (allowedMinutes.Length == 0 || allowedHours.Length == 0)
         {
-            if (MatchesCron(candidate, parts))
+            return false;
+        }
+
+        // A valid annual schedule such as February 29 can be more than a year
+        // away. Search dates rather than every minute so the wider Gregorian
+        // horizon stays cheap even when the configured schedule is sparse.
+        var candidateDate = earliestCandidate.Date;
+        for (var dayOffset = 0; dayOffset < 366 * 8; dayOffset++, candidateDate = candidateDate.AddDays(1))
+        {
+            if (!MatchesCronDate(candidateDate, parts))
             {
-                nextRun = candidate;
-                return true;
+                continue;
             }
 
-            candidate = candidate.AddMinutes(1);
+            foreach (var hour in allowedHours)
+            {
+                foreach (var minute in allowedMinutes)
+                {
+                    var candidate = candidateDate.AddHours(hour).AddMinutes(minute);
+                    if (candidate < earliestCandidate)
+                    {
+                        continue;
+                    }
+
+                    nextRun = candidate;
+                    return true;
+                }
+            }
         }
 
         return false;
     }
 
-    private static bool MatchesCron(DateTime candidate, IReadOnlyList<string> parts)
-        => MatchesCronField(candidate.Minute, parts[0], 0, 59)
-           && MatchesCronField(candidate.Hour, parts[1], 0, 23)
-           && MatchesCronField(candidate.Day, parts[2], 1, 31)
-           && MatchesCronField(candidate.Month, parts[3], 1, 12)
-           && MatchesCronField(((int)candidate.DayOfWeek + 6) % 7, parts[4], 0, 6);
+    private static bool MatchesCronDate(DateTime candidateDate, IReadOnlyList<string> parts)
+    {
+        var dayOfMonthMatches = MatchesCronField(candidateDate.Day, parts[2], 1, 31);
+        var dayOfWeek = (int)candidateDate.DayOfWeek;
+        var dayOfWeekMatches = MatchesCronField(dayOfWeek, parts[4], 0, 7)
+            || (dayOfWeek == 0 && MatchesCronField(7, parts[4], 0, 7));
+
+        // Standard five-field cron treats day-of-month and day-of-week as OR
+        // when both fields are explicitly restricted. If either field is a
+        // wildcard, only the other field constrains the date.
+        var dayOfMonthIsWildcard = parts[2].Contains('*');
+        var dayOfWeekIsWildcard = parts[4].Contains('*');
+        var dayMatches = dayOfMonthIsWildcard || dayOfWeekIsWildcard
+            ? dayOfMonthMatches && dayOfWeekMatches
+            : dayOfMonthMatches || dayOfWeekMatches;
+
+        return dayMatches && MatchesCronField(candidateDate.Month, parts[3], 1, 12);
+    }
 
     private static bool MatchesCronField(int value, string token, int min, int max)
     {
@@ -836,14 +986,15 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
             return true;
         }
 
-        if (token.StartsWith("*/", StringComparison.Ordinal))
-        {
-            return int.TryParse(token[2..], out var step) && step > 0 && value >= min && value <= max && (value - min) % step == 0;
-        }
-
         if (token.Contains(','))
         {
-            foreach (var part in token.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            var parts = token.Split(',', StringSplitOptions.TrimEntries);
+            if (parts.Any(string.IsNullOrWhiteSpace))
+            {
+                return false;
+            }
+
+            foreach (var part in parts)
             {
                 if (MatchesCronField(value, part, min, max))
                 {
@@ -854,20 +1005,149 @@ public sealed class BackgroundSchedulerService : IBackgroundSchedulerService, ID
             return false;
         }
 
+        var slashIndex = token.IndexOf('/');
+        if (slashIndex >= 0)
+        {
+            if (slashIndex == 0 || slashIndex == token.Length - 1 || token.IndexOf('/', slashIndex + 1) >= 0
+                || !int.TryParse(token[(slashIndex + 1)..], out var step) || step <= 0)
+            {
+                return false;
+            }
+
+            var rangeToken = token[..slashIndex];
+            int start;
+            int end;
+            if (rangeToken == "*")
+            {
+                start = min;
+                end = max;
+            }
+            else if (rangeToken.Contains('-'))
+            {
+                var range = rangeToken.Split('-', 2, StringSplitOptions.TrimEntries);
+                if (range.Length != 2
+                    || !int.TryParse(range[0], out start)
+                    || !int.TryParse(range[1], out end)
+                    || start < min || end > max || start > end)
+                {
+                    return false;
+                }
+            }
+            else if (int.TryParse(rangeToken, out start) && start >= min && start <= max)
+            {
+                end = max;
+            }
+            else
+            {
+                return false;
+            }
+
+            return value >= start && value <= end && (value - start) % step == 0;
+        }
+
         if (token.Contains('-'))
         {
             var range = token.Split('-', 2, StringSplitOptions.TrimEntries);
             return range.Length == 2
                 && int.TryParse(range[0], out var start)
                 && int.TryParse(range[1], out var end)
-                && value >= Math.Max(min, start)
-                && value <= Math.Min(max, end);
+                && start >= min
+                && end <= max
+                && start <= end
+                && value >= start
+                && value <= end;
         }
 
         return int.TryParse(token, out var parsed) && parsed == value;
     }
 
     private sealed record BackgroundJobSeed(string Code, string Name, string Description, int IntervalMinutes, int RetryCount, int TimeoutSeconds);
+
+    private async Task ApplyDatabaseBackupPolicyAsync(CancellationToken cancellationToken)
+    {
+        if (_settingsService is null)
+        {
+            return;
+        }
+
+        var enabledValue = (await _settingsService.GetValueAsync("Backup.EnableAutoBackup", SettingScope.System, null))?.Value?.Trim();
+        var scheduleValue = (await _settingsService.GetValueAsync("Backup.Schedule", SettingScope.System, null))?.Value?.Trim();
+        var enabled = ParseBoolean(enabledValue, defaultValue: false);
+        if (!IsBooleanValue(enabledValue))
+        {
+            _logger.LogWarning("Automatic database backup disabled because Backup.EnableAutoBackup is missing or invalid.");
+        }
+        var definition = await _dbContext.BackgroundJobDefinitions
+            .Include(x => x.Schedules)
+            .SingleOrDefaultAsync(x => x.Code == "DATABASE_BACKUP", cancellationToken);
+        if (definition is null)
+        {
+            return;
+        }
+
+        var schedule = definition.Schedules.OrderBy(x => x.Id).FirstOrDefault();
+        if (schedule is null)
+        {
+            definition.Schedules.Add(schedule = new BackgroundJobSchedule());
+        }
+
+        var cron = string.IsNullOrWhiteSpace(scheduleValue) ? "0 0 * * *" : scheduleValue;
+        var nextRun = ComputeNextRun(DateTime.UtcNow, intervalMinutes: null, cron);
+        var policyIsValid = nextRun.HasValue;
+        var desiredEnabled = enabled && policyIsValid;
+        var changed = false;
+
+        if (definition.IsEnabled != desiredEnabled)
+        {
+            definition.IsEnabled = desiredEnabled;
+            changed = true;
+        }
+
+        if (!string.Equals(schedule.CronExpression, cron, StringComparison.Ordinal)
+            || schedule.IntervalMinutes.HasValue)
+        {
+            schedule.CronExpression = cron;
+            schedule.IntervalMinutes = null;
+            schedule.NextRunAtUtc = desiredEnabled ? nextRun : null;
+            changed = true;
+        }
+        else if (desiredEnabled && !schedule.NextRunAtUtc.HasValue)
+        {
+            schedule.NextRunAtUtc = nextRun;
+            changed = true;
+        }
+        else if (!desiredEnabled && schedule.NextRunAtUtc.HasValue)
+        {
+            schedule.NextRunAtUtc = null;
+            changed = true;
+        }
+
+        if (!policyIsValid)
+        {
+            _logger.LogWarning("Automatic database backup disabled because Backup.Schedule is not a valid five-field cron expression: {Schedule}", cron);
+        }
+
+        if (changed)
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    private static bool ParseBoolean(string? value, bool defaultValue)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return defaultValue;
+        if (bool.TryParse(value, out var parsed)) return parsed;
+        return value.Trim() switch
+        {
+            "1" or "yes" or "on" => true,
+            "0" or "no" or "off" => false,
+            _ => defaultValue
+        };
+    }
+
+    private static bool IsBooleanValue(string? value)
+        => bool.TryParse(value, out _)
+            || value?.Trim() is "1" or "yes" or "on" or "0" or "no" or "off";
 
     public void Dispose()
     {

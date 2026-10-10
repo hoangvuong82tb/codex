@@ -1,62 +1,141 @@
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using ASMILE.BO.App.Controls;
+using ASMILE.BO.App.ViewModels;
+using ASMILE.BO.Application.DTOs;
+using ASMILE.BO.Application.FrontOffice.Foundation.Contexts;
+using ASMILE.BO.Application.FrontOffice.Foundation.Cqrs;
+using ASMILE.BO.Application.FrontOffice.Folio;
+using ASMILE.BO.Application.FrontOffice.Guest;
+using ASMILE.BO.Application.FrontOffice.Stay;
+using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Core.FrontOffice.Stay;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ASMILE.BO.App.Views;
 
 public partial class CurrentGuestsWindow : Window
 {
+    private readonly IServiceScope? _dataScope;
     private List<GuestRow> _allGuests;
-    private int _currentPage;
-    private const int PageSize = 20;
+    private readonly IHotelStayRepository? _stayRepository;
+    private readonly IHotelStayOccupantRepository? _occupantRepository;
+    private readonly IHotelFolioRepository? _folioRepository;
+    private readonly IBusinessDocumentService? _businessDocumentService;
+    private readonly HotelStayApplicationService? _stayService;
+    private readonly IFrontOfficeExecutionContextAccessor? _executionContext;
+    private readonly TablePagerViewModel<GuestRow> _pager = new() { ItemName = "khách", SelectedPageSize = "20 / trang" };
+    private IReadOnlyList<BusinessDocumentDto> _selectedDocuments = Array.Empty<BusinessDocumentDto>();
+    private FolioLedgerDto? _selectedLedger;
+    private int _detailsLoadVersion;
 
     public CurrentGuestsWindow()
     {
         InitializeComponent();
         Owner = System.Windows.Application.Current.MainWindow;
-        LoadMockData();
-        _currentPage = 0;
+        var rootServices = (System.Windows.Application.Current as App)?.Services;
+        _dataScope = rootServices?.CreateScope();
+        var services = _dataScope?.ServiceProvider;
+        _stayRepository = services?.GetService<IHotelStayRepository>();
+        _occupantRepository = services?.GetService<IHotelStayOccupantRepository>();
+        _folioRepository = services?.GetService<IHotelFolioRepository>();
+        _businessDocumentService = services?.GetService<IBusinessDocumentService>();
+        _stayService = services?.GetService<HotelStayApplicationService>();
+        _executionContext = services?.GetService<IFrontOfficeExecutionContextAccessor>();
+        _allGuests = new List<GuestRow>();
+        AttachPager();
         ShowTab(0);
         UpdateMetrics();
+        Loaded += async (_, _) => await LoadPersistedAsync();
+        Closed += (_, _) => _dataScope?.Dispose();
     }
 
-    private void LoadMockData()
+    private async Task LoadPersistedAsync()
     {
-        _allGuests = new List<GuestRow>
+        if (_stayRepository is null || _occupantRepository is null || _executionContext?.Current is null)
         {
-            new("Đang lưu trú","#DCFCE7","#16A34A","201","Nguyễn Văn An","Khách chính","24/07","27/07","3","Deluxe","0912-345-678","FOL-2401","",""),
-            new("Đang lưu trú","#DCFCE7","#16A34A","202","Trần Thị Bình","Khách chính","24/07","28/07","4","Deluxe","0903-456-789","FOL-2402","",""),
-            new("Trả hôm nay","#DBEAFE","#2563EB","301","Lê Hoàng Cường","Khách chính","23/07","27/07","4","Superior","0987-654-321","FOL-2403","",""),
-            new("Trả hôm nay","#DBEAFE","#2563EB","105","Vũ Quang Phúc","Khách chính","20/07","27/07","7","Standard","0977-888-999","FOL-2406","!","#DC2626"),
-            new("Đang lưu trú","#DCFCE7","#16A34A","302","Phạm Minh Đức","Khách chính","25/07","28/07","3","Superior","0918-222-333","FOL-2404","",""),
-            new("Đang lưu trú","#DCFCE7","#16A34A","401","Hoàng Thị Em","Khách chính","24/07","26/07","2","Junior","0905-111-444","FOL-2405","",""),
-            new("Quá hạn","#FEE2E2","#DC2626","210","Bùi Thanh Hà","Khách chính","15/07","26/07","11","Deluxe","0908-123-456","FOL-2408","!!","#DC2626"),
-            new("Quá hạn","#FEE2E2","#DC2626","108","Đỗ Lan Khánh","Khách chính","14/07","25/07","12","Standard","0944-567-321","FOL-2410","!","#EA580C"),
-            new("Đang lưu trú","#DCFCE7","#16A34A","402","Ngô Đức Inh","Khách chính","21/07","29/07","8","Junior","0965-432-109","FOL-2409","",""),
-            new("Trả hôm nay","#DBEAFE","#2563EB","501","Lý Văn Long","Khách chính","19/07","27/07","8","Suite","0916-789-012","FOL-2411","",""),
-            new("Gia hạn","#FFF7ED","#EA580C","305","Mai Thị Mỹ","Khách chính","18/07","29/07","11","Superior","0909-345-678","FOL-2412","",""),
-            new("Đang lưu trú","#DCFCE7","#16A34A","403","Trịnh Hoàng Nam","Khách chính","26/07","30/07","4","Junior","0988-234-567","FOL-2413","",""),
-            new("Trả hôm nay","#DBEAFE","#2563EB","203","Hồ Quang Ổn","Khách chính","22/07","27/07","5","Deluxe","0922-456-789","FOL-2414","!","#EA580C"),
-            new("Đang lưu trú","#DCFCE7","#16A34A","201","Lê Thị Hoa","Đi cùng","24/07","27/07","3","Deluxe","0911-222-333","FOL-2401","",""),
-            new("Đang lưu trú","#DCFCE7","#16A34A","202","Trần Văn Nam","Đi cùng","24/07","28/07","4","Deluxe","0909-888-777","FOL-2402","",""),
-            new("Trả hôm nay","#DBEAFE","#2563EB","301","Phan Thị Lan","Đi cùng","23/07","27/07","4","Superior","0912-345-999","FOL-2403","",""),
-            new("Đang lưu trú","#DCFCE7","#16A34A","401","Nguyễn Văn Bình","Đi cùng","24/07","26/07","2","Junior","0900-111-222","FOL-2405","",""),
-            new("Đang lưu trú","#DCFCE7","#16A34A","503","Chu Văn Rạng","Khách chính","25/07","31/07","6","Suite","0977-333-444","FOL-2417","!","#EA580C"),
-            new("Đang lưu trú","#DCFCE7","#16A34A","118","Hà Thị Sen","Khách chính","24/07","27/07","3","Standard","0911-456-789","FOL-2418","",""),
-            new("Đang lưu trú","#DCFCE7","#16A34A","404","Vi Văn Tâm","Khách chính","27/07","30/07","3","Junior","0904-789-321","FOL-2419","",""),
-            new("Trả hôm nay","#DBEAFE","#2563EB","106","Giàng Thị Út","Khách chính","21/07","27/07","6","Standard","0981-234-567","FOL-2420","!","#EA580C"),
-            new("Đang lưu trú","#DCFCE7","#16A34A","204","Tô Văn Phú","Khách chính","26/07","28/07","2","Deluxe","0933-789-012","FOL-2421","",""),
-            new("Gia hạn","#FFF7ED","#EA580C","405","Phan Thị Quỳnh","Khách chính","20/07","30/07","10","Junior","0955-111-222","FOL-2422","",""),
-            new("Đang lưu trú","#DCFCE7","#16A34A","502","Đặng Kim Giang","Khách chính","27/07","29/07","2","Suite","0934-567-890","FOL-2423","",""),
-            new("Trả hôm nay","#DBEAFE","#2563EB","303","Bùi Thanh Hải","Khách chính","23/07","27/07","4","Superior","0922-333-444","FOL-2424","",""),
-            new("Đang lưu trú","#DCFCE7","#16A34A","119","Ngô Quang Hiếu","Khách chính","25/07","28/07","3","Standard","0912-999-888","FOL-2425","",""),
-            new("Trả hôm nay","#DBEAFE","#2563EB","205","Lê Thị Kim","Khách chính","22/07","27/07","5","Deluxe","0905-666-555","FOL-2426","!","#EA580C"),
-            new("Đang lưu trú","#DCFCE7","#16A34A","306","Trần Hoàng Long","Khách chính","26/07","29/07","3","Superior","0909-444-333","FOL-2427","",""),
+            ApplyFilters();
+            FooterTotal.Text = "Chưa cấu hình được Stay/occupant service và property context dữ liệu thật.";
+            return;
+        }
+
+        try
+        {
+            var propertyId = _executionContext.Current.Property.PropertyId.Value;
+            var stays = await _stayRepository.GetCurrentInHouseAsync(propertyId, CancellationToken.None);
+            _allGuests.Clear();
+            foreach (var stay in stays)
+            {
+                var primary = MapPersistedStay(stay);
+                if (_folioRepository is not null)
+                {
+                    try
+                    {
+                        var folio = await _folioRepository.GetByStayAsync(propertyId, stay.HotelStayId, CancellationToken.None);
+                        primary = primary with { FolioBalance = folio?.OutstandingBalance };
+                    }
+                    catch
+                    {
+                        // Keep the Stay row visible, but do not invent a financial value when Folio is unavailable.
+                    }
+                }
+                _allGuests.Add(primary);
+                var occupants = await _occupantRepository.GetActiveAsync(propertyId, stay.HotelStayId, CancellationToken.None);
+                _allGuests.AddRange(occupants.Select(occupant => primary with
+                {
+                    FullName = occupant.FullName,
+                    Role = occupant.OccupantType == HotelStayOccupantType.Child ? "Trẻ em đi cùng" : "Khách đi cùng",
+                    Phone = occupant.Phone ?? "—",
+                    OccupantId = occupant.OccupantId,
+                    OccupantRowVersion = occupant.RowVersion,
+                    GuestProfileId = occupant.GuestProfileId
+                }));
+            }
+            ApplyFilters();
+            FooterTotal.Text = $"Đã tải {_allGuests.Count:N0} khách lưu trú từ dữ liệu Stay thật.";
+        }
+        catch (Exception ex)
+        {
+            _allGuests.Clear();
+            ApplyFilters();
+            FooterTotal.Text = $"Không tải được khách lưu trú thật: {ex.Message}";
+        }
+    }
+
+    private static GuestRow MapPersistedStay(HotelStayDto stay)
+    {
+        var status = stay.Status switch
+        {
+            HotelStayStatus.ExpectedDeparture => ("Trả hôm nay", "#DBEAFE", "#2563EB"),
+            HotelStayStatus.Extended => ("Gia hạn", "#FFF7ED", "#EA580C"),
+            HotelStayStatus.RoomMoved or HotelStayStatus.CheckedIn or HotelStayStatus.InHouse => ("Đang lưu trú", "#DCFCE7", "#16A34A"),
+            _ => (stay.Status.ToString(), "#F1F5F9", "#64748B")
         };
-        ApplyFilters();
+        var nights = Math.Max(1, stay.ScheduledDepartureDate.DayNumber - stay.ScheduledArrivalDate.DayNumber);
+        return new GuestRow(
+            status.Item1,
+            status.Item2,
+            status.Item3,
+            stay.RoomNumber,
+            stay.GuestName,
+            "Khách chính",
+            stay.ScheduledArrivalDate.ToString("dd/MM"),
+            stay.ScheduledDepartureDate.ToString("dd/MM"),
+            nights.ToString(),
+            stay.RoomTypeCode,
+            "—",
+            stay.StayNumber,
+            "",
+            "",
+            stay.HotelStayId,
+            stay.RowVersion,
+            GuestProfileId: stay.GuestId);
     }
 
     private void ApplyFilters()
@@ -83,20 +162,17 @@ public partial class CurrentGuestsWindow : Window
             filtered = filtered.Where(r => !string.IsNullOrEmpty(r.Alert));
 
         var list = filtered.ToList();
-        _currentPage = 0;
         ApplyPage(list);
         UpdateMetrics(list);
     }
 
     private void ApplyPage(List<GuestRow> list)
     {
-        var paged = list.Skip(_currentPage * PageSize).Take(PageSize).ToList();
-        GuestGrid.ItemsSource = paged;
+        _pager.SetSource(list);
+        GuestGrid.ItemsSource = _pager.Items;
         ResultCount.Text = $"{list.Count} khách";
         FooterTotal.Text = $"Tổng: {list.Count} khách · {list.Select(r => r.RoomNumber).Distinct().Count()} phòng";
-        var totalPages = (list.Count + PageSize - 1) / PageSize;
-        if (totalPages == 0) totalPages = 1;
-        PageInfo.Text = $"Trang {_currentPage + 1}/{totalPages}";
+        PageInfo.Text = _pager.PageText;
     }
 
     private void UpdateMetrics(List<GuestRow>? list = null)
@@ -132,9 +208,12 @@ public partial class CurrentGuestsWindow : Window
         DetailNights.Text = r.Nights;
         DetailDeparture.Text = r.Departure;
         DetailGuestCount.Text = _allGuests.Count(g => g.RoomNumber == r.RoomNumber).ToString();
-        DetailBalance.Text = r.Alert == "!!" ? "5.8M" : r.Alert == "!" ? "2.4M" : "0 VND";
+        DetailBalance.Text = r.FolioBalance is decimal balance
+            ? $"{balance:N0} · {(balance > 0 ? "Còn phải thu" : "Đã cân bằng")}"
+            : "Chưa tải được Folio thật";
 
         ShowTab(int.TryParse((TabContent.Tag as string) ?? "0", out var t) ? t : 0);
+        _ = LoadSelectedDetailsAsync(r);
     }
 
     private void ShowTab(int tab)
@@ -156,42 +235,69 @@ public partial class CurrentGuestsWindow : Window
     private void ShowOverview(GuestRow r)
     {
         TabContent.Children.Add(Section("Thông tin khách",
-            Row("Họ và tên", r.FullName), Row("Danh xưng", "Ông"),
-            Row("Giới tính", r.FullName.Contains("Thị") ? "Nữ" : "Nam"), Row("Ngày sinh", "15/03/1985"),
-            Row("Quốc tịch", "Việt Nam"), Row("Điện thoại", r.Phone),
-            Row("Email", $"{r.FullName.Split(' ').LastOrDefault()?.ToLower()}@email.com"),
-            Row("Địa chỉ", "123 Đường Lê Lợi, Quận 1, TP. Hồ Chí Minh")));
+            Row("Họ và tên", r.FullName), Row("Vai trò", r.Role),
+            Row("Điện thoại", r.Phone), Row("Guest profile", "Đang dùng dữ liệu Stay; thông tin hồ sơ chi tiết tải ở module Khách hàng")));
         TabContent.Children.Add(Section("Lưu trú hiện tại",
-            Row("Mã hồ sơ", r.FolioId.Replace("FOL-","STY-")), Row("Mã xác nhận", $"CFM-{r.FolioId[4..]}"),
+            Row("Mã lưu trú", r.FolioId),
             Row("Số phòng", r.RoomNumber), Row("Hạng phòng", r.RoomType),
             Row("Ngày đến", r.Arrival), Row("Ngày đi", r.Departure),
-            Row("Số đêm", r.Nights), Row("Nguồn", "Booking.com"),
-            Row("Company/TA", "Công ty ABC")));
+            Row("Số đêm", r.Nights), Row("Nguồn", "Theo hồ sơ Stay")));
     }
 
     private void ShowStay(GuestRow r)
     {
         TabContent.Children.Add(Section("Chi tiết lưu trú",
-            Row("Ngày đến", r.Arrival), Row("Giờ đến", "14:00"),
-            Row("Ngày đi", r.Departure), Row("Giờ đi", "12:00"),
-            Row("Số đêm", r.Nights), Row("Book Status", "Confirmed"),
-            Row("Meal Code", "BB"), Row("BF", "2 suất"),
-            Row("Connecting Room", "Không"), Row("Complimentary", "Không"),
-            Row("Giường thêm", "0"), Row("Ghi chú", "Khách yêu cầu phòng yên tĩnh"),
-            Row("Yêu cầu đặc biệt", "Gối memory foam")));
-        TabContent.Children.Add(new Button { Content = "Gia hạn lưu trú", Style = FindResource("OutlineBtn") as Style, Height = 34, FontSize = 12, Margin = new Thickness(0, 0, 0, 6), Tag = "action" });
-        TabContent.Children.Add(new Button { Content = "Đổi phòng", Style = FindResource("OutlineBtn") as Style, Height = 34, FontSize = 12, Margin = new Thickness(0, 0, 0, 6), Tag = "action" });
+            Row("Ngày đến", r.Arrival), Row("Giờ đến", "Chưa có dữ liệu"),
+            Row("Ngày đi", r.Departure), Row("Giờ đi", "Chưa có dữ liệu"),
+            Row("Số đêm", r.Nights), Row("Book Status", r.StatusText),
+            Row("Trạng thái Stay", r.StatusText), Row("Nguồn", "Theo hồ sơ Stay")));
+        var extend = new Button { Content = "Gia hạn lưu trú", Style = TryFindResource("OutlineBtn") as Style, Height = 34, FontSize = 12, Margin = new Thickness(0, 0, 0, 6), Tag = "action" };
+        extend.Click += OnExtendStay;
+        TabContent.Children.Add(extend);
+        var move = new Button { Content = "Đổi phòng", Style = TryFindResource("OutlineBtn") as Style, Height = 34, FontSize = 12, Margin = new Thickness(0, 0, 0, 6), Tag = "action" };
+        move.Click += OnChangeRoom;
+        TabContent.Children.Add(move);
     }
 
     private void ShowDocuments(GuestRow r)
     {
-        TabContent.Children.Add(Section("Giấy tờ",
-            Row("Loại giấy tờ", "CCCD"), Row("Số giấy tờ", $"0792020{new System.Random().Next(10000,99999)}"),
-            Row("Ngày cấp", "15/03/2020"), Row("Nơi cấp", "Cục CSQLHC"),
-            Row("Ngày hết hạn", "15/03/2035"), Row("Quốc gia cấp", "Việt Nam"),
-            Row("Quê quán", "TP. Hồ Chí Minh"), Row("Thường trú", "Quận 1, TP. HCM"),
-            Row("Trạng thái xác minh", "Đã xác minh")));
-        TabContent.Children.Add(new Button { Content = "Cập nhật giấy tờ", Style = FindResource("OutlineBtn") as Style, Height = 34, FontSize = 12, Margin = new Thickness(0, 0, 0, 6), Tag = "action" });
+        var children = new List<FrameworkElement>();
+        if (_selectedDocuments.Count == 0)
+        {
+            var hasGuestProfile = r.GuestProfileId is { } guestId && guestId != Guid.Empty;
+            children.Add(Row("Trạng thái", hasGuestProfile
+                ? "Chưa có tài liệu giấy tờ thật"
+                : "Khách chưa có GuestProfileId thật"));
+        }
+        else
+        {
+            foreach (var document in _selectedDocuments)
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 0) };
+                row.Children.Add(new TextBlock
+                {
+                    Text = $"{document.FileName} · {document.CreatedAt:dd/MM/yyyy HH:mm}",
+                    FontSize = 12,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#17365D")),
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+                var open = new Button
+                {
+                    Content = "Mở",
+                    Tag = document,
+                    Style = TryFindResource("OutlineBtn") as Style,
+                    Height = 26,
+                    Padding = new Thickness(10, 0, 10, 0),
+                    Margin = new Thickness(8, 0, 0, 0)
+                };
+                open.Click += OnOpenGuestDocument;
+                row.Children.Add(open);
+                children.Add(row);
+            }
+        }
+
+        children.Add(Row("Nguồn", "BusinessDocuments / hồ sơ khách thật"));
+        TabContent.Children.Add(Section("Giấy tờ", children.ToArray()));
     }
 
     private void ShowRoomService(GuestRow r)
@@ -199,23 +305,93 @@ public partial class CurrentGuestsWindow : Window
         TabContent.Children.Add(Section("Thông tin phòng",
             Row("Số phòng", r.RoomNumber), Row("Hạng phòng", r.RoomType),
             Row("Tầng", r.RoomNumber[..1]), Row("Tình trạng phòng", "Đang có khách"),
-            Row("Nhà buồng", "Ca sáng"), Row("Ngày dọn gần nhất", "26/07"),
-            Row("Số khách", _allGuests.Count(g => g.RoomNumber == r.RoomNumber).ToString()), Row("Sức chứa", "2")));
-        TabContent.Children.Add(Section("Dịch vụ",
-            Row("Meal Code", "BB"), Row("Ăn sáng", "Bao gồm"),
-            Row("Giường thêm", "0"), Row("Minibar", "Chưa sử dụng"),
-            Row("Dịch vụ đã sử dụng", "Giặt ủi (25/07)"), Row("Yêu cầu nhà buồng", "Không")));
+            Row("Số khách", _allGuests.Count(g => g.RoomNumber == r.RoomNumber).ToString()), Row("Sức chứa", "Theo master phòng")));
+        var serviceRows = new List<FrameworkElement>();
+        var entries = _selectedLedger?.Entries ?? Array.Empty<HotelFolioEntryDto>();
+        if (entries.Count == 0)
+        {
+            serviceRows.Add(Row("Phát sinh", "Chưa có phát sinh Folio thật"));
+        }
+        else
+        {
+            foreach (var entry in entries.OrderByDescending(x => x.CreatedAtUtc).Take(20))
+            {
+                serviceRows.Add(Row(
+                    entry.BusinessDate?.ToString("dd/MM/yyyy") ?? entry.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy"),
+                    $"{entry.EntryType}: {entry.Description} · {entry.Amount:N0}"));
+            }
+        }
+
+        serviceRows.Add(Row("Nguồn", "Folio ledger thật của Stay"));
+        TabContent.Children.Add(Section("Dịch vụ & phát sinh", serviceRows.ToArray()));
+    }
+
+    private async Task LoadSelectedDetailsAsync(GuestRow row)
+    {
+        var loadVersion = ++_detailsLoadVersion;
+        _selectedDocuments = Array.Empty<BusinessDocumentDto>();
+        _selectedLedger = null;
+
+        try
+        {
+            if (_businessDocumentService is not null && row.GuestProfileId is { } guestId && guestId != Guid.Empty)
+                _selectedDocuments = await _businessDocumentService.GetDocumentsByCustomerAsync(guestId);
+
+            if (_folioRepository is not null && _executionContext?.Current is { } context && row.StayId != Guid.Empty)
+            {
+                var folio = await _folioRepository.GetByStayAsync(context.Property.PropertyId.Value, row.StayId, CancellationToken.None);
+                if (folio is not null)
+                    _selectedLedger = await _folioRepository.GetLedgerAsync(context.Property.PropertyId.Value, folio.HotelFolioId, CancellationToken.None);
+            }
+        }
+        catch
+        {
+            if (loadVersion != _detailsLoadVersion)
+                return;
+            _selectedDocuments = Array.Empty<BusinessDocumentDto>();
+            _selectedLedger = null;
+        }
+
+        if (loadVersion != _detailsLoadVersion)
+            return;
+
+        if (GuestGrid.SelectedItem is GuestRow selected && selected.StayId == row.StayId && selected.GuestProfileId == row.GuestProfileId)
+        {
+            var tab = int.TryParse(TabContent.Tag as string, out var currentTab) ? currentTab : 0;
+            if (tab is 2 or 3)
+                ShowTab(tab);
+        }
+    }
+
+    private void OnOpenGuestDocument(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button
+            || button.Tag is not BusinessDocumentDto document
+            || string.IsNullOrWhiteSpace(document.PhysicalFilePath)
+            || !File.Exists(document.PhysicalFilePath))
+        {
+            MessageBox.Show("Tài liệu chưa có file thật trên vùng lưu trữ.", "Giấy tờ", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(document.PhysicalFilePath) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Không thể mở tài liệu: {ex.Message}", "Giấy tờ", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ShowFolio(GuestRow r)
     {
         TabContent.Children.Add(Section("Tài chính",
-            Row("Mã Folio", r.FolioId), Row("Người thanh toán", r.FullName),
-            Row("Tiền phòng", "3.600.000"), Row("Dịch vụ", "250.000"),
-            Row("Thuế/phí", "385.000"), Row("Đặt cọc", "1.000.000"),
-            Row("Đã thanh toán", r.Alert == "!!" ? "0" : "1.000.000"),
-            Row("Còn phải thu", r.Alert == "!!" ? "5.835.000" : r.Alert == "!" ? "2.435.000" : "0"),
-            Row("Hạn mức tín dụng", "10.000.000"), Row("Trạng thái Folio", r.Alert == "!!" ? "Vượt hạn mức" : r.Alert == "!" ? "Còn phải thu" : "Bình thường")));
+            Row("Mã lưu trú", r.FolioId), Row("Người thanh toán", r.FullName),
+            Row("Số dư Folio", r.FolioBalance is decimal balance ? balance.ToString("N0") : "Chưa tải được Folio thật"),
+            Row("Trạng thái", r.FolioBalance is decimal currentBalance
+                ? currentBalance > 0 ? "Còn phải thu" : "Đã cân bằng"
+                : "Mở Folio để kiểm tra dữ liệu thật")));
     }
 
     private static FrameworkElement Section(string title, params FrameworkElement[] children)
@@ -253,48 +429,227 @@ public partial class CurrentGuestsWindow : Window
         ApplyFilters();
     }
 
-    private void OnRefresh(object sender, RoutedEventArgs e) => ApplyFilters();
-    private void OnPrevPage(object sender, RoutedEventArgs e) { if (_currentPage > 0) { _currentPage--; ApplyFilters(); } }
-    private void OnNextPage(object sender, RoutedEventArgs e) { _currentPage++; ApplyFilters(); }
+    private async void OnRefresh(object sender, RoutedEventArgs e) => await LoadPersistedAsync();
+    private void OnPrevPage(object sender, RoutedEventArgs e) { _pager.PreviousPageCommand.Execute(null); }
+    private void OnNextPage(object sender, RoutedEventArgs e) { _pager.NextPageCommand.Execute(null); }
 
-    private void OnViewProfile(object sender, RoutedEventArgs e) { ShowMockMsg("Xem hồ sơ"); }
-    private void OnMoreActions(object sender, RoutedEventArgs e) { ShowMockMsg("Thao tác khác"); }
-    private void OnExtendStay(object sender, RoutedEventArgs e) { ShowExtendStayPopup(); }
-    private void OnChangeRoom(object sender, RoutedEventArgs e) { ShowChangeRoomPopup(); }
-    private void OnAddGuest(object sender, RoutedEventArgs e) { ShowMockMsg("Thêm khách"); }
-    private void OnHousekeeping(object sender, RoutedEventArgs e) { ShowMockMsg("Nhắn nhà buồng"); }
-    private void OnViewFolio(object sender, RoutedEventArgs e) { ShowMockMsg("Xem Folio"); }
-    private void OnPrepCheckout(object sender, RoutedEventArgs e) { ShowMockMsg("Chuẩn bị Check-out"); }
+    private void AttachPager()
+    {
+        if (FooterTotal.Parent is not Grid footer || footer.Children.Count < 2 || footer.Children[1] is not StackPanel actions)
+            return;
+
+        foreach (var child in actions.Children.OfType<Button>().Take(2))
+            child.Visibility = Visibility.Collapsed;
+
+        PageInfo.Visibility = Visibility.Collapsed;
+        var pager = new ServerPagerControl { DataContext = _pager, Margin = new Thickness(0, 0, 8, 0) };
+        actions.Children.Insert(0, pager);
+        _pager.PropertyChanged += (_, _) => PageInfo.Text = _pager.PageText;
+    }
+
+    private void OnViewProfile(object sender, RoutedEventArgs e)
+    {
+        if (GuestGrid.SelectedItem is not GuestRow row) { ShowSelectGuestWarning(); return; }
+        new StayProfileWindow(row.StayId == Guid.Empty ? null : row.StayId)
+        {
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        }.ShowDialog();
+    }
+    private void OnMoreActions(object sender, RoutedEventArgs e)
+    {
+        if (GuestGrid.SelectedItem is not GuestRow row)
+        {
+            ShowSelectGuestWarning();
+            return;
+        }
+
+        var menu = new ContextMenu
+        {
+            PlacementTarget = sender as UIElement,
+            StaysOpen = false
+        };
+
+        void Add(string header, RoutedEventHandler handler)
+        {
+            var item = new MenuItem { Header = header };
+            item.Click += handler;
+            menu.Items.Add(item);
+        }
+
+        Add("Xem Folio", OnViewFolio);
+        Add("Gia hạn lưu trú", OnExtendStay);
+        Add("Đổi phòng", OnChangeRoom);
+        Add("Housekeeping", OnHousekeeping);
+        Add("Chuẩn bị Check-out", OnPrepCheckout);
+        if (row.OccupantId != Guid.Empty)
+            Add("Xóa khách đi cùng", OnRemoveGuest);
+        menu.IsOpen = true;
+    }
+    private void OnExtendStay(object sender, RoutedEventArgs e)
+    {
+        if (GuestGrid.SelectedItem is not GuestRow row) { ShowSelectGuestWarning(); return; }
+        if (row.StayId == Guid.Empty || row.RowVersion is not { Length: 8 })
+        {
+            MessageBox.Show("Hồ sơ Stay chưa có định danh/row version hợp lệ từ dữ liệu thật.", "Gia hạn lưu trú", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        new ExtendStayWindow(row.StayId)
+        {
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        }.ShowDialog();
+    }
+    private void OnChangeRoom(object sender, RoutedEventArgs e)
+    {
+        if (GuestGrid.SelectedItem is not GuestRow row) { ShowSelectGuestWarning(); return; }
+        if (row.StayId == Guid.Empty || row.RowVersion is not { Length: 8 })
+        {
+            MessageBox.Show("Hồ sơ Stay chưa có định danh/row version hợp lệ từ dữ liệu thật.", "Điều chỉnh lưu trú", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        new RoomMoveExtendWindow(row.StayId)
+        {
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        }.ShowDialog();
+    }
+    private async void OnAddGuest(object sender, RoutedEventArgs e)
+    {
+        if (GuestGrid.SelectedItem is not GuestRow row)
+        {
+            ShowSelectGuestWarning();
+            return;
+        }
+        if (_stayService is null || row.StayId == Guid.Empty || row.RowVersion is not { Length: 8 })
+        {
+            MessageBox.Show("Hồ sơ Stay chưa có định danh/row version hợp lệ hoặc chưa đăng ký service dữ liệu thật.", "Thêm khách đi cùng", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var dialog = new AddStayOccupantWindow { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        if (dialog.ShowDialog() != true || !dialog.WasConfirmed)
+            return;
+
+        var result = await _stayService.AddOccupantAsync(
+            new AddStayOccupantCommand(row.StayId, dialog.SelectedGuestId, dialog.SelectedOccupantType, row.RowVersion),
+            CancellationToken.None);
+        if (result.IsFailure)
+        {
+            MessageBox.Show(result.Error?.Message ?? "Không thể thêm khách đi cùng vào Stay thật.", "Thêm khách đi cùng", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        await LoadPersistedAsync();
+        FooterTotal.Text = $"Đã thêm {result.Value?.FullName ?? "khách đi cùng"} vào Stay thật.";
+    }
+    private async void OnRemoveGuest(object sender, RoutedEventArgs e)
+    {
+        if (GuestGrid.SelectedItem is not GuestRow row || row.OccupantId == Guid.Empty)
+        {
+            ShowSelectGuestWarning();
+            return;
+        }
+        if (_stayService is null || row.StayId == Guid.Empty || row.RowVersion is not { Length: 8 } || row.OccupantRowVersion is not { Length: 8 })
+        {
+            MessageBox.Show("Hồ sơ khách đi cùng chưa có đủ định danh/row version từ dữ liệu thật.", "Xóa khách đi cùng", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            $"Xóa {row.FullName} khỏi danh sách khách đang lưu trú? Dữ liệu sẽ được lưu lịch sử, không bị xóa vật lý.",
+            "Xóa khách đi cùng",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        var result = await _stayService.RemoveOccupantAsync(
+            new RemoveStayOccupantCommand(row.StayId, row.OccupantId, row.RowVersion, row.OccupantRowVersion),
+            CancellationToken.None);
+        if (result.IsFailure)
+        {
+            MessageBox.Show(result.Error?.Message ?? "Không thể xóa khách đi cùng khỏi Stay thật.", "Xóa khách đi cùng", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        await LoadPersistedAsync();
+        FooterTotal.Text = $"Đã xóa {row.FullName} khỏi danh sách khách đang lưu trú.";
+    }
+    private void OnHousekeeping(object sender, RoutedEventArgs e)
+    {
+        if (GuestGrid.SelectedItem is not GuestRow row)
+        {
+            ShowSelectGuestWarning();
+            return;
+        }
+
+        // Filter the persisted Housekeeping board to the selected room; do not create an in-memory request here.
+        new HousekeepingMessageWindow(row.RoomNumber) { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner }.ShowDialog();
+    }
+    private void OnViewFolio(object sender, RoutedEventArgs e)
+    {
+        if (GuestGrid.SelectedItem is not GuestRow r)
+        {
+            ShowSelectGuestWarning();
+            return;
+        }
+
+        if (r.StayId == Guid.Empty)
+        {
+            MessageBox.Show("Hồ sơ Stay chưa có định danh hợp lệ từ dữ liệu thật.", "Xem Folio", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        new FolioWorkspaceWindow(r.StayId).ShowDialog();
+    }
+    private void OnPrepCheckout(object sender, RoutedEventArgs e)
+    {
+        if (GuestGrid.SelectedItem is not GuestRow r)
+        {
+            ShowSelectGuestWarning();
+            return;
+        }
+
+        if (r.StayId == Guid.Empty || r.RowVersion is not { Length: 8 })
+        {
+            MessageBox.Show("Hồ sơ Stay chưa có định danh/row version hợp lệ từ dữ liệu thật.", "Chuẩn bị Check-out", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        new CheckoutPreparationWindow(r.StayId).ShowDialog();
+    }
 
     private void ShowExtendStayPopup()
     {
         if (GuestGrid.SelectedItem is not GuestRow r) { ShowSelectGuestWarning(); return; }
-        var msg = $"═══ Gia hạn lưu trú ═══\n\n" +
-                  $"Khách: {r.FullName}\nPhòng: {r.RoomNumber}\n" +
-                  $"Ngày đi hiện tại: {r.Departure}\n" +
-                  $"Ngày đi mới: (chọn ngày)\n" +
-                  $"Số đêm bổ sung: —\n" +
-                  $"Tình trạng phòng: Khả dụng\n\n" +
-                  $"Nút: [Kiểm tra khả dụng] [Xác nhận mockup] [Hủy]";
-        MessageBox.Show(msg, "Gia hạn lưu trú", MessageBoxButton.OK, MessageBoxImage.Information);
+        if (r.StayId == Guid.Empty || r.RowVersion is not { Length: 8 })
+        {
+            MessageBox.Show("Hồ sơ Stay chưa có định danh/row version hợp lệ từ dữ liệu thật.", "Gia hạn lưu trú", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        new ExtendStayWindow(r.StayId) { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner }.ShowDialog();
     }
 
     private void ShowChangeRoomPopup()
     {
         if (GuestGrid.SelectedItem is not GuestRow r) { ShowSelectGuestWarning(); return; }
-        var msg = $"═══ Đổi phòng ═══\n\n" +
-                  $"Khách: {r.FullName}\nPhòng hiện tại: {r.RoomNumber} ({r.RoomType})\n" +
-                  $"Hạng phòng mới: {r.RoomType}\n" +
-                  $"Phòng khả dụng mockup: 206, 304, 407\n" +
-                  $"Lý do chuyển: (chọn)\n\n" +
-                  $"Nút: [Áp dụng mockup] [Hủy]";
-        MessageBox.Show(msg, "Đổi phòng", MessageBoxButton.OK, MessageBoxImage.Information);
+        if (r.StayId == Guid.Empty || r.RowVersion is not { Length: 8 })
+        {
+            MessageBox.Show("Hồ sơ Stay chưa có định danh/row version hợp lệ từ dữ liệu thật.", "Điều chỉnh lưu trú", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        new RoomMoveExtendWindow(r.StayId) { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner }.ShowDialog();
     }
 
-    private void ShowMockMsg(string action)
+    private void ShowUnavailable(string action)
     {
         if (GuestGrid.SelectedItem is not GuestRow r) { ShowSelectGuestWarning(); return; }
-        MessageBox.Show($"Mockup: {action} cho khách {r.FullName} (Phòng {r.RoomNumber}). Chưa kết nối backend.", "Khách hiện tại", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show($"{action} cho khách {r.FullName} (Phòng {r.RoomNumber}) chưa có nghiệp vụ backend thật. Không có dữ liệu nào được tạo.", "Khách hiện tại", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     private void ShowSelectGuestWarning() => MessageBox.Show("Vui lòng chọn một khách trước.", "Khách hiện tại", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -306,7 +661,11 @@ internal record GuestRow(
     string RoomNumber, string FullName, string Role,
     string Arrival, string Departure, string Nights,
     string RoomType, string Phone, string FolioId,
-    string Alert, string AlertColor)
+    string Alert, string AlertColor, Guid StayId = default, byte[]? RowVersion = null,
+    Guid OccupantId = default, byte[]? OccupantRowVersion = null, decimal? FolioBalance = null,
+    Guid? GuestProfileId = null)
 {
-    public string FolioStatus => string.IsNullOrEmpty(Alert) ? "Bình thường" : Alert == "!!" ? "Vượt hạn mức" : "Còn phải thu";
+    public string FolioStatus => FolioBalance is null
+        ? "Chưa tải"
+        : FolioBalance > 0 ? "Còn phải thu" : "Bình thường";
 }

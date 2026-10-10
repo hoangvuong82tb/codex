@@ -9,18 +9,22 @@ using ASMILE.BO.Core.Entities.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
+using System.Security;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace ASMILE.BO.App.ViewModels;
 
 public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
 {
-    private const string ModuleIconRoot = @"D:\ASMILE-BO\Windows_Icon";
+    private static string ModuleIconRoot => ApplicationAssetPaths.IconRoot;
     private const double DesktopIconStartX = 18d;
     private const double DesktopIconStartY = 18d;
     private const double DesktopIconStepX = 108d;
@@ -44,9 +48,12 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
     private readonly DispatcherTimer _toastTimer;
     private readonly DispatcherTimer _clockTimer;
     private readonly SemaphoreSlim _navigationGate = new(1, 1);
+    private readonly SemaphoreSlim _shellTaskGate = new(1, 1);
     private CancellationTokenSource? _searchCancellation;
     private bool _disposed;
     private bool _loadingCompanyContext;
+    private IReadOnlyList<string> _startupModuleKeys = [];
+    private bool _hasStartupModulePreference;
 
     public ObservableCollection<AppModuleInfo> AllModules { get; } = new();
     public ObservableCollection<AppModuleInfo> RecentModules { get; } = new();
@@ -81,6 +88,17 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private bool areDesktopIconsVisible = true;
+
+    [ObservableProperty]
+    private bool isDesktopIconGridSnappingEnabled = true;
+
+    [ObservableProperty]
+    private bool isTaskbarVisible = true;
+
+    [ObservableProperty]
+    private Brush desktopWallpaperBrush = CreateDefaultWallpaperBrush();
+
+    public GridLength TaskbarRowHeight => IsTaskbarVisible ? new GridLength(58) : new GridLength(0);
 
     [ObservableProperty]
     private string startSearchText = string.Empty;
@@ -200,6 +218,12 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
             CurrentCompanyStatus = BuildCompanyStatus();
             ShellStatusMessage = $"Company: {_currentCompanyContext.CompanyName}";
         });
+    }
+
+    partial void OnIsTaskbarVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(TaskbarRowHeight));
+        ArrangeDesktopIconsCore();
     }
 
     partial void OnSelectedBranchChanged(BranchContextOptionDto? value)
@@ -422,7 +446,7 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        SnapDesktopIconToGrid(module);
+        SnapDesktopIconToGridCore(module);
         ShowToast("Đã căn biểu tượng vào lưới.");
     }
 
@@ -737,11 +761,16 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
 
     public void SnapDesktopIconToGrid(AppModuleInfo module)
     {
-        if (module is null || !module.ShowOnDesktop)
+        if (!IsDesktopIconGridSnappingEnabled || module is null || !module.ShowOnDesktop)
         {
             return;
         }
 
+        SnapDesktopIconToGridCore(module);
+    }
+
+    private void SnapDesktopIconToGridCore(AppModuleInfo module)
+    {
         var col = Math.Max(0, (int)Math.Round((module.DesktopLeft - DesktopIconStartX) / DesktopIconStepX));
         var row = Math.Max(0, (int)Math.Round((module.DesktopTop - DesktopIconStartY) / DesktopIconStepY));
         var rowsPerColumn = GetDesktopRowsPerColumn();
@@ -778,8 +807,23 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
             if (!OpenWindows.Any())
             {
                 var restoreTargets = await _navigationService.RestoreWorkspaceAsync();
-                var firstRestored = restoreTargets.FirstOrDefault(x => AllModules.Any(m => m.Key == x.Target.Route));
-                await OpenModuleByKeyAsync(firstRestored?.Target.Route ?? "dashboard");
+                if (_hasStartupModulePreference)
+                {
+                    foreach (var moduleKey in _startupModuleKeys)
+                    {
+                        await OpenModuleByKeyAsync(moduleKey);
+                    }
+                }
+                else
+                {
+                    var firstRestored = restoreTargets.FirstOrDefault(x => AllModules.Any(m => m.Key == x.Target.Route));
+                    await OpenModuleByKeyAsync(firstRestored?.Target.Route ?? "dashboard");
+                }
+
+                if (!OpenWindows.Any())
+                {
+                    await OpenModuleByKeyAsync("dashboard");
+                }
             }
             else
             {
@@ -831,8 +875,6 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
     {
         var previousState = AllModules.ToDictionary(x => x.Key, x => new
         {
-            x.IsPinned,
-            x.ShowOnDesktop,
             x.IsSelected,
             x.IsRunning,
             x.IsActiveOnTaskbar,
@@ -847,7 +889,13 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
 
         foreach (var module in _navigationService.GetModuleCatalog())
         {
-            var iconPath = appModules.TryGetValue(module.Key, out var app)
+            appModules.TryGetValue(module.Key, out var app);
+            if (app is { IsEnabled: false })
+            {
+                continue;
+            }
+
+            var iconPath = app is not null
                 ? ResolveModuleIconPath(app.Icon) ?? module.IconPath
                 : module.IconPath;
             var displayModule = new AppModuleInfo(
@@ -856,13 +904,12 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
                 module.IconGlyph,
                 module.Subtitle,
                 module.AccentHex,
-                module.IsPinned,
-                module.ShowOnDesktop,
-                iconPath);
+                app?.PinToTaskbar ?? module.IsPinned,
+                app?.ShowOnDesktop ?? module.ShowOnDesktop,
+                iconPath,
+                app?.RequiredPermission);
             if (previousState.TryGetValue(displayModule.Key, out var state))
             {
-                displayModule.IsPinned = state.IsPinned;
-                displayModule.ShowOnDesktop = state.ShowOnDesktop;
                 displayModule.IsSelected = state.IsSelected;
                 displayModule.IsRunning = state.IsRunning;
                 displayModule.IsActiveOnTaskbar = state.IsActiveOnTaskbar;
@@ -907,7 +954,9 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
         using var scope = _scopeFactory.CreateScope();
         var workspace = scope.ServiceProvider.GetRequiredService<IWorkspaceService>();
         var state = await workspace.LoadWorkspaceAsync();
-        var pinned = state.PinnedModules.Count > 0
+        _startupModuleKeys = state.StartupModules;
+        _hasStartupModulePreference = state.HasStartupModulesPreference;
+        var pinned = state.HasPinnedModulesPreference
             ? new HashSet<string>(state.PinnedModules, StringComparer.OrdinalIgnoreCase)
             : new HashSet<string>(AllModules.Where(x => x.IsPinned).Select(x => x.Key), StringComparer.OrdinalIgnoreCase);
 
@@ -987,7 +1036,10 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
 
         using var scope = _scopeFactory.CreateScope();
         var permissionService = scope.ServiceProvider.GetRequiredService<IPermissionService>();
-        return await permissionService.CheckAsync(_navigationService.GetPermissionCode(module.Key));
+        var permissionCode = string.IsNullOrWhiteSpace(module.RequiredPermission)
+            ? _navigationService.GetPermissionCode(module.Key)
+            : module.RequiredPermission!;
+        return await permissionService.CheckAsync(permissionCode);
     }
 
     private async Task RefreshWorkspaceListsAsync()
@@ -1054,7 +1106,7 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
         RecommendedItems.Clear();
         AddRecommendedIfAllowed("\uE80F", "Mở Tổng quan", "Truy cập dashboard vận hành", "dashboard");
         AddRecommendedIfAllowed("\uE8A7", "Phiếu nhập gần đây", "Tạo và kiểm tra chứng từ nhập", "receipts");
-        AddRecommendedIfAllowed("\uE9D2", "Báo cáo tồn kho", "Theo dõi tồn kho toàn hệ thống", "stock-report");
+        AddRecommendedIfAllowed("\uE9D2", "Trung tâm báo cáo", "Theo dõi và xuất báo cáo toàn hệ thống", "report-center");
         AddRecommendedIfAllowed("\uE8A5", "Danh sách khách hàng", "Tra cứu hồ sơ và lịch sử giao dịch", "customers");
         AddRecommendedIfAllowed("\uE713", "Cài đặt hệ thống", "Điều chỉnh tham số vận hành", "settings");
     }
@@ -1106,8 +1158,19 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
     {
         using var scope = _scopeFactory.CreateScope();
         var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
-        var value = await settingsService.GetValueAsync("Appearance.ShowDesktopIcons", SettingScope.User, _currentUserService.CurrentUser?.Id.ToString());
-        AreDesktopIconsVisible = !string.Equals(value?.Value, "false", StringComparison.OrdinalIgnoreCase);
+        var target = _currentUserService.CurrentUser?.Id.ToString();
+        var values = await Task.WhenAll(
+            settingsService.GetValueAsync("Appearance.Theme", SettingScope.User, target),
+            settingsService.GetValueAsync("Appearance.ShowDesktopIcons", SettingScope.User, target),
+            settingsService.GetValueAsync("Appearance.SnapDesktopIconsToGrid", SettingScope.User, target),
+            settingsService.GetValueAsync("Appearance.ShowTaskbar", SettingScope.User, target),
+            settingsService.GetValueAsync("Appearance.WallpaperPath", SettingScope.User, target));
+
+        ApplyTheme(values[0]?.Value);
+        AreDesktopIconsVisible = !string.Equals(values[1]?.Value, "false", StringComparison.OrdinalIgnoreCase);
+        IsDesktopIconGridSnappingEnabled = !string.Equals(values[2]?.Value, "false", StringComparison.OrdinalIgnoreCase);
+        IsTaskbarVisible = !string.Equals(values[3]?.Value, "false", StringComparison.OrdinalIgnoreCase);
+        ApplyWallpaper(values[4]?.Value);
     }
 
     private async Task SavePinnedModulesAsync()
@@ -1224,7 +1287,32 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        if (!string.Equals(e.Value.Key, "AppModule.Icon", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(e.Value.Key, "Appearance.SnapDesktopIconsToGrid", StringComparison.OrdinalIgnoreCase))
+        {
+            IsDesktopIconGridSnappingEnabled = !string.Equals(e.Value.Value, "false", StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        if (string.Equals(e.Value.Key, "Appearance.Theme", StringComparison.OrdinalIgnoreCase))
+        {
+            ApplyTheme(e.Value.Value);
+            return;
+        }
+
+        if (string.Equals(e.Value.Key, "Appearance.ShowTaskbar", StringComparison.OrdinalIgnoreCase))
+        {
+            IsTaskbarVisible = !string.Equals(e.Value.Value, "false", StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        if (string.Equals(e.Value.Key, "Appearance.WallpaperPath", StringComparison.OrdinalIgnoreCase))
+        {
+            ApplyWallpaper(e.Value.Value);
+            return;
+        }
+
+        if (!string.Equals(e.Value.Key, "AppModule.Icon", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(e.Value.Key, "AppModule.Configuration", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -1255,6 +1343,162 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(ShellReportModules));
     }
 
+    private static Brush CreateDefaultWallpaperBrush()
+    {
+        if (System.Windows.Application.Current?.Resources["DesktopWallpaperBrush"] is ImageBrush configured)
+        {
+            return configured;
+        }
+
+        return new SolidColorBrush(Color.FromRgb(242, 244, 248));
+    }
+
+    private static void ApplyTheme(string? theme)
+    {
+        var isDark = string.Equals(theme, "Dark", StringComparison.OrdinalIgnoreCase)
+            || (string.Equals(theme, "System", StringComparison.OrdinalIgnoreCase) && IsSystemDarkTheme());
+
+        var palette = isDark
+            ? new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["DesktopBlue1"] = "#35516F",
+                ["DesktopBlue2"] = "#263E5A",
+                ["DesktopBlue3"] = "#172A43",
+                ["SurfaceColor"] = "#111827",
+                ["CardColor"] = "#1F2937",
+                ["CardSoftColor"] = "#253244",
+                ["BorderSoftColor"] = "#3B4A5E",
+                ["TaskbarColor"] = "#1A2433",
+                ["StartMenuColor"] = "#202C3D",
+                ["TextPrimaryColor"] = "#F3F4F6",
+                ["TextSecondaryColor"] = "#AAB7C8",
+                ["TextOnDarkColor"] = "#F8FAFC",
+                ["WindowHeaderBrush"] = "#17202C",
+                ["BorderBrushSoft"] = "#3B4A5E"
+            }
+            : new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["DesktopBlue1"] = "#8CB0D6",
+                ["DesktopBlue2"] = "#5E84B2",
+                ["DesktopBlue3"] = "#274C89",
+                ["SurfaceColor"] = "#F2F4F8",
+                ["CardColor"] = "#FFFFFF",
+                ["CardSoftColor"] = "#ECF1F8",
+                ["BorderSoftColor"] = "#CCD8EA",
+                ["TaskbarColor"] = "#DDE5F1",
+                ["StartMenuColor"] = "#E8EEF8",
+                ["TextPrimaryColor"] = "#1E2A3A",
+                ["TextSecondaryColor"] = "#64748B",
+                ["TextOnDarkColor"] = "#F8FAFC",
+                ["WindowHeaderBrush"] = "#F7F9FD",
+                ["BorderBrushSoft"] = "#CCD8EA"
+            };
+
+        var resources = System.Windows.Application.Current?.Resources;
+        if (resources is null)
+        {
+            return;
+        }
+
+        foreach (var (key, value) in palette)
+        {
+            if (!TryParseColor(value, out var color))
+            {
+                continue;
+            }
+
+            if (resources[key] is Color)
+            {
+                resources[key] = color;
+            }
+            else if (resources[key] is SolidColorBrush brush && !brush.IsFrozen)
+            {
+                brush.Color = color;
+            }
+            else if (key.EndsWith("Brush", StringComparison.Ordinal))
+            {
+                resources[key] = new SolidColorBrush(color);
+            }
+            else
+            {
+                resources[key] = color;
+            }
+        }
+
+        if (resources["DesktopWallpaperBrush"] is ImageBrush wallpaper && !wallpaper.IsFrozen)
+        {
+            wallpaper.Opacity = isDark ? 0.62 : 1.0;
+        }
+    }
+
+    private static bool IsSystemDarkTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("AppsUseLightTheme") is int value && value == 0;
+        }
+        catch (Exception ex) when (ex is SecurityException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryParseColor(string value, out Color color)
+    {
+        try
+        {
+            color = (Color)ColorConverter.ConvertFromString(value)!;
+            return true;
+        }
+        catch (FormatException)
+        {
+            color = default;
+            return false;
+        }
+    }
+
+    private void ApplyWallpaper(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            DesktopWallpaperBrush = CreateDefaultWallpaperBrush();
+            return;
+        }
+
+        try
+        {
+            if (!File.Exists(path))
+            {
+                DesktopWallpaperBrush = CreateDefaultWallpaperBrush();
+                ShowToast("Không tìm thấy file wallpaper; đã dùng nền mặc định.");
+                return;
+            }
+
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.UriSource = new Uri(Path.GetFullPath(path), UriKind.Absolute);
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.EndInit();
+            image.Freeze();
+
+            var brush = new ImageBrush(image)
+            {
+                Stretch = Stretch.UniformToFill,
+                AlignmentX = AlignmentX.Center,
+                AlignmentY = AlignmentY.Center
+            };
+            brush.Freeze();
+            DesktopWallpaperBrush = brush;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            DesktopWallpaperBrush = CreateDefaultWallpaperBrush();
+            Serilog.Log.Warning(ex, "Cannot apply configured desktop wallpaper {WallpaperPath}.", path);
+            ShowToast("Không thể đọc wallpaper; đã dùng nền mặc định.");
+        }
+    }
+
     private void QueueShellTask(Func<Task> taskFactory)
     {
         SafeFireAndForget.Run(() => RunShellTaskAsync(taskFactory), _notificationService, "Thao tác shell không thành công.");
@@ -1262,6 +1506,7 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
 
     private async Task RunShellTaskAsync(Func<Task> taskFactory)
     {
+        await _shellTaskGate.WaitAsync();
         try
         {
             await taskFactory();
@@ -1271,8 +1516,13 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
         }
         catch (Exception ex)
         {
+            Serilog.Log.Error(ex, "Desktop shell task failed.");
             ShellStatusMessage = UserExceptionMapper.Map(ex);
             ShowToast("Thao tác shell không thành công. Vui lòng kiểm tra nhật ký.");
+        }
+        finally
+        {
+            _shellTaskGate.Release();
         }
     }
 
@@ -1287,6 +1537,7 @@ public sealed partial class DesktopShellViewModel : ViewModelBase, IDisposable
         _searchCancellation?.Cancel();
         _searchCancellation?.Dispose();
         _navigationGate.Dispose();
+        _shellTaskGate.Dispose();
         _toastTimer.Stop();
         _clockTimer.Stop();
         _notificationService.MessageRaised -= OnMessageRaised;

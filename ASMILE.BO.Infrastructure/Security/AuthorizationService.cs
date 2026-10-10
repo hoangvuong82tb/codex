@@ -7,6 +7,7 @@ public sealed class AuthorizationService : IAuthorizationService
 {
     private readonly ICurrentUserService _currentUserService;
     private readonly ISecurityPromptService _securityPromptService;
+    private readonly ISecurityAuditService _securityAuditService;
 
     private static readonly Dictionary<Permission, string> PermissionMap = new()
     {
@@ -24,10 +25,14 @@ public sealed class AuthorizationService : IAuthorizationService
         { Permission.OpenSensitiveFolder, "VFC.OpenPhysicalLocation" }
     };
 
-    public AuthorizationService(ICurrentUserService currentUserService, ISecurityPromptService securityPromptService)
+    public AuthorizationService(
+        ICurrentUserService currentUserService,
+        ISecurityPromptService securityPromptService,
+        ISecurityAuditService securityAuditService)
     {
         _currentUserService = currentUserService;
         _securityPromptService = securityPromptService;
+        _securityAuditService = securityAuditService;
     }
 
     public bool HasPermission(string permissionCode) => _currentUserService.HasPermission(permissionCode);
@@ -55,8 +60,20 @@ public sealed class AuthorizationService : IAuthorizationService
         }
     }
 
-    public Task<bool> ConfirmDangerousActionAsync(string title, string message)
+    public async Task<bool> ConfirmDangerousActionAsync(string title, string message)
     {
-        return _securityPromptService.ConfirmDangerousActionAsync(title, message);
+        var confirmed = await _securityPromptService.ConfirmDangerousActionAsync(title, message);
+        await _securityAuditService.LogAsync(
+            confirmed ? SecurityEventType.DangerousActionConfirmed : SecurityEventType.DangerousActionRejected,
+            "Authorization",
+            "DangerousActionConfirmation",
+            null,
+            confirmed ? "Người dùng xác nhận thao tác được bảo vệ." : "Người dùng từ chối thao tác được bảo vệ.",
+            new Dictionary<string, string>
+            {
+                ["decision"] = confirmed ? "confirmed" : "rejected"
+            });
+
+        return confirmed;
     }
 }

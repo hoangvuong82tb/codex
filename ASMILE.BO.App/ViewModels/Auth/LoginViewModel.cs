@@ -1,6 +1,8 @@
 ﻿using ASMILE.BO.Application.DTOs.Security;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.App.Views.Dialogs;
 using ASMILE.BO.Shared.Security;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -79,6 +81,7 @@ public sealed partial class LoginViewModel : ViewModelBase
 
         ErrorMessage = string.Empty;
         IsBusy = true;
+        Guid? pendingSessionId = null;
         try
         {
             var result = await _authenticationService.LoginAsync(new LoginRequestDto
@@ -97,12 +100,52 @@ public sealed partial class LoginViewModel : ViewModelBase
                 return;
             }
 
+            pendingSessionId = result.SessionId;
+            if (result.MustChangePassword)
+            {
+                var currentPassword = _password;
+                ClearPassword();
+                var dialog = new FirstLoginPasswordChangeDialog(result.UserName, currentPassword)
+                {
+                    Owner = System.Windows.Application.Current?.MainWindow
+                };
+                if (dialog.ShowDialog() != true)
+                {
+                    await _authenticationService.LogoutAsync(result.SessionId);
+                    pendingSessionId = null;
+                    ErrorMessage = "Bạn cần đổi mật khẩu trước khi tiếp tục đăng nhập.";
+                    return;
+                }
+
+                await _authenticationService.ChangePasswordAsync(new ChangePasswordRequestDto
+                {
+                    UserId = result.UserId,
+                    CurrentPassword = currentPassword,
+                    NewPassword = dialog.NewPassword
+                });
+                result.MustChangePassword = false;
+            }
+
             _currentUserService.SetCurrentUser(result);
+            pendingSessionId = null;
             ClearPassword();
             LoginSucceeded?.Invoke();
         }
         catch
         {
+            if (pendingSessionId is Guid sessionId)
+            {
+                try
+                {
+                    await _authenticationService.LogoutAsync(sessionId);
+                }
+                catch
+                {
+                    // Keep the login failure generic while best-effort revoking
+                    // a session created before the first-login flow failed.
+                }
+            }
+
             ErrorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
         }
         finally

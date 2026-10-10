@@ -11,6 +11,12 @@ public interface IReceivableService
     Task<IReadOnlyList<ReceivableTransactionDto>> GetTransactionsByCustomerAsync(string customerId, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken = default);
     Task<string> GetNextReceiptNoAsync(CancellationToken cancellationToken = default);
     Task<string> CreatePaymentReceiptAsync(CreatePaymentReceiptRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PaymentReceiptDto>> GetPaymentReceiptsAsync(ReceivableFilterDto filter, CancellationToken cancellationToken = default);
+    Task<bool> ApprovePaymentReceiptAsync(string receiptId, CancellationToken cancellationToken = default);
+    Task<bool> CancelPaymentReceiptAsync(string receiptId, CancellationToken cancellationToken = default);
+    Task<bool> ReopenPaymentReceiptAsync(string receiptId, CancellationToken cancellationToken = default);
+    Task<bool> CloseReceivableAsync(string customerId, CancellationToken cancellationToken = default);
+    Task<bool> AddReceivableNoteAsync(string customerId, string noteType, string content, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ReceivableSummaryDto>> GetOverdueDebtsAsync(CancellationToken cancellationToken = default);
     Task PrintDebtStatementAsync(string customerId, CancellationToken cancellationToken = default);
     Task ExportDebtStatementAsync(string customerId, CancellationToken cancellationToken = default);

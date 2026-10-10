@@ -1,0 +1,17 @@
+<Window x:Class="ASMILE.BO.App.Views.HousekeepingRoomStatusWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:ASMILE.BO.App.Views"
+        Title="Housekeeping — Tình trạng phòng"
+        Width="1500"
+        Height="900"
+        MinWidth="1280"
+        MinHeight="740"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        Background="#F8FAFC"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+    <views:HousekeepingRoomStatusView />
+</Window>

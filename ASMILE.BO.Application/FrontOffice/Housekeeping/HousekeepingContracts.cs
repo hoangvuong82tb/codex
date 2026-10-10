@@ -1,5 +1,7 @@
 using ASMILE.BO.Application.FrontOffice.Foundation.Cqrs;
 using ASMILE.BO.Core.FrontOffice.Housekeeping;
+using ASMILE.BO.Core.FrontOffice.HotelMasterData;
+using ASMILE.BO.Shared.Foundation;
 
 namespace ASMILE.BO.Application.FrontOffice.Housekeeping;
 
@@ -66,7 +68,7 @@ public enum InspectionOutcome { Approved, Rejected, ConditionalPass }
 // =============================================================================
 
 public sealed record LinenType(string Code, string Name, string Category, int DefaultParLevel, int MaxWashCycles);
-public sealed record LinenInventory(Guid RoomId, string LinenCode, int Quantity, int WashCycleCount, int DamagedCount, DateTime LastRestockedUtc);
+public sealed record LinenInventory(Guid RoomId, string LinenCode, int Quantity, int WashCycleCount, int DamagedCount, DateTime? LastRestockedUtc, string? RoomNumber = null);
 public enum LinenAction { Issued, Returned, Damaged, Discarded, Restocked, Washed }
 public sealed record LinenTransaction(Guid TransactionId, string LinenCode, Guid RoomId, LinenAction Action, int Quantity, DateTime OccurredAtUtc, Guid? ActorId);
 
@@ -75,14 +77,14 @@ public sealed record LinenTransaction(Guid TransactionId, string LinenCode, Guid
 // =============================================================================
 
 public sealed record AmenityType(string Code, string Name, string Category, int DefaultParLevel, int MinAlertThreshold);
-public sealed record AmenityInventory(Guid RoomId, string AmenityCode, int CurrentStock, int ParLevel, int ConsumptionLast30Days, DateTime LastRefillUtc);
+public sealed record AmenityInventory(Guid RoomId, string AmenityCode, int CurrentStock, int ParLevel, int ConsumptionLast30Days, DateTime? LastRefillUtc, string? RoomNumber = null);
 public sealed record AmenityRefillRequest(Guid RoomId, IReadOnlyList<(string AmenityCode, int Quantity)> Items, DateTime RequestedAtUtc);
 
 // =============================================================================
 // LOST & FOUND (enhanced from existing LostFound domain)
 // =============================================================================
 
-public enum LostFoundItemStatus { Found, Stored, Claimed, Returned, Donated, Disposed, Unclaimed }
+public enum LostFoundItemStatus { Found, Stored, Claimed, Returned, Donated, Disposed, Unclaimed, Contacted }
 public sealed record LostFoundSearchFilter(Guid PropertyId, string? Keyword, LostFoundItemStatus? Status, DateTime? FoundFrom, DateTime? FoundTo, string? Location, string? Category);
 public sealed record LostFoundDashboardDto(int TotalItems, int Stored, int Claimed, int Returned, int Disposed, int Unclaimed, decimal ClaimRate);
 
@@ -125,8 +127,83 @@ public sealed record HkTaskBoardDto(
     HousekeepingTaskType TaskType, HousekeepingTaskStatus TaskStatus,
     RoomPriority Priority, string? AssignedTo, string? AssignedName,
     DateTime? StartedAt, int? EstimatedMinutesLeft, bool IsOverdue,
-    bool IsVip, bool HasInspectionPending
+    bool IsVip, bool HasInspectionPending,
+    Guid? RoomId = null, HousekeepingInspectionResult? InspectionResult = null,
+    Guid? AssignedHousekeeperId = null,
+    Guid? InspectorId = null, DateTime? InspectedAtUtc = null,
+    string? InspectionNotes = null, string? InspectionChecklistData = null,
+    string? InspectorName = null
 );
+
+/// <summary>Authoritative room snapshot used by the room-status workspace.</summary>
+public sealed record HkRoomSnapshot(
+    Guid RoomId, string RoomNumber, string? Floor, string? Zone,
+    string OperationalStatus, string? HousekeepingStatus, byte[]? RowVersion = null
+);
+
+public enum HkRoomAction
+{
+    MarkClean,
+    MarkDirty,
+    SendToHousekeeping,
+    Inspect,
+    SetOutOfOrder,
+    SetOutOfService,
+    ClearOperationalHold
+}
+
+public sealed record HkWorkflowResult(
+    Guid RoomId,
+    HkRoomAction Action,
+    HotelRoomOperationalStatus OperationalStatus,
+    HousekeepingRoomStatus HousekeepingStatus,
+    Guid? TaskId,
+    byte[]? RowVersion);
+
+public sealed record HkRoomActionRequest(Guid PropertyId, Guid RoomId, HkRoomAction Action);
+
+public enum HkTaskAction
+{
+    Assign,
+    Reassign,
+    SetPriority,
+    Accept,
+    StartCleaning,
+    PauseCleaning,
+    ResumeCleaning,
+    CompleteCleaning,
+    SaveInspectionEvidence,
+    ApproveInspection,
+    RejectInspection,
+    Cancel
+}
+
+public sealed record HkTaskActionRequest(
+    Guid PropertyId,
+    Guid TaskId,
+    HkTaskAction Action,
+    Guid? AssignedHousekeeperId = null,
+    string? Notes = null,
+    Guid? InspectorId = null,
+    string? InspectionChecklistData = null,
+    RoomPriority? Priority = null);
+
+public sealed record HkTaskCreateRequest(
+    Guid PropertyId,
+    Guid RoomId,
+    HousekeepingTaskType TaskType,
+    RoomPriority Priority,
+    string? Notes = null);
+
+public sealed record HkTaskWorkflowResult(
+    Guid TaskId,
+    Guid RoomId,
+    HkTaskAction Action,
+    HousekeepingTaskStatus TaskStatus,
+    HkRoomStatus RoomStatus,
+    HousekeepingInspectionResult? InspectionResult);
+
+public sealed record HkAssigneeDto(Guid UserId, string UserName, string DisplayName);
 
 // =============================================================================
 // ENHANCED CONTRACTS
@@ -134,6 +211,7 @@ public sealed record HkTaskBoardDto(
 
 public interface IHousekeepingBoardService
 {
+    Task<IReadOnlyList<HkRoomSnapshot>> GetRoomSnapshotAsync(Guid propertyId, CancellationToken ct);
     Task<HkExecutiveDashboard> GetExecutiveDashboardAsync(Guid propertyId, CancellationToken ct);
     Task<HkSupervisorDashboard> GetSupervisorDashboardAsync(Guid propertyId, Guid supervisorId, CancellationToken ct);
     Task<HkAttendantDashboard> GetAttendantDashboardAsync(Guid propertyId, Guid attendantId, CancellationToken ct);
@@ -141,19 +219,12 @@ public interface IHousekeepingBoardService
     Task<IReadOnlyList<HkTaskBoardDto>> GetTaskBoardAsync(Guid propertyId, string? floor, string? zone, RoomPriority? priority, CancellationToken ct);
 }
 
-public interface IAssignmentEngine
+public interface IHousekeepingWorkflowService
 {
-    Task<AssignmentResult> AssignRoomsAsync(AssignmentRequest request, CancellationToken ct);
-    Task<AssignmentResult> ReassignAsync(Guid attendantId, Guid roomId, string reason, CancellationToken ct);
-    Task<IReadOnlyList<AttendantDto>> GetAvailableAttendantsAsync(Guid propertyId, string? floor, CancellationToken ct);
-    Task<int> GetAttendantWorkloadAsync(Guid attendantId, CancellationToken ct);
-}
-
-public interface IInspectionEngine
-{
-    Task<InspectionResult> InspectAsync(Guid taskId, Guid inspectorId, InspectionChecklist checklist, CancellationToken ct);
-    Task<InspectionChecklist> GetChecklistAsync(HousekeepingTaskType taskType, CancellationToken ct);
-    Task<decimal> GetPassRateAsync(Guid propertyId, DateOnly? from, DateOnly? to, CancellationToken ct);
+    Task<Result<HkWorkflowResult>> ExecuteAsync(HkRoomActionRequest request, CancellationToken ct);
+    Task<Result<Guid>> CreateTaskAsync(HkTaskCreateRequest request, CancellationToken ct);
+    Task<Result<HkTaskWorkflowResult>> ExecuteTaskAsync(HkTaskActionRequest request, CancellationToken ct);
+    Task<IReadOnlyList<HkAssigneeDto>> GetActiveAssigneesAsync(CancellationToken ct);
 }
 
 public interface ILinenService

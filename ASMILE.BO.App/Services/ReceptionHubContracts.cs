@@ -32,6 +32,8 @@ public interface IReceptionUiService : IReceptionHubPermissionReader
     Task<Result<IReadOnlyList<ReceptionReadOnlyRow>>> GetCurrentInHouseAsync(CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<ASMILE.BO.Application.FrontOffice.Stay.HotelStayDto>>> GetPendingArrivalsAsync(string? keyword, CancellationToken cancellationToken);
     Task<Result<ASMILE.BO.Application.FrontOffice.Stay.HotelStayDto>> CheckInAsync(Guid stayId, byte[] rowVersion, CancellationToken cancellationToken);
+    Task<Result<ASMILE.BO.Application.FrontOffice.Stay.HotelStayDto>> CheckInReservationAsync(Guid reservationId, byte[] rowVersion, CancellationToken cancellationToken)
+        => Task.FromResult(Result<ASMILE.BO.Application.FrontOffice.Stay.HotelStayDto>.Failure(Error.System("CHECKIN_COMMAND_UNAVAILABLE", "Reservation check-in is unavailable.")));
     Task<Result<IReadOnlyList<ASMILE.BO.Application.FrontOffice.Stay.HotelStayDto>>> GetInHouseForCheckOutAsync(string? keyword, CancellationToken cancellationToken);
     Task<Result<ASMILE.BO.Application.FrontOffice.Stay.HotelStayDto>> CheckOutAsync(Guid stayId, byte[] rowVersion, CancellationToken cancellationToken);
     Task<Result<IReadOnlyList<ASMILE.BO.Application.FrontOffice.Stay.HotelStayDto>>> GetCurrentInHouseStaysAsync(int limit, CancellationToken cancellationToken);

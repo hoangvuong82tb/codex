@@ -29,8 +29,8 @@ public sealed partial class ReceptionReadOnlyWorkspaceViewModel : ViewModelBase
     {
         ReceptionWorkspaceKind.LockedRooms => "Không có phòng đang ngừng khai thác hoặc tạm dừng.",
         ReceptionWorkspaceKind.ArrivalsToday => "Không có khách dự kiến đến trong ngày hôm nay.",
-        ReceptionWorkspaceKind.StayProfiles => "Khong co ho so luu tru nao trong pham vi chi nhanh hien tai.",
-        ReceptionWorkspaceKind.CurrentInHouse => "Chua co khach InHouse. Check-in khong nam trong sprint nay.",
+        ReceptionWorkspaceKind.StayProfiles => "Không có hồ sơ lưu trú trong phạm vi chi nhánh hiện tại.",
+        ReceptionWorkspaceKind.CurrentInHouse => "Chưa có khách đang lưu trú trong phạm vi chi nhánh hiện tại.",
         _ => "Không có khách dự kiến đi trong ngày hôm nay."
     };
 
@@ -42,8 +42,8 @@ public sealed partial class ReceptionReadOnlyWorkspaceViewModel : ViewModelBase
         {
             ReceptionWorkspaceKind.LockedRooms => ("Thông tin phòng khóa", "Tra cứu phòng ngừng khai thác hoặc tạm dừng từ dữ liệu phòng hiện có.", "\uE72E"),
             ReceptionWorkspaceKind.ArrivalsToday => ("Khách đến hôm nay", "Danh sách đặt phòng có ngày đến trùng ngày nghiệp vụ hiện tại.", "\uE8D4"),
-            ReceptionWorkspaceKind.StayProfiles => ("Ho so luu tru", "Danh sach Stay theo chi nhanh hien tai; chi doc.", "\uE77B"),
-            ReceptionWorkspaceKind.CurrentInHouse => ("Tinh trang khach hien tai", "Danh sach Stay InHouse theo chi nhanh hien tai; chi doc.", "\uE77B"),
+            ReceptionWorkspaceKind.StayProfiles => ("Hồ sơ lưu trú", "Danh sách Stay theo chi nhánh hiện tại; chỉ đọc.", "\uE77B"),
+            ReceptionWorkspaceKind.CurrentInHouse => ("Khách hiện tại", "Danh sách Stay InHouse theo chi nhánh hiện tại; chỉ đọc.", "\uE77B"),
             _ => ("Khách đi hôm nay", "Danh sách đặt phòng có ngày đi trùng ngày nghiệp vụ hiện tại.", "\uE8D3")
         };
         OnPropertyChanged(nameof(EmptyMessage));

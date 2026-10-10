@@ -17,7 +17,10 @@ public sealed class CashierShift
     public CashierShiftStatus Status { get; private set; }
     public decimal OpeningCash { get; private set; }
     public decimal ClosingCash { get; private set; }
-    public decimal ExpectedCash => OpeningCash + _movements.Where(m => m.Type is CashMovementType.CashIn or CashMovementType.TransferIn).Sum(m => m.Amount) - _movements.Where(m => m.Type is CashMovementType.CashOut or CashMovementType.Refund or CashMovementType.TransferOut).Sum(m => m.Amount);
+    public decimal ExpectedCash => OpeningCash
+        + _movements.Where(m => m.Type is CashMovementType.CashIn or CashMovementType.TransferIn).Sum(m => m.Amount)
+        - _movements.Where(m => m.Type is CashMovementType.CashOut or CashMovementType.Refund or CashMovementType.TransferOut).Sum(m => m.Amount)
+        + _movements.Where(m => m.Type == CashMovementType.Adjustment).Sum(m => m.Amount);
     public decimal? ActualCash { get; private set; }
     public decimal? Difference => ActualCash.HasValue ? ActualCash.Value - ExpectedCash : null;
     public DateOnly BusinessDate { get; private set; }
@@ -50,8 +53,27 @@ public sealed class CashierShift
     public CashMovement RecordAdjustment(decimal amount, string reason, DateTime nowUtc, ActorId? actorId)
     { RequireOpen(); if (amount == 0) throw new ArgumentException("CASH_AMOUNT_NONZERO"); var m = CashMovement.Create(CashierShiftId, PropertyId, CashMovementType.Adjustment, amount, reason, nowUtc, actorId); _movements.Add(m); return m; }
 
-    public void Close(decimal actualCash, decimal closingCash, DateTime nowUtc, ActorId? actorId)
-    { RequireOpen(); Status = CashierShiftStatus.Closing; ActualCash = actualCash; ClosingCash = closingCash; _movements.Add(CashMovement.Create(CashierShiftId, PropertyId, CashMovementType.ClosingCash, closingCash, $"Close shift: actual={actualCash}, expected={ExpectedCash}, diff={actualCash - ExpectedCash}", nowUtc, actorId)); Status = CashierShiftStatus.Closed; ClosedAtUtc = nowUtc; ClosedBy = actorId?.Value; }
+    public void Close(decimal actualCash, decimal closingCash, DateTime nowUtc, ActorId? actorId, string? closingNote = null)
+    {
+        RequireOpen();
+        Status = CashierShiftStatus.Closing;
+        ActualCash = actualCash;
+        ClosingCash = closingCash;
+
+        var description = $"Close shift: actual={actualCash}, expected={ExpectedCash}, diff={actualCash - ExpectedCash}";
+        if (!string.IsNullOrWhiteSpace(closingNote))
+        {
+            var note = closingNote.Trim();
+            if (note.Length > 350)
+                note = note[..350] + "...";
+            description += $" | {note}";
+        }
+
+        _movements.Add(CashMovement.Create(CashierShiftId, PropertyId, CashMovementType.ClosingCash, closingCash, description, nowUtc, actorId));
+        Status = CashierShiftStatus.Closed;
+        ClosedAtUtc = nowUtc;
+        ClosedBy = actorId?.Value;
+    }
 
     private void RequireOpen() { if (Status != CashierShiftStatus.Open) throw new InvalidOperationException("SHIFT_NOT_OPEN"); }
 }

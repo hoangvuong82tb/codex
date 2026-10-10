@@ -538,6 +538,7 @@ public sealed class SaveAlacarteOrderLineRequest
     public string? KitchenNote { get; set; }
     public string? SupplementNote { get; set; }
     public string? AdjustmentReason { get; set; }
+    public string? AdjustmentBy { get; set; }
 }
 
 public sealed class AddAlacarteOrderExtraServiceRequest

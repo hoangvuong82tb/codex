@@ -17,9 +17,9 @@ public sealed partial class ReceptionHubViewModel : ViewModelBase, IDisposable
     private readonly INavigationService? navigationService;
     private readonly ICheckInStayModalService? checkInModalService;
     private readonly ICheckOutStayModalService? checkOutModalService;
-    private readonly IReceptionUiService receptionUiService;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILockedRoomWindowService lockedRoomWindowService;
+    private readonly IReceptionUiService? receptionUiService;
+    private readonly IServiceProvider? _serviceProvider;
+    private readonly ILockedRoomWindowService? lockedRoomWindowService;
 
     public ICheckInStayModalService? CheckInModal => checkInModalService;
     public ICheckOutStayModalService? CheckOutModal => checkOutModalService;
@@ -28,8 +28,8 @@ public sealed partial class ReceptionHubViewModel : ViewModelBase, IDisposable
         IReceptionHubPermissionReader permissions,
         IFrontOfficePropertyContextHost propertyContextHost,
         IReceptionWorkspaceModalService modalService,
-        IServiceProvider serviceProvider,
-        ILockedRoomWindowService lockedRoomWindowService,
+        IServiceProvider? serviceProvider,
+        ILockedRoomWindowService? lockedRoomWindowService,
         INavigationService? navigationService = null,
         ICheckInStayModalService? checkInModalService = null,
         ICheckOutStayModalService? checkOutModalService = null,
@@ -40,7 +40,7 @@ public sealed partial class ReceptionHubViewModel : ViewModelBase, IDisposable
         this.navigationService = navigationService;
         this.checkInModalService = checkInModalService;
         this.checkOutModalService = checkOutModalService;
-        this.receptionUiService = receptionUiService!;
+        this.receptionUiService = receptionUiService;
         _serviceProvider = serviceProvider;
         this.lockedRoomWindowService = lockedRoomWindowService;
         ModalService = modalService;
@@ -77,29 +77,21 @@ public sealed partial class ReceptionHubViewModel : ViewModelBase, IDisposable
         var hasContext = HasPropertyContext;
         var canView = hasContext && permissions.CanView;
 
-        AddCard("room-status", "Tình trạng phòng", "Sơ đồ phòng trực quan: Vacant, Occupied, Dirty, Cleaning, OOO.", "", "Sẵn sàng", canView, () => OpenRoomStatusAsync());
+        AddCard("room-status", "Sơ đồ phòng vận hành", "Sơ đồ phòng trực quan: Vacant, Occupied, Dirty, Cleaning, OOO.", "", "Sẵn sàng", canView, () => OpenRoomStatusAsync());
         AddCard("check-in", "Check-in", "Nhận phòng cho khách có đặt phòng và đã sẵn sàng lưu trú.", "", "Sẵn sàng", canView && checkInModalService is not null, () => OpenCheckInWindowAsync());
         AddCard("walk-in", "Walk-In", "Tạo lưu trú nhanh cho khách không đặt trước.", "", "Sẵn sàng", hasContext, () => OpenWalkInWindowAsync());
-        AddCard("group-checkin", "Check-in đoàn", "Nhận phòng hàng loạt cho booking đoàn.", "", "Sẵn sàng", canView, () => { OpenGroupCheckInWindow(); return Task.CompletedTask; });
         AddCard("stay-adjustment", "Điều chỉnh lưu trú", "Đổi phòng, gia hạn và điều chỉnh thông tin lưu trú.", "", "Sẵn sàng", canView, () => { ActiveWorkspace = new StayAdjustmentWorkspaceView(); return Task.CompletedTask; });
-        AddCard("checkout", "Check-out", "Hoàn tất trả phòng và bàn giao.", "", "Sẵn sàng", canView, () => { ActiveWorkspace = new CheckoutWorkspaceView(); return Task.CompletedTask; });
-        AddCard("cashiering", "Thu ngân / Folio", "Quản lý Folio và giao dịch Front Office.", "", "Sẵn sàng", canView, () => { ActiveWorkspace = new CashieringWorkspaceView(); return Task.CompletedTask; });
-        AddCard("key-management", "Quản lý chìa khóa", "Quản lý phát hành và thu hồi thẻ phòng.", "", "Sẵn sàng", canView, () => { ActiveWorkspace = new KeyManagementWorkspaceView(); return Task.CompletedTask; });
-        AddCard("fo-log", "Nhật ký FO", "Nhật ký vận hành và bàn giao ca lễ tân.", "", "Vận hành", canView, () => { ActiveWorkspace = new FrontOfficeLogWorkspaceView(); return Task.CompletedTask; });
+        AddCard("checkout", "Check-out", "Hoàn tất trả phòng và bàn giao.", "", "Sẵn sàng", canView && checkOutModalService is not null, OpenCheckOutWindowAsync);
 
-        AddCard("stay-profile", "Hồ sơ lưu trú", "Tra cứu và xem hồ sơ các lượt lưu trú.", "", "Tra cứu", canView, () => { OpenStayProfileWindow(); return Task.CompletedTask; });
-        AddCard("locked-room", "Phòng khóa", "Theo dõi phòng khóa, phòng tạm dừng và lý do.", "", "Tra cứu", canView, () =>
-        {
-            lockedRoomWindowService.Open();
-            return Task.CompletedTask;
-        });
-        AddCard("current-guests", "Khách hiện tại", "Danh sách khách đang lưu trú trong khách sạn.", "", "Tra cứu", canView, () => { OpenCurrentGuestsWindow(); return Task.CompletedTask; });
-        AddCard("arrivals", "Khách đến hôm nay", "Danh sách khách dự kiến đến trong ngày.", "", "Tra cứu", canView, () => { OpenTodayArrivalsWindow(); return Task.CompletedTask; });
+        AddCard("stay-profile", "Hồ sơ lưu trú", "Tra cứu và xem hồ sơ các lượt lưu trú.", "", "Tra cứu", canView, OpenStayProfileWindowAsync);
+        AddCard("locked-room", "Phòng khóa", "Theo dõi phòng khóa, phòng tạm dừng và lý do.", "", "Tra cứu", canView, OpenLockedRoomWindowAsync);
+        AddCard("current-guests", "Khách hiện tại", "Danh sách khách đang lưu trú trong khách sạn.", "", "Tra cứu", canView, OpenCurrentGuestsWindowAsync);
+        AddCard("arrivals", "Khách đến hôm nay", "Danh sách khách dự kiến đến trong ngày.", "", "Tra cứu", canView, OpenTodayArrivalsWindowAsync);
 
-        AddCard("departures", "Khách đi hôm nay", "Danh sách khách dự kiến rời trong ngày.", "", "Tra cứu", canView, () => { OpenTodayDeparturesWindow(); return Task.CompletedTask; });
+        AddCard("departures", "Khách đi hôm nay", "Danh sách khách dự kiến rời trong ngày.", "", "Tra cứu", canView, OpenTodayDeparturesWindowAsync);
         AddCard("housekeeping-message", "Nhắn nhà buồng", "Gửi và theo dõi yêu cầu phối hợp với nhà buồng.", "", "Sẵn sàng", canView, () => { OpenHousekeepingMessageWindow(); return Task.CompletedTask; });
-        AddCard("exchange-rate", "Tỷ giá", "Tra cứu tỷ giá áp dụng trong ngày.", "", "Sẵn sàng", canView, () => { OpenExchangeRateWindow(); return Task.CompletedTask; });
-        AddCard("reception-report", "Báo cáo", "Báo cáo hoạt động tại quầy lễ tân.", "", "Vận hành", canView, () => { OpenReportCenterWindow(); return Task.CompletedTask; });
+        AddCard("exchange-rate", "Tỷ giá", "Tra cứu tỷ giá áp dụng trong ngày.", "", "Tra cứu", canView, () => { OpenExchangeRateWindow(); return Task.CompletedTask; });
+        AddCard("group-check-in", "Check-in đoàn", "Tiếp nhận và làm thủ tục check-in cho khách đoàn.", "", "Sẵn sàng", canView, () => { OpenGroupCheckInWindow(); return Task.CompletedTask; });
     }
 
     private void AddCard(string id, string title, string description, string glyph, string badge, bool allowed, Func<Task>? action = null, bool isComingSoon = false)
@@ -114,43 +106,169 @@ public sealed partial class ReceptionHubViewModel : ViewModelBase, IDisposable
         });
     }
 
-    private RoomStatusWindow? _roomStatusWindow;
+    private HousekeepingRoomStatusWindow? _roomStatusWindow;
     private CheckInWindow? _checkInWindow;
     private GroupCheckInWindow? _groupCheckInWindow;
-    private FrontOfficeReportCenterWindow? _reportCenterWindow;
-    private StayProfileWindow? _stayProfileWindow;
-    private CurrentGuestsWindow? _currentGuestsWindow;
-    private TodayArrivalsWindow? _todayArrivalsWindow;
-    private TodayDeparturesWindow? _todayDeparturesWindow;
     private HousekeepingMessageWindow? _housekeepingMessageWindow;
     private ExchangeRateWindow? _exchangeRateWindow;
+    private InvoiceManagementWindow? _invoiceWindow;
     private WalkInWindow? _walkInWindow;
 
-    private async Task OpenModalAsync(string kind)
+    private Task OpenStayProfileWindowAsync() => OpenReceptionWindowAsync(() => new StayProfileWindow(), ReceptionWorkspaceKind.StayProfiles, "stay-profile");
+
+    private Task OpenLockedRoomWindowAsync()
+    {
+        if (CanOpenReceptionWindow() && lockedRoomWindowService is not null)
+        {
+            try
+            {
+                lockedRoomWindowService.Open();
+                return Task.CompletedTask;
+            }
+            catch
+            {
+                ErrorMessage = "Không thể mở màn hình Phòng khóa. Vui lòng kiểm tra nhật ký hệ thống.";
+                return Task.CompletedTask;
+            }
+        }
+
+        return OpenModalAsync(ReceptionWorkspaceKind.LockedRooms, "locked-room");
+    }
+
+    private Task OpenCurrentGuestsWindowAsync() => OpenReceptionWindowAsync(() => new CurrentGuestsWindow(), ReceptionWorkspaceKind.CurrentInHouse, "current-guests");
+
+    private Task OpenTodayArrivalsWindowAsync() => OpenReceptionWindowAsync(() => new TodayArrivalsWindow(), ReceptionWorkspaceKind.ArrivalsToday, "arrivals");
+
+    private Task OpenTodayDeparturesWindowAsync() => OpenReceptionWindowAsync(() => new TodayDeparturesWindow(), ReceptionWorkspaceKind.DeparturesToday, "departures");
+
+    private bool CanOpenReceptionWindow() => _serviceProvider is not null && System.Windows.Application.Current is not null;
+
+    private Task OpenReceptionWindowAsync<TWindow>(Func<TWindow> factory, ReceptionWorkspaceKind fallbackKind, string sourceCardId)
+        where TWindow : System.Windows.Window
+    {
+        if (!CanOpenReceptionWindow())
+        {
+            return OpenModalAsync(fallbackKind, sourceCardId);
+        }
+
+        var existing = System.Windows.Application.Current.Windows
+            .OfType<TWindow>()
+            .FirstOrDefault(window => window.IsLoaded);
+        if (existing is not null)
+        {
+            if (existing.WindowState == System.Windows.WindowState.Minimized)
+            {
+                existing.WindowState = System.Windows.WindowState.Normal;
+            }
+
+            existing.Activate();
+            existing.Focus();
+            return Task.CompletedTask;
+        }
+
+        var window = factory();
+        window.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen;
+        SetVisibleOwner(window);
+        window.ResizeMode = System.Windows.ResizeMode.CanResize;
+        window.ShowInTaskbar = false;
+        window.Show();
+        return Task.CompletedTask;
+    }
+
+    private static void SetVisibleOwner(System.Windows.Window window)
+    {
+        var owner = System.Windows.Application.Current?.MainWindow;
+        if (owner is { IsVisible: true } && !ReferenceEquals(owner, window))
+        {
+            window.Owner = owner;
+            window.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
+        }
+    }
+
+    private Task OpenModalAsync(string kind)
+    {
+        var workspaceKind = kind switch
+        {
+            "locked-room" => ReceptionWorkspaceKind.LockedRooms,
+            "arrivals" => ReceptionWorkspaceKind.ArrivalsToday,
+            "departures" => ReceptionWorkspaceKind.DeparturesToday,
+            "stay-profile" => ReceptionWorkspaceKind.StayProfiles,
+            "current-guests" => ReceptionWorkspaceKind.CurrentInHouse,
+            _ => ReceptionWorkspaceKind.StayProfiles
+        };
+        return OpenModalAsync(workspaceKind, kind);
+    }
+
+    private async Task OpenModalAsync(ReceptionWorkspaceKind workspaceKind, string sourceCardId)
     {
         if (!HasPropertyContext || !permissions.CanView) { ErrorMessage = "Vui lòng chọn chi nhánh Front Office và bảo đảm quyền xem trước khi tiếp tục."; return; }
         ErrorMessage = string.Empty;
-        try { await ModalService.OpenAsync(ReceptionWorkspaceKind.StayProfiles, kind); }
+
+        try { await ModalService.OpenAsync(workspaceKind, sourceCardId); }
         catch { ErrorMessage = "Không thể mở không gian tra cứu lễ tân. Vui lòng thử lại hoặc kiểm tra nhật ký hệ thống."; }
     }
 
-    private async Task OpenRoomStatusAsync()
+    private Task OpenRoomStatusAsync()
     {
-        if (_roomStatusWindow is not null) { _roomStatusWindow.Activate(); return; }
-        var queries = _serviceProvider.GetRequiredService<ASMILE.BO.Application.FrontOffice.HotelMasterData.HotelRoomMasterDataQueryHandlers>();
-        _roomStatusWindow = new RoomStatusWindow(queries);
+        if (_roomStatusWindow is not null) { _roomStatusWindow.Activate(); return Task.CompletedTask; }
+        if (_serviceProvider is null) { ErrorMessage = "Dịch vụ dữ liệu phòng chưa được cấu hình."; return Task.CompletedTask; }
+        _roomStatusWindow = new HousekeepingRoomStatusWindow();
         _roomStatusWindow.Closed += (_, _) => _roomStatusWindow = null;
+        SetVisibleOwner(_roomStatusWindow);
         _roomStatusWindow.Show();
+        return Task.CompletedTask;
     }
 
     private async Task OpenCheckInWindowAsync()
     {
         if (_checkInWindow is not null) { _checkInWindow.Activate(); return; }
-        var workspace = _serviceProvider.GetRequiredService<ReservationWorkspaceViewModel>();
-        workspace.SelectedStatus = Core.FrontOffice.Reservation.ReservationStatus.Confirmed;
-        _checkInWindow = new CheckInWindow(workspace);
-        _checkInWindow.Closed += (_, _) => _checkInWindow = null;
-        _checkInWindow.Show();
+        if (_serviceProvider is not null)
+        {
+            try
+            {
+                var workspace = _serviceProvider.GetRequiredService<ReservationWorkspaceViewModel>();
+                workspace.SelectedStatus = Core.FrontOffice.Reservation.ReservationStatus.Confirmed;
+                _checkInWindow = new CheckInWindow(workspace);
+                _checkInWindow.Closed += (_, _) => _checkInWindow = null;
+                SetVisibleOwner(_checkInWindow);
+                _checkInWindow.Show();
+                return;
+            }
+            catch
+            {
+                ErrorMessage = "Không thể mở không gian Check-in. Vui lòng thử lại hoặc kiểm tra nhật ký hệ thống.";
+                return;
+            }
+        }
+        if (checkInModalService is not null)
+        {
+            await checkInModalService.OpenAsync("check-in");
+            return;
+        }
+        ErrorMessage = "Dịch vụ đặt phòng chưa được cấu hình.";
+    }
+
+    private async Task OpenCheckOutWindowAsync()
+    {
+        if (_serviceProvider is not null)
+        {
+            ActiveWorkspace = new CheckoutWorkspaceView();
+            return;
+        }
+        if (checkOutModalService is null)
+        {
+            ErrorMessage = "Dịch vụ Check-out chưa được cấu hình.";
+            return;
+        }
+
+        try
+        {
+            await checkOutModalService.OpenAsync("checkout");
+        }
+        catch
+        {
+            ErrorMessage = "Không thể mở không gian Check-out. Vui lòng thử lại hoặc kiểm tra nhật ký hệ thống.";
+        }
     }
 
     private void OpenGroupCheckInWindow()
@@ -158,47 +276,8 @@ public sealed partial class ReceptionHubViewModel : ViewModelBase, IDisposable
         if (_groupCheckInWindow is not null) { _groupCheckInWindow.Activate(); return; }
         _groupCheckInWindow = new GroupCheckInWindow();
         _groupCheckInWindow.Closed += (_, _) => _groupCheckInWindow = null;
+        SetVisibleOwner(_groupCheckInWindow);
         _groupCheckInWindow.Show();
-    }
-
-    private void OpenReportCenterWindow()
-    {
-        if (_reportCenterWindow is not null) { _reportCenterWindow.Activate(); return; }
-        _reportCenterWindow = new FrontOfficeReportCenterWindow(categoryFilter: "FrontOffice", sourceModule: "Lễ tân");
-        _reportCenterWindow.Closed += (_, _) => _reportCenterWindow = null;
-        _reportCenterWindow.Show();
-    }
-
-    private void OpenStayProfileWindow()
-    {
-        if (_stayProfileWindow is not null) { _stayProfileWindow.Activate(); return; }
-        _stayProfileWindow = new StayProfileWindow();
-        _stayProfileWindow.Closed += (_, _) => _stayProfileWindow = null;
-        _stayProfileWindow.Show();
-    }
-
-    private void OpenCurrentGuestsWindow()
-    {
-        if (_currentGuestsWindow is not null) { _currentGuestsWindow.Activate(); return; }
-        _currentGuestsWindow = new CurrentGuestsWindow();
-        _currentGuestsWindow.Closed += (_, _) => _currentGuestsWindow = null;
-        _currentGuestsWindow.Show();
-    }
-
-    private void OpenTodayArrivalsWindow()
-    {
-        if (_todayArrivalsWindow is not null) { _todayArrivalsWindow.Activate(); return; }
-        _todayArrivalsWindow = new TodayArrivalsWindow();
-        _todayArrivalsWindow.Closed += (_, _) => _todayArrivalsWindow = null;
-        _todayArrivalsWindow.Show();
-    }
-
-    private void OpenTodayDeparturesWindow()
-    {
-        if (_todayDeparturesWindow is not null) { _todayDeparturesWindow.Activate(); return; }
-        _todayDeparturesWindow = new TodayDeparturesWindow();
-        _todayDeparturesWindow.Closed += (_, _) => _todayDeparturesWindow = null;
-        _todayDeparturesWindow.Show();
     }
 
     private void OpenHousekeepingMessageWindow()
@@ -206,6 +285,7 @@ public sealed partial class ReceptionHubViewModel : ViewModelBase, IDisposable
         if (_housekeepingMessageWindow is not null) { _housekeepingMessageWindow.Activate(); return; }
         _housekeepingMessageWindow = new HousekeepingMessageWindow();
         _housekeepingMessageWindow.Closed += (_, _) => _housekeepingMessageWindow = null;
+        SetVisibleOwner(_housekeepingMessageWindow);
         _housekeepingMessageWindow.Show();
     }
 
@@ -214,14 +294,30 @@ public sealed partial class ReceptionHubViewModel : ViewModelBase, IDisposable
         if (_exchangeRateWindow is not null) { _exchangeRateWindow.Activate(); return; }
         _exchangeRateWindow = new ExchangeRateWindow();
         _exchangeRateWindow.Closed += (_, _) => _exchangeRateWindow = null;
+        SetVisibleOwner(_exchangeRateWindow);
         _exchangeRateWindow.Show();
+    }
+
+    private void OpenInvoiceWindow()
+    {
+        if (_invoiceWindow is not null) { _invoiceWindow.Activate(); return; }
+        _invoiceWindow = new InvoiceManagementWindow();
+        _invoiceWindow.Closed += (_, _) => _invoiceWindow = null;
+        SetVisibleOwner(_invoiceWindow);
+        _invoiceWindow.Show();
     }
 
     private async Task OpenWalkInWindowAsync()
     {
         if (_walkInWindow is not null) { _walkInWindow.Activate(); return; }
+        if (receptionUiService is null || _serviceProvider is null)
+        {
+            ErrorMessage = "Dịch vụ Walk-In chưa được cấu hình.";
+            return;
+        }
         _walkInWindow = new WalkInWindow(receptionUiService, _serviceProvider);
         _walkInWindow.Closed += (_, _) => _walkInWindow = null;
+        SetVisibleOwner(_walkInWindow);
         _walkInWindow.Show();
     }
 

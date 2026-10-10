@@ -1,6 +1,5 @@
 using ASMILE.BO.Application.FrontOffice.Housekeeping;
 using ASMILE.BO.Core.FrontOffice.Housekeeping;
-using ASMILE.BO.Infrastructure.FrontOffice.Housekeeping;
 using FluentAssertions;
 
 namespace ASMILE.BO.Tests.Unit;
@@ -11,12 +10,103 @@ public sealed class HousekeepingPlatformTests
     [Fact] public void HK_002_status_machine_rejects_invalid_transition() => HkStatusMachine.IsValidTransition(HkRoomStatus.VacantClean, HkRoomStatus.CleaningInProgress).Should().BeFalse();
     [Fact] public void HK_003_status_machine_returns_allowed_next() => HkStatusMachine.AllowedNext(HkRoomStatus.VacantDirty).Should().Contain(HkRoomStatus.CleaningInProgress);
     [Fact] public void HK_004_status_machine_vacant_clean_next() => HkStatusMachine.AllowedNext(HkRoomStatus.VacantClean).Should().Contain([HkRoomStatus.OccupiedClean, HkRoomStatus.MaintenancePending, HkRoomStatus.DoNotDisturb]);
-    [Fact] public void HK_005_assignment_engine_returns_result() { var engine = new AssignmentEngine(); var r = engine.AssignRoomsAsync(new AssignmentRequest(Guid.NewGuid(), null, null, 10, AssignmentStrategy.Balanced), default).Result; r.IsBalanced.Should().BeTrue(); }
-    [Fact] public void HK_006_inspection_checklist_departure_clean() { var engine = new InspectionEngine(); var cl = engine.GetChecklistAsync(HousekeepingTaskType.DepartureClean, default).Result; cl.Items.Should().HaveCount(4); cl.Items.Should().Contain(i => i.Code == "BED"); }
-    [Fact] public void HK_007_inspection_result_passes_at_80pct() { var engine = new InspectionEngine(); var cl = engine.GetChecklistAsync(HousekeepingTaskType.DepartureClean, default).Result; var r = engine.InspectAsync(Guid.NewGuid(), Guid.NewGuid(), cl, default).Result; r.Passed.Should().BeTrue(); r.PassPercent.Should().BeGreaterThanOrEqualTo(80); }
-    [Fact] public void HK_008_linen_types_have_categories() { var svc = new LinenService(); var types = svc.GetLinenTypesAsync(default).Result; types.Should().NotBeEmpty(); types[0].Category.Should().Be("Bedding"); }
-    [Fact] public void HK_009_amenity_refill_creates_request() { var svc = new AmenityService(); var req = svc.CreateRefillRequestAsync(Guid.NewGuid(), default).Result; req.Items.Should().NotBeEmpty(); }
-    [Fact] public void HK_010_executive_dashboard_has_metrics() { var svc = new HousekeepingBoardService(); var d = svc.GetExecutiveDashboardAsync(Guid.NewGuid(), default).Result; d.TotalRooms.Should().BeGreaterThan(0); d.ReadinessPct.Should().BeGreaterThan(0); }
-    [Fact] public void HK_011_task_board_returns_tasks() { var svc = new HousekeepingBoardService(); var tasks = svc.GetTaskBoardAsync(Guid.NewGuid(), "1", null, RoomPriority.ArrivingToday, default).Result; tasks.Should().NotBeEmpty(); }
-    [Fact] public void HK_012_event_names_are_unique() { var events = typeof(HkEventNames).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).Select(f => f.GetValue(null)?.ToString()).ToList(); events.Should().OnlyHaveUniqueItems(); }
+    [Fact]
+    public void HK_005_minibar_session_requires_check_before_posting()
+    {
+        var session = MinibarSession.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+
+        var act = () => session.Post(Guid.NewGuid(), DateTime.UtcNow);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("MINIBAR_SESSION_NOT_CHECKED");
+        session.Status.Should().Be("Open");
+    }
+
+    [Fact]
+    public void HK_006_minibar_session_check_post_unpost_round_trip()
+    {
+        var actorId = Guid.NewGuid();
+        var folioEntryId = Guid.NewGuid();
+        var session = MinibarSession.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+
+        session.Check(actorId, DateTime.UtcNow);
+        session.Status.Should().Be("Checked");
+        session.CheckedBy.Should().Be(actorId);
+
+        session.Post(folioEntryId, DateTime.UtcNow);
+        session.Status.Should().Be("Posted");
+        session.FolioEntryId.Should().Be(folioEntryId);
+
+        session.Unpost(DateTime.UtcNow);
+        session.Status.Should().Be("Checked");
+        session.FolioEntryId.Should().BeNull();
+        session.PostedAtUtc.Should().BeNull();
+    }
+
+    [Fact]
+    public void HK_007_minibar_session_cannot_be_checked_after_posting()
+    {
+        var session = MinibarSession.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        session.Check(Guid.NewGuid(), DateTime.UtcNow);
+        session.Post(Guid.NewGuid(), DateTime.UtcNow);
+
+        var act = () => session.Check(Guid.NewGuid(), DateTime.UtcNow);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("MINIBAR_SESSION_ALREADY_POSTED");
+    }
+
+    [Fact]
+    public void HK_008_reassign_keeps_active_task_status_and_changes_housekeeper()
+    {
+        var first = Guid.NewGuid();
+        var replacement = Guid.NewGuid();
+        var task = HousekeepingTask.Create(
+            Guid.NewGuid(), Guid.NewGuid(), "HK-TEST-REASSIGN",
+            HousekeepingTaskType.DepartureClean, RoomPriority.Normal,
+            DateTime.UtcNow, null);
+
+        task.Assign(first, DateTime.UtcNow);
+        task.Accept(DateTime.UtcNow);
+        task.StartCleaning(DateTime.UtcNow);
+        task.Reassign(replacement, DateTime.UtcNow);
+
+        task.Status.Should().Be(HousekeepingTaskStatus.Cleaning);
+        task.AssignedHousekeeperId.Should().Be(replacement);
+    }
+
+    [Fact]
+    public void HK_009_reassign_rejects_terminal_task()
+    {
+        var task = HousekeepingTask.Create(
+            Guid.NewGuid(), Guid.NewGuid(), "HK-TEST-REASSIGN-INVALID",
+            HousekeepingTaskType.DepartureClean, RoomPriority.Normal,
+            DateTime.UtcNow, null);
+
+        var act = () => task.Reassign(Guid.NewGuid(), DateTime.UtcNow);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("HK_TASK_STATUS_Pending");
+    }
+
+    [Fact]
+    public void HK_010_priority_can_change_for_active_task_but_not_terminal_task()
+    {
+        var task = HousekeepingTask.Create(
+            Guid.NewGuid(), Guid.NewGuid(), "HK-TEST-PRIORITY",
+            HousekeepingTaskType.DepartureClean, RoomPriority.Normal,
+            DateTime.UtcNow, null);
+
+        task.SetPriority(RoomPriority.Rush, DateTime.UtcNow);
+        task.Priority.Should().Be(RoomPriority.Rush);
+
+        task.Assign(Guid.NewGuid(), DateTime.UtcNow);
+        task.Accept(DateTime.UtcNow);
+        task.StartCleaning(DateTime.UtcNow);
+        task.CompleteCleaning(DateTime.UtcNow);
+        task.Inspect(HousekeepingInspectionResult.Approved, null, DateTime.UtcNow);
+
+        var act = () => task.SetPriority(RoomPriority.VIP, DateTime.UtcNow);
+        act.Should().Throw<InvalidOperationException>().WithMessage("HK_TASK_STATUS_Completed");
+    }
 }

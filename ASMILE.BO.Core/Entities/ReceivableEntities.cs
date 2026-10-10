@@ -6,6 +6,10 @@ public sealed class ReceivableTransaction : ICompanyScoped, IBranchScoped
     public Guid? CompanyId { get; set; }
     public Guid? BranchId { get; set; }
     public Guid CustomerId { get; set; }
+    /// <summary>Optional hotel property scope for Front Office-originated receivables.</summary>
+    public Guid? PropertyId { get; set; }
+    /// <summary>Optional hotel folio source for Front Office-originated receivables.</summary>
+    public Guid? FolioId { get; set; }
     public string SourceType { get; set; } = string.Empty;
     public Guid? SourceId { get; set; }
     public Guid? JournalHeaderId { get; set; }

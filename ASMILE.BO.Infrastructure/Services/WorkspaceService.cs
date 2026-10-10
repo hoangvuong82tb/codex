@@ -59,11 +59,16 @@ public sealed class WorkspaceService : IWorkspaceService
         return new WorkspaceStateDto
         {
             PinnedModules = ReadList(preferences, "pinned-modules"),
+            HasPinnedModulesPreference = preferences.Any(x =>
+                string.Equals(x.PreferenceKey, "pinned-modules", StringComparison.OrdinalIgnoreCase)),
             FavoriteReports = ReadList(preferences, "favorite-reports"),
             RecentModules = ReadList(preferences, "recent-modules"),
             RecentReports = ReadList(preferences, "recent-reports"),
             RecentDrilldowns = ReadList(preferences, "recent-drilldowns"),
             LastOpenedTabs = ReadList(preferences, "last-opened-tabs"),
+            StartupModules = ReadList(preferences, "startup-modules"),
+            HasStartupModulesPreference = preferences.Any(x =>
+                string.Equals(x.PreferenceKey, "startup-modules", StringComparison.OrdinalIgnoreCase)),
             ShellLayoutJson = preferences.FirstOrDefault(x => x.PreferenceKey == "shell-layout")?.ValueJson ?? string.Empty
         };
     }
@@ -96,6 +101,11 @@ public sealed class WorkspaceService : IWorkspaceService
     public Task SaveLastOpenedTabsAsync(IReadOnlyList<string> moduleKeys, CancellationToken cancellationToken = default)
     {
         return SaveListAsync("last-opened-tabs", DistinctOrdered(moduleKeys).Take(MaxRecentItems).ToArray(), cancellationToken);
+    }
+
+    public Task SaveStartupModulesAsync(IReadOnlyList<string> moduleKeys, CancellationToken cancellationToken = default)
+    {
+        return SaveListAsync("startup-modules", DistinctOrdered(moduleKeys), cancellationToken);
     }
 
     public Task SaveShellLayoutAsync(string layoutJson, CancellationToken cancellationToken = default)

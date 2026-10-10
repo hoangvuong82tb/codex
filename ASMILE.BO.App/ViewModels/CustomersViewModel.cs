@@ -34,7 +34,7 @@ public partial class CustomersViewModel : ViewModelBase
         "#3B6EF5",
         isPinned: false,
         showOnDesktop: false,
-        iconPath: @"D:\ASMILE-BO\Windows_Icon\Icons\applications\import.ico");
+        iconPath: ApplicationAssetPaths.Icon(@"Icons\applications\import.ico"));
 
     public ObservableCollection<CustomerDto> Customers { get; } = new();
     public TablePagerViewModel<CustomerDto> CustomersPager { get; } = new() { ItemName = "khách hàng" };
@@ -91,6 +91,8 @@ public partial class CustomersViewModel : ViewModelBase
             CustomerCode = value.CustomerCode,
             CustomerName = value.CustomerName,
             Phone = value.Phone,
+            Email = value.Email,
+            TaxCode = value.TaxCode,
             BankAccountNo = value.BankAccountNo,
             Address = value.Address,
             Note = value.Note,
@@ -250,15 +252,7 @@ public partial class CustomersViewModel : ViewModelBase
                 return;
             }
 
-            var mapped = Customers.Select(x => new SupplierDto
-            {
-                SupplierCode = x.CustomerCode,
-                SupplierName = x.CustomerName,
-                Phone = x.Phone,
-                IsActive = x.IsActive
-            }).ToList();
-
-            await _importExportService.ExportCurrentViewAsync(mapped, saveDialog.FileName);
+            await _importExportService.ExportCurrentViewAsync(Customers, saveDialog.FileName);
             _notificationService.Show("Đã xuất bảng dữ liệu khách hàng.");
         }
         catch (Exception ex)
@@ -351,6 +345,8 @@ public partial class CustomersViewModel : ViewModelBase
                     CustomerCode = row.SupplierCode,
                     CustomerName = row.SupplierName,
                     Phone = row.Phone,
+                    Email = row.Email,
+                    TaxCode = row.TaxCode,
                     BankAccountNo = row.BankAccountNo,
                     Address = row.Address,
                     Note = row.Note,

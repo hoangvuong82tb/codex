@@ -1,6 +1,7 @@
 <Window x:Class="ASMILE.BO.App.Views.CancelReservationWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
         Title="Hủy đặt phòng"
         Width="1200" Height="760"
         MinWidth="1080" MinHeight="660"
@@ -147,10 +148,7 @@
                     <TextBlock VerticalAlignment="Center" Foreground="#64748B" FontSize="13"><Run Text="Tổng: "/><Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="#17365D"/><Run Text=" kết quả"/></TextBlock>
                     <TextBlock VerticalAlignment="Center" Foreground="#DC2626" FontSize="12" Margin="16,0,0,0" Text="{Binding ErrorMessage, Mode=OneWay}" Visibility="{Binding HasError, Converter={StaticResource BoolVis}}"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="← Trước" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Style="{StaticResource GrayBtn}"/>
-                    <Button Content="Sau →" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Style="{StaticResource GrayBtn}" Margin="8,0,0,0"/>
-                </StackPanel>
+                <controls:ServerPagerControl Grid.Column="1" DataContext="{Binding}"/>
             </Grid>
         </Border>
     </Grid>

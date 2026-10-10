@@ -24,5 +24,3 @@ public sealed class CanonicalOutboxMessageFactory(IClock clock) : IOutboxMessage
         return FrontOfficeOutboxMessage.Create(MessageId.From(domainEvent.EventId.Value), integrationEvent.EventName, integrationEvent.SchemaVersion, domainEvent.OccurredAtUtc, payload, hash, integrationEvent.AggregateType, integrationEvent.AggregateId, integrationEvent.AggregateVersion, integrationEvent.PartitionKey, clock.UtcNow, context.Property.PropertyId, context.BusinessDate.BusinessDate, context.Correlation.CorrelationId, context.Correlation.CausationId, integrationEvent.Sensitivity);
     }
 }
-
-public sealed class NoOpOutboxPublisher : IOutboxPublisher { public Task PublishAsync(FrontOfficeOutboxMessage message, CancellationToken cancellationToken) => Task.CompletedTask; }

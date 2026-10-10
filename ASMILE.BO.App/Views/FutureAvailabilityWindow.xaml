@@ -1,49 +1,90 @@
 <Window x:Class="ASMILE.BO.App.Views.FutureAvailabilityWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Khả năng phòng tương lai"
-        Width="1360" Height="840"
-        MinWidth="1160" MinHeight="720"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="CanResize" ShowInTaskbar="False"
-        Background="#F7F9FC"
+        Title="Khả năng phòng tương lai" Width="1360" Height="840"
+        MinWidth="1160" MinHeight="720" WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize" ShowInTaskbar="False" Background="#F7F9FC"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolVis" />
-        <Style x:Key="GrayBtn" TargetType="Button"><Setter Property="Height" Value="36"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/>
-            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter>
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="Background" Value="#2563EB" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#2563EB" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+            <Setter Property="Background" Value="#F1F5F9" />
+            <Setter Property="Foreground" Value="#334155" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
         </Style>
     </Window.Resources>
-
     <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Border Padding="24,18" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <Border Width="42" Height="42" CornerRadius="10" Background="#E0F2FE"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#0284C7" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                 <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center"><TextBlock Text="Khả năng phòng tương lai" FontSize="19" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Theo dõi tồn phòng và khả năng bán theo ngày" FontSize="13" Foreground="#64748B" Margin="0,2,0,0"/></StackPanel>
-                <Button Grid.Column="2" Content="Làm mới" Click="OnRefreshClick" Style="{StaticResource GrayBtn}"/>
+                <Button Grid.Column="2" Content="Làm mới" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButton}" />
             </Grid>
         </Border>
-        <Border Grid.Row="1" Background="White" Margin="16,14,16,16" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="500">
-                <Border Width="72" Height="72" CornerRadius="18" Background="#F0F9FF" Margin="0,0,0,20"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="36" Foreground="#7DD3FC" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                <TextBlock Text="Chưa triển khai Availability Engine" FontSize="18" FontWeight="SemiBold" Foreground="#102E5A" TextAlignment="Center"/>
-                <TextBlock Text="Tính năng sẽ cung cấp ma trận khả năng phòng theo ngày và hạng phòng, theo dõi tồn phòng, đã đặt, đang ở, Out of Order và overbooking." FontSize="14" Foreground="#64748B" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0" LineHeight="22"/>
-                <Border Background="#F8FAFC" CornerRadius="10" Padding="16,14" Margin="0,20,0,0" Width="420">
-                    <StackPanel>
-                        <TextBlock Text="Dữ liệu cần thiết" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,8"/>
-                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• Room inventory (tổng phòng theo hạng)"/></TextBlock>
-                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• Reservation theo ngày (đã đặt, đã phân phòng)"/></TextBlock>
-                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• In-house rooms (đang ở)"/></TextBlock>
-                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• Out of Order / Out of Service"/></TextBlock>
-                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,2,0,0"><Run Text="• Hold/Block allocations"/></TextBlock>
-                    </StackPanel>
-                </Border>
-                <Border Background="#FFF7ED" CornerRadius="10" Padding="16,14" Margin="0,12,0,0" Width="420" BorderBrush="#FED7AA" BorderThickness="1">
-                    <StackPanel><TextBlock Text="⚠ Trạng thái" FontSize="13" FontWeight="SemiBold" Foreground="#C2410C" Margin="0,0,0,4"/><TextBlock FontSize="12" Foreground="#9A3412" Text="BLOCKED BY BACKEND — Chưa có Availability Engine, chưa có inventory aggregate service."/></StackPanel>
-                </Border>
-                <Button Content="Làm mới" Click="OnRefreshClick" Style="{StaticResource GrayBtn}" Margin="0,20,0,0" Width="120"/>
-            </StackPanel>
+        <Border Grid.Row="1" Margin="16,14,16,0" Padding="16,12" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="150"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="70"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Từ ngày" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <DatePicker Grid.Column="1" SelectedDate="{Binding FromDate, Mode=TwoWay}" Height="34" />
+                <TextBlock Grid.Column="2" Text="Số ngày" Foreground="#64748B" VerticalAlignment="Center" Margin="18,0,8,0"/>
+                <TextBox Grid.Column="3" Text="{Binding Days, UpdateSourceTrigger=PropertyChanged}" Height="34" VerticalContentAlignment="Center" Padding="8,0" />
+                <TextBlock Grid.Column="4" Text="Chi nhánh" Foreground="#64748B" VerticalAlignment="Center" Margin="18,0,8,0"/>
+                <TextBlock Grid.Column="5" Text="{Binding PropertyDisplay}" FontWeight="SemiBold" Foreground="#102E5A" VerticalAlignment="Center" />
+                <Button Grid.Column="6" Content="Tải dữ liệu" Command="{Binding RefreshCommand}" Style="{StaticResource ActionButton}" HorizontalAlignment="Right" />
+            </Grid>
         </Border>
+        <Grid Grid.Row="2" Margin="16,14,16,16">
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <UniformGrid Columns="4" Margin="0,0,0,14">
+                <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="16,12" Margin="0,0,8,0"><StackPanel><TextBlock Text="Tổng phòng" Foreground="#64748B" FontSize="12"/><TextBlock Text="{Binding TotalRooms}" Foreground="#102E5A" FontSize="22" FontWeight="SemiBold" Margin="0,4,0,0"/></StackPanel></Border>
+                <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="16,12" Margin="8,0"><StackPanel><TextBlock Text="Công suất cao nhất" Foreground="#64748B" FontSize="12"/><TextBlock Text="{Binding PeakOccupancy, StringFormat={}{0}%}" Foreground="#2563EB" FontSize="22" FontWeight="SemiBold" Margin="0,4,0,0"/></StackPanel></Border>
+                <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="16,12" Margin="8,0"><StackPanel><TextBlock Text="Tồn thấp nhất" Foreground="#64748B" FontSize="12"/><TextBlock Text="{Binding LowestRemaining}" Foreground="#D97706" FontSize="22" FontWeight="SemiBold" Margin="0,4,0,0"/></StackPanel></Border>
+                <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="16,12" Margin="8,0,0,0"><StackPanel><TextBlock Text="Khoảng xem" Foreground="#64748B" FontSize="12"/><TextBlock Text="{Binding PeriodDisplay}" Foreground="#102E5A" FontSize="15" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+            </UniformGrid>
+            <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="12">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Text="Dự báo tồn phòng theo ngày" FontSize="15" FontWeight="SemiBold" Foreground="#102E5A" Margin="4,0,0,10"/>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" RowHeight="34" ColumnHeaderHeight="36">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Ngày" Binding="{Binding DateDisplay}" Width="110"/>
+                            <DataGridTextColumn Header="Tổng phòng" Binding="{Binding TotalPhysicalRooms}" Width="100"/>
+                            <DataGridTextColumn Header="Đang ở" Binding="{Binding Occupied}" Width="80"/>
+                            <DataGridTextColumn Header="Đã đặt" Binding="{Binding Reserved}" Width="80"/>
+                            <DataGridTextColumn Header="Dự kiến đến" Binding="{Binding ExpectedArrivals}" Width="100"/>
+                            <DataGridTextColumn Header="Dự kiến đi" Binding="{Binding ExpectedDepartures}" Width="100"/>
+                            <DataGridTextColumn Header="Phòng trống" Binding="{Binding Available}" Width="100"/>
+                            <DataGridTextColumn Header="Công suất" Binding="{Binding OccupancyDisplay}" Width="90"/>
+                            <DataGridTextColumn Header="Tồn còn lại" Binding="{Binding Remaining}" Width="100"/>
+                            <DataGridTextColumn Header="OOO" Binding="{Binding OutOfOrder}" Width="60"/>
+                            <DataGridTextColumn Header="OOS" Binding="{Binding OutOfService}" Width="60"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Grid.Row="2" Text="{Binding ErrorMessage}" Foreground="#B91C1C" TextWrapping="Wrap" Margin="4,10,4,0" Visibility="{Binding HasError, Converter={StaticResource BoolVis}}"/>
+                </Grid>
+            </Border>
+            <TextBlock Grid.Row="2" Text="Dữ liệu được tính từ phòng, lưu trú, đặt phòng và trạng thái vận hành trong cơ sở dữ liệu hiện tại." Foreground="#64748B" FontSize="12" Margin="4,10,0,0"/>
+        </Grid>
     </Grid>
 </Window>

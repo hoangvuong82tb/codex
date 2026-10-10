@@ -14,7 +14,9 @@ public sealed class ReservationHubViewModelTests
         using var hub = CreateHub();
 
         hub.Cards.Select(x => x.DisplayOrder).Should().BeInAscendingOrder();
-        hub.Cards.Select(x => x.Id).Should().ContainInOrder("new", "search", "edit", "assign", "confirm", "cancel");
+        hub.Cards.Select(x => x.Id).Should().ContainInOrder("new", "edit", "assign", "confirm", "cancel");
+        hub.Cards.Should().NotContain(x => x.Id == "search");
+        hub.Cards.Should().NotContain(x => x.Id.Contains("report", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -25,26 +27,24 @@ public sealed class ReservationHubViewModelTests
         hub.Cards.Single(x => x.Id == "new").IsVisible.Should().BeFalse();
         hub.Cards.Single(x => x.Id == "assign").IsVisible.Should().BeFalse();
         hub.Cards.Single(x => x.Id == "cancel").IsVisible.Should().BeFalse();
-        hub.Cards.Single(x => x.Id == "search").IsVisible.Should().BeTrue();
+        hub.Cards.Single(x => x.Id == "edit").IsVisible.Should().BeTrue();
     }
 
     [Fact]
-    public async Task HUB_RES_U_006_to_008_coming_soon_does_not_open_modal_and_duplicate_is_prevented()
+    public void HUB_RES_U_006_to_008_web_card_is_enabled_and_search_card_is_not_duplicated()
     {
         var modal = new FakeModalService();
         using var hub = CreateHub(modal: modal);
 
-        var comingSoon = hub.Cards.Single(x => x.Id == "web");
-        comingSoon.IsEnabled.Should().BeFalse();
-        comingSoon.IsComingSoon.Should().BeTrue();
-        comingSoon.Command.Execute(null);
+        var web = hub.Cards.Single(x => x.Id == "web");
+        web.IsEnabled.Should().BeTrue();
+        web.IsComingSoon.Should().BeFalse();
+        web.BadgeText.Should().Be("Đang hoạt động");
+        web.DisabledReason.Should().BeNull();
         modal.OpenCalls.Should().BeEmpty();
 
-        var search = hub.Cards.Single(x => x.Id == "search");
-        await ((CommunityToolkit.Mvvm.Input.IAsyncRelayCommand)search.Command).ExecuteAsync(null);
-        await ((CommunityToolkit.Mvvm.Input.IAsyncRelayCommand)search.Command).ExecuteAsync(null);
-
-        modal.OpenCalls.Should().ContainSingle().Which.Kind.Should().Be(ReservationModalKind.Search);
+        hub.Cards.Should().NotContain(x => x.Id == "search");
+        hub.Cards.Single(x => x.Id == "edit").Title.Should().Be("Sửa đặt phòng");
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class ReservationHubViewModelTests
     {
         var host = new FakePropertyContextHost();
         var modal = new FakeModalService();
-        using var hub = new ReservationHubViewModel(new FakePermissions(), host, modal);
+        using var hub = new ReservationHubViewModel(new FakePermissions(), host, modal, null!);
 
         host.Raise(null, "FRONT_OFFICE_PROPERTY_CONTEXT_REQUIRED");
 
@@ -93,8 +93,8 @@ public sealed class ReservationHubViewModelTests
         hub.Cards.Single(x => x.Id == "new").IsVisible.Should().BeTrue();
     }
 
-    private static ReservationHubViewModel CreateHub(FakePermissions? permissions = null, FakeModalService? modal = null)
-        => new(permissions ?? new FakePermissions(), new FakePropertyContextHost(), modal ?? new FakeModalService());
+    private static ReservationHubViewModel CreateHub(FakePermissions? permissions = null, FakeModalService? modal = null, IServiceProvider? serviceProvider = null)
+        => new(permissions ?? new FakePermissions(), new FakePropertyContextHost(), modal ?? new FakeModalService(), serviceProvider!);
 
     private sealed class FakePermissions : IReservationHubPermissionReader
     {

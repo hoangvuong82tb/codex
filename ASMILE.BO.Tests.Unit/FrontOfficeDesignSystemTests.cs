@@ -10,14 +10,24 @@ public sealed class FrontOfficeDesignSystemTests
     private static readonly string[] BrushProperties = ["Background", "Foreground", "BorderBrush", "Fill", "Stroke"];
 
     [Fact]
-    public void FO_DS_U_001_to_003_hubs_badges_and_modal_hosts_use_shared_front_office_styles()
+    public void FO_DS_U_001_to_003_hub_cards_hide_status_badges_and_keep_shared_hosts()
     {
         var views = HubViews.ToDictionary(name => name, ReadView);
 
-        views["FrontOfficeHubView.xaml"].Should().Contain("FO.MainHubCardButton").And.Contain("FO.HubBadge").And.Contain("FO.ComingSoonModalShell");
-        views["ReservationHubView.xaml"].Should().Contain("FO.HubCardButton").And.Contain("FO.HubBadge.ComingSoon").And.Contain("FO.LargeModalShell");
-        views["ReceptionHubView.xaml"].Should().Contain("FO.HubCardButton").And.Contain("FO.HubBadge.ComingSoon").And.Contain("FO.HubBadge.ReadOnly");
+        views["FrontOfficeHubView.xaml"].Should().Contain("FO.MainHubCardButton").And.NotContain("FO.HubBadge").And.Contain("FO.ComingSoonModalShell");
+        views["ReservationHubView.xaml"].Should().Contain("FO.HubCardButton").And.NotContain("FO.HubBadge").And.Contain("FO.LargeModalShell");
+        views["ReceptionHubView.xaml"].Should().Contain("FO.HubCardButton").And.NotContain("FO.HubBadge");
         ReadView("ReceptionReadOnlyWorkspaceView.xaml").Should().Contain("FO.ReadOnlyModalShell");
+    }
+
+    [Fact]
+    public void FO_DS_U_003b_reception_read_only_cards_render_the_active_workspace_modal()
+    {
+        var receptionView = ReadView("ReceptionHubView.xaml");
+
+        receptionView.Should().Contain("ReceptionReadOnlyWorkspaceViewModel");
+        receptionView.Should().Contain("{Binding ModalService.ActiveModal}");
+        receptionView.Should().Contain("{Binding ModalService.IsOpen");
     }
 
     [Fact]
@@ -75,11 +85,23 @@ public sealed class FrontOfficeDesignSystemTests
 
     private static string Root()
     {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        var configuredRoot = Environment.GetEnvironmentVariable("ASMILE_BO_SOLUTION_ROOT");
+        if (!string.IsNullOrWhiteSpace(configuredRoot)
+            && File.Exists(Path.Combine(configuredRoot, "ASMILE.BO.sln"))
+            && Directory.Exists(Path.Combine(configuredRoot, "ASMILE.BO.App", "Views")))
         {
-            if (File.Exists(Path.Combine(directory.FullName, "ASMILE.BO.sln"))) return directory.FullName;
+            return Path.GetFullPath(configuredRoot);
         }
 
-        throw new DirectoryNotFoundException("Could not locate ASMILE.BO.sln from the test output directory.");
+        var candidateRoots = new[] { AppContext.BaseDirectory, Environment.CurrentDirectory };
+        foreach (var candidateRoot in candidateRoots)
+        {
+            for (var directory = new DirectoryInfo(candidateRoot); directory is not null; directory = directory.Parent)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "ASMILE.BO.sln"))) return directory.FullName;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Could not locate ASMILE.BO.sln from the test output or current directory.");
     }
 }

@@ -103,33 +103,33 @@ public sealed class RoomAllocationEngine(AppDbContext db) : IRoomAllocationEngin
                 FloorNumber: floorNumber,
                 IsAvailable: isAvailable,
                 IsOperational: isOperational,
-                // Physical attributes — derived from room properties or defaults
-                IsSmoking: IsSmokingRoom(room.RoomNumber),
-                IsConnecting: IsConnectingRoom(room.Zone),
+                // Physical attributes must come from the room master data.  Falling back to
+                // room-number heuristics makes the allocation result non-deterministic for
+                // properties whose room numbering does not follow our old convention.
+                IsSmoking: room.IsSmoking,
+                IsConnecting: room.IsConnecting,
                 IsAccessible: IsAccessibleRoom(room.Description),
-                HasKingBed: rt?.Name?.Contains("King", StringComparison.OrdinalIgnoreCase) ?? false,
-                HasTwinBed: rt?.Name?.Contains("Twin", StringComparison.OrdinalIgnoreCase) ?? false,
-                HasDoubleBed: rt?.Name?.Contains("Double", StringComparison.OrdinalIgnoreCase) ?? false,
-                HasSingleBed: rt?.Name?.Contains("Single", StringComparison.OrdinalIgnoreCase) ?? false,
+                HasKingBed: ContainsAny(room.BedType, rt?.Name, "King", "Cỡ lớn"),
+                HasTwinBed: ContainsAny(room.BedType, rt?.Name, "Twin", "Đơn đôi"),
+                HasDoubleBed: ContainsAny(room.BedType, rt?.Name, "Double", "Đôi"),
+                HasSingleBed: ContainsAny(room.BedType, rt?.Name, "Single", "Đơn"),
                 IsQuiet: room.Zone?.Contains("Quiet", StringComparison.OrdinalIgnoreCase) ?? false,
-                HasSeaView: room.Description?.Contains("Sea", StringComparison.OrdinalIgnoreCase) ?? false,
-                HasCityView: room.Description?.Contains("City", StringComparison.OrdinalIgnoreCase) ?? false,
-                HasGardenView: room.Description?.Contains("Garden", StringComparison.OrdinalIgnoreCase) ?? false,
-                HasPoolView: room.Description?.Contains("Pool", StringComparison.OrdinalIgnoreCase) ?? false,
-                HasMountainView: room.Description?.Contains("Mountain", StringComparison.OrdinalIgnoreCase) ?? false,
+                HasSeaView: ContainsAny(room.View, room.Description, "Sea", "Biển"),
+                HasCityView: ContainsAny(room.View, room.Description, "City", "Thành phố"),
+                HasGardenView: ContainsAny(room.View, room.Description, "Garden", "Vườn"),
+                HasPoolView: ContainsAny(room.View, room.Description, "Pool", "Hồ bơi"),
+                HasMountainView: ContainsAny(room.View, room.Description, "Mountain", "Núi"),
                 HasBalcony: room.Description?.Contains("Balcony", StringComparison.OrdinalIgnoreCase) ?? false,
                 IsCorner: room.RoomNumber.EndsWith("01") || room.RoomNumber.EndsWith("10"), // heuristic: end rooms
                 IsNearElevator: IsNearElevatorRoom(room.Zone),
-                CanAccommodateExtraBed: (rt?.MaximumAdultCapacity ?? 2) > room.OperationalStatus.GetHashCode() % 2 + 2, // has capacity
-                CanAccommodateBabyCot: true, // most rooms can
+                CanAccommodateExtraBed: rt is not null && rt.MaximumAdultCapacity > rt.StandardAdultCapacity,
+                CanAccommodateBabyCot: rt is not null && rt.MaximumChildCapacity > 0,
                 BaseRate: null // Rate engine integration deferred
             ));
         }
 
         return candidates;
     }
-
-    // === Heuristic attribute detection (until room attributes are stored in DB) ===
 
     private static int ParseFloorNumber(string? floor)
     {
@@ -140,14 +140,10 @@ public sealed class RoomAllocationEngine(AppDbContext db) : IRoomAllocationEngin
         return int.TryParse(digits, out var d) ? d : 1;
     }
 
-    private static bool IsSmokingRoom(string roomNumber)
-    {
-        // Heuristic: rooms ending in certain numbers are smoking
-        return roomNumber.EndsWith("05") || roomNumber.EndsWith("06");
-    }
-
-    private static bool IsConnectingRoom(string? zone)
-        => zone?.Contains("Connecting", StringComparison.OrdinalIgnoreCase) ?? false;
+    private static bool ContainsAny(string? first, string? second, params string[] values)
+        => values.Any(value =>
+            (first?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (second?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false));
 
     private static bool IsAccessibleRoom(string? description)
         => description?.Contains("Accessible", StringComparison.OrdinalIgnoreCase) ?? false;

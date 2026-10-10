@@ -40,7 +40,7 @@ public sealed class HotelPaymentApplicationService(
         try
         {
             // Payment Engine creates the folio posting — single source of truth
-            var entry = folio.AddPayment(c.Amount, $"Payment {c.Method}{(c.ExternalReference != null ? $" ({c.ExternalReference})" : "")}", c.Method, c.ExternalReference, now, cx.Actor.ActorId);
+            var entry = folio.AddPayment(c.Amount, $"Payment {c.Method}{(c.ExternalReference != null ? $" ({c.ExternalReference})" : "")}", c.Method, c.ExternalReference, now, cx.Actor.ActorId, cx.BusinessDate.BusinessDate);
             payment.LinkFolioEntry(entry.HotelFolioEntryId);
             await paymentRepo.AddAsync(payment, ct); await folioRepo.AddEntryAsync(entry, ct);
             var commit = await persistence.CommitAsync(ct);
@@ -71,7 +71,7 @@ public sealed class HotelPaymentApplicationService(
             {
                 var number = await numberGenerator.GenerateAsync(pid, cx.BusinessDate.BusinessDate, ct);
                 var payment = HotelPayment.Create(pid, c.HotelFolioId, number, line.Method, line.Amount, PaymentCurrency.VND, 1, line.ExternalReference, line.Notes, now, cx.Actor.ActorId);
-                var entry = folio.AddPayment(line.Amount, $"Payment {line.Method}{(line.ExternalReference != null ? $" ({line.ExternalReference})" : "")}", line.Method, line.ExternalReference, now, cx.Actor.ActorId);
+                var entry = folio.AddPayment(line.Amount, $"Payment {line.Method}{(line.ExternalReference != null ? $" ({line.ExternalReference})" : "")}", line.Method, line.ExternalReference, now, cx.Actor.ActorId, cx.BusinessDate.BusinessDate);
                 payment.LinkFolioEntry(entry.HotelFolioEntryId);
                 await paymentRepo.AddAsync(payment, ct); await folioRepo.AddEntryAsync(entry, ct);
                 payments.Add(Map(payment));
@@ -120,6 +120,44 @@ public sealed class HotelPaymentApplicationService(
         catch (InvalidOperationException ex) { return F<PaymentAllocationDto>(Error.Business("PAYMENT_ALLOCATION_FAILED", ex.Message)); }
     }
 
+    public async Task<Result<IReadOnlyList<PaymentAllocationDto>>> AllocateBatchAsync(AllocatePaymentBatchCommand c, CancellationToken ct)
+    {
+        if (!auth.HasPermission("FrontOffice.Payment.Allocate")) return F<IReadOnlyList<PaymentAllocationDto>>(Denied("Allocate"));
+        if (Context(out var cx, out var pid) is { } e) return F<IReadOnlyList<PaymentAllocationDto>>(e);
+        if (!ValidToken(c.ExpectedRowVersion, out var te)) return F<IReadOnlyList<PaymentAllocationDto>>(te);
+        if (c.Lines.Count == 0) return F<IReadOnlyList<PaymentAllocationDto>>(Error.Validation("ALLOCATION_BATCH_EMPTY", ""));
+        if (c.Lines.Any(x => x.Amount <= 0)) return F<IReadOnlyList<PaymentAllocationDto>>(Error.Validation("ALLOCATION_AMOUNT_POSITIVE", ""));
+        if (c.Lines.Select(x => x.ChargeFolioEntryId).Distinct().Count() != c.Lines.Count)
+            return F<IReadOnlyList<PaymentAllocationDto>>(Error.Validation("ALLOCATION_CHARGE_DUPLICATE", ""));
+
+        var payment = await paymentRepo.GetAsync(pid, c.HotelPaymentId, ct);
+        if (payment is null) return F<IReadOnlyList<PaymentAllocationDto>>(Error.Business("PAYMENT_NOT_FOUND", ""));
+        paymentRepo.ApplyExpectedRowVersion(payment, c.ExpectedRowVersion);
+        var total = c.Lines.Sum(x => x.Amount);
+        if (payment.UnallocatedAmount < total)
+            return F<IReadOnlyList<PaymentAllocationDto>>(Error.Business("ALLOCATION_EXCEEDS_UNALLOCATED", ""));
+
+        try
+        {
+            // Validate the complete batch before mutating the aggregate so one bad
+            // line cannot leave an in-memory payment partially allocated.
+            var now = clock.UtcNow;
+            var allocations = new List<HotelPaymentAllocation>(c.Lines.Count);
+            foreach (var line in c.Lines)
+                allocations.Add(payment.AllocateToCharge(line.ChargeFolioEntryId, line.ChargeDescription, line.Amount, now));
+
+            foreach (var allocation in allocations)
+                await paymentRepo.AddAllocationAsync(allocation, ct);
+
+            var commit = await persistence.CommitAsync(ct);
+            if (commit.IsFailure) return F<IReadOnlyList<PaymentAllocationDto>>(commit.Error!);
+            return Result<IReadOnlyList<PaymentAllocationDto>>.Success(
+                allocations.Select(a => new PaymentAllocationDto(a.HotelPaymentAllocationId, a.HotelPaymentId, a.ChargeFolioEntryId, a.ChargeDescription, a.Amount, a.CreatedAtUtc)).ToList());
+        }
+        catch (InvalidOperationException ex) { return F<IReadOnlyList<PaymentAllocationDto>>(Error.Business("PAYMENT_ALLOCATION_FAILED", ex.Message)); }
+        catch (ArgumentException ex) { return F<IReadOnlyList<PaymentAllocationDto>>(Error.Validation("PAYMENT_ALLOCATION_INVALID", ex.Message)); }
+    }
+
     // =============================================================================
     // REFUND (Partial or Full)
     // =============================================================================
@@ -137,7 +175,7 @@ public sealed class HotelPaymentApplicationService(
         try
         {
             var now = clock.UtcNow;
-            var refundEntry = folio.AddRefund(amount, $"Refund Payment #{payment.PaymentNumber}: {c.Reason}", now, cx.Actor.ActorId);
+            var refundEntry = folio.AddRefund(amount, $"Refund Payment #{payment.PaymentNumber}: {c.Reason}", now, cx.Actor.ActorId, cx.BusinessDate.BusinessDate);
             payment.Refund(amount, refundEntry.HotelFolioEntryId, c.Reason, now, cx.Actor.ActorId);
             await folioRepo.AddEntryAsync(refundEntry, ct);
             var commit = await persistence.CommitAsync(ct);
@@ -163,7 +201,7 @@ public sealed class HotelPaymentApplicationService(
         try
         {
             var now = clock.UtcNow;
-            var voidEntry = folio.AddCorrection(payment.Amount, $"Void Payment #{payment.PaymentNumber}: {c.Reason}", null, now, cx.Actor.ActorId);
+            var voidEntry = folio.AddCorrection(payment.Amount, $"Void Payment #{payment.PaymentNumber}: {c.Reason}", payment.FolioEntryId, now, cx.Actor.ActorId, cx.BusinessDate.BusinessDate);
             payment.Void(voidEntry.HotelFolioEntryId, c.Reason, now, cx.Actor.ActorId);
             await folioRepo.AddEntryAsync(voidEntry, ct);
             var commit = await persistence.CommitAsync(ct);

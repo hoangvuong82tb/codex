@@ -9,8 +9,12 @@ public sealed class PrepareStayFromReservationCommandHandler(HotelStayApplicatio
 { public Task<Result<HotelStayDto>> HandleAsync(PrepareStayFromReservationCommand command, CancellationToken ct) => service.PrepareFromReservationAsync(command, ct); }
 public sealed class CheckInHotelStayCommandHandler(HotelStayApplicationService service) : ICommandHandler<CheckInHotelStayCommand, HotelStayDto>
 { public Task<Result<HotelStayDto>> HandleAsync(CheckInHotelStayCommand command, CancellationToken ct) => service.CheckInAsync(command, ct); }
+public sealed class CheckInReservationCommandHandler(HotelStayApplicationService service) : ICommandHandler<CheckInReservationCommand, HotelStayDto>
+{ public Task<Result<HotelStayDto>> HandleAsync(CheckInReservationCommand command, CancellationToken ct) => service.CheckInReservationAsync(command, ct); }
 public sealed class CheckOutHotelStayCommandHandler(HotelStayApplicationService service) : ICommandHandler<CheckOutHotelStayCommand, HotelStayDto>
 { public Task<Result<HotelStayDto>> HandleAsync(CheckOutHotelStayCommand command, CancellationToken ct) => service.CheckOutAsync(command, ct); }
+public sealed class ApproveDepartureCommandHandler(HotelStayApplicationService service) : ICommandHandler<ApproveDepartureCommand, HotelStayDto>
+{ public Task<Result<HotelStayDto>> HandleAsync(ApproveDepartureCommand command, CancellationToken ct) => service.ApproveDepartureAsync(command, ct); }
 public sealed class ConfirmPreArrivalCommandHandler(HotelStayApplicationService service) : ICommandHandler<ConfirmPreArrivalCommand, HotelStayDto>
 { public Task<Result<HotelStayDto>> HandleAsync(ConfirmPreArrivalCommand c, CancellationToken ct) => service.ConfirmPreArrivalAsync(c, ct); }
 public sealed class PreCheckInHotelStayCommandHandler(HotelStayApplicationService service) : ICommandHandler<PreCheckInHotelStayCommand, HotelStayDto>

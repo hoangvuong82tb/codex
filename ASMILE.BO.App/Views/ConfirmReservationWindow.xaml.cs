@@ -12,6 +12,7 @@ public partial class ConfirmReservationWindow : Window
         InitializeComponent();
         Owner = System.Windows.Application.Current.MainWindow;
         _vm = viewModel;
+        _vm.Mode = WorkspaceMode.Confirmation;
         DataContext = viewModel;
     }
 

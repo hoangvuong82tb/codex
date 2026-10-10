@@ -12,5 +12,6 @@ public enum BusinessEntityType
     ExportVoucher = 7,
     Payment = 8,
     Debt = 9,
-    Contract = 10
+    Contract = 10,
+    Notification = 11
 }

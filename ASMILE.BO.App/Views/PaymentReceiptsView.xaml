@@ -131,6 +131,9 @@
           <Button Grid.Column="5" Style="{StaticResource CompactSecondaryIconButtonStyle}" Margin="0,0,8,0" Command="{Binding RefreshCommand}">
             <TextBlock Text="" FontFamily="Segoe MDL2 Assets" />
           </Button>
+          <Button Grid.Column="6" Style="{StaticResource CompactSecondaryIconButtonStyle}" Margin="0,0,8,0" Command="{Binding ExportCsvCommand}" ToolTip="Xuất CSV danh sách phiếu thu">
+            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" />
+          </Button>
         </Grid>
         <Border Grid.Column="0" Grid.Row="1" Style="{StaticResource FluentCardStyle}">
           <Grid>

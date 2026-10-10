@@ -32,6 +32,12 @@ public sealed class ItemRepository : EfRepository<Item>, IItemRepository
     public Task<bool> ExistsNameAsync(string itemName, int excludingId = 0, CancellationToken cancellationToken = default)
         => DbSet.AnyAsync(x => x.ItemName == itemName && x.Id != excludingId, cancellationToken);
 
+    public async Task<IReadOnlyList<string>> GetCodesStartingWithAsync(string prefix, CancellationToken cancellationToken = default)
+        => await DbSet.AsNoTracking()
+            .Where(x => x.ItemCode.StartsWith(prefix))
+            .Select(x => x.ItemCode)
+            .ToListAsync(cancellationToken);
+
     public async Task<bool> IsUsedInTransactionsAsync(int itemId, CancellationToken cancellationToken = default)
     {
         return await DbContext.StockReceiptDetails.AnyAsync(x => x.ItemId == itemId, cancellationToken)

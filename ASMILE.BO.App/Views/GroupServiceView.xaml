@@ -1,0 +1,1186 @@
+<UserControl x:Class="ASMILE.BO.App.Views.GroupServiceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ASMILE.BO.App.ViewModels"
+             xmlns:converters="clr-namespace:ASMILE.BO.App.Converters"
+             UseLayoutRounding="True" Loaded="OnLoaded"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVis"/>
+        <converters:StringToBrushConverter x:Key="StringToBrush"/>
+
+        <!-- ═══ STYLES ═══ -->
+        <Style x:Key="PanelCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="PrimaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Background" Value="#7C3AED"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#6D28D9"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.5"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SuccessBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+            <Setter Property="Background" Value="#16A34A"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#15803D"/></Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DangerBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+            <Setter Property="Background" Value="#DC2626"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#B91C1C"/></Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToolbarBtn" TargetType="Button">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F5F3FF"/><Setter TargetName="Bd" Property="BorderBrush" Value="#C4B5FD"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FilterTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D7E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FilterCombo" TargetType="ComboBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D7E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="26"/></Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0" Margin="10,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}"/>
+                                    <Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7B8DA6" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="8" Height="4" Stretch="Uniform"/>
+                                </Grid>
+                            </Border>
+                            <Popup Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                <Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="7" Margin="0,2">
+                                    <ScrollViewer MaxHeight="200"><ItemsPresenter/></ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DatePickerStyle" TargetType="DatePicker">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D7E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="ModDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="RowBackground" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="ColumnHeaderHeight" Value="44"/>
+            <Setter Property="RowHeight" Value="44"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F5F3FF"/>
+                        <Setter Property="Foreground" Value="#475569"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StatusBadge" TargetType="Border">
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+
+        <Style x:Key="PagerBtn" TargetType="Button">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.4"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Category item style -->
+        <Style x:Key="CategoryItemBtn" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock x:Name="Icon" Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{Binding Color}" VerticalAlignment="Center" Width="22"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="12" Foreground="#334155" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <Border Grid.Column="2" CornerRadius="8" Padding="6,2" Background="#F1F5F9">
+                                    <TextBlock Text="{Binding Count}" FontSize="10" Foreground="#94A3B8" FontWeight="SemiBold"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F5F3FF"/></Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F5F3FF"/>
+                                <Setter TargetName="Icon" Property="Foreground" Value="#7C3AED"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Inspector tab style -->
+        <Style x:Key="InspectorTabBtn" TargetType="Button">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Timeline item -->
+        <Style x:Key="TimelineDot" TargetType="Ellipse">
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="Fill" Value="#7C3AED"/>
+        </Style>
+
+        <!-- Category card for context menu -->
+        <Style x:Key="ServiceMenuItem" TargetType="MenuItem">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="4,2"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <Border Grid.Row="0" Padding="22,16" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="46" Height="46" CornerRadius="12">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#FF5A94" Offset="0"/><GradientStop Color="#E32F70" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Dịch vụ đoàn" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/>
+                        <Border CornerRadius="10" Padding="6,3" Margin="12,0,0,0" Background="#FFF0F5">
+                            <TextBlock Text="{Binding TotalFilteredCount, StringFormat='{}{0} dịch vụ'}" FontSize="12" FontWeight="SemiBold" Foreground="#E32F70"/>
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Text="Group Service Management Center — Điều phối toàn bộ dịch vụ của đoàn trong suốt vòng đời lưu trú." FontSize="12" Foreground="#64748B" Margin="0,3,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="Đổi đoàn" Command="{Binding ShowGroupSelectionCommand}" Style="{StaticResource SecondaryBtn}"/>
+                    <Button Content="Làm mới" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryBtn}"/>
+                    <Button Content="Xuất Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource SecondaryBtn}" Margin="8,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ DASHBOARD KPI CARDS ═══ -->
+        <Border Grid.Row="1" Padding="16,10" Background="#FAFBFD" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <ItemsControl ItemsSource="{Binding DashboardKpis}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ServiceDashboardKpi}">
+                            <Border Width="130" Margin="0,0,8,4" Padding="12,8" CornerRadius="10"
+                                    Background="{Binding BgColor}" BorderBrush="{Binding Color}" BorderThickness="1">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{Binding Color}" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{Binding Label}" FontSize="10" Foreground="{Binding Color}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Value}" FontSize="20" FontWeight="Bold" Foreground="{Binding Color}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Revenue breakdown row -->
+                <ItemsControl Grid.Row="1" ItemsSource="{Binding RevenueSummary}" Margin="0,6,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ServiceRevenueItem}">
+                            <Border Padding="10,6" Margin="0,0,8,4" CornerRadius="8" Background="#FFFFFF" BorderBrush="#F1F5F9" BorderThickness="1">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Fill="{Binding Color}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Label}" FontSize="10" Foreground="#64748B" Margin="0,0,6,0"/>
+                                    <TextBlock Text="{Binding Amount, StringFormat='{}{0:N0} đ'}" FontSize="11" FontWeight="SemiBold" Foreground="#334155"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
+
+        <!-- ═══ TOOLBAR ═══ -->
+        <Border Grid.Row="2" Padding="16,8" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <WrapPanel>
+                <Button Content="+ Thêm dịch vụ" Command="{Binding AddServiceCommand}" Margin="0,0,6,4">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+                            <Setter Property="Background" Value="#FF5A94"/>
+                            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#E32F70"/></Trigger></Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="Sửa" Command="{Binding EditServiceCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Button Content="Xóa" Command="{Binding DeleteServiceCommand}" Style="{StaticResource ToolbarBtn}" Foreground="#DC2626"/>
+                <Separator Width="1" Height="20" Background="#E2E8F0" Margin="6,8" Style="{x:Null}"/>
+                <Button Content="Xác nhận" Command="{Binding ConfirmServiceCommand}" Style="{StaticResource ToolbarBtn}" Foreground="#2563EB"/>
+                <Button Content="Hoàn thành" Command="{Binding CompleteServiceCommand}" Style="{StaticResource ToolbarBtn}" Foreground="#16A34A"/>
+                <Button Content="Hủy" Command="{Binding CancelServiceCommand}" Style="{StaticResource ToolbarBtn}" Foreground="#DC2626"/>
+                <Separator Width="1" Height="20" Background="#E2E8F0" Margin="6,8" Style="{x:Null}"/>
+                <Button Content="In" Command="{Binding PrintServiceCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Button Content="Email" Command="{Binding EmailServiceCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Button Content="Xuất Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Button Content="Xuất PDF" Command="{Binding ExportPdfCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Button Content="Xuất CSV" Command="{Binding ExportCsvCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Separator Width="1" Height="20" Background="#E2E8F0" Margin="6,8" Style="{x:Null}"/>
+                <Button Content="Chuyển Folio" Command="{Binding PostToFolioCommand}" Style="{StaticResource ToolbarBtn}" Foreground="#7C3AED"/>
+                <TextBlock Text="Folio đích:" VerticalAlignment="Center" Margin="10,0,4,4" FontSize="11" Foreground="#64748B"/>
+                <ComboBox ItemsSource="{Binding FolioOptions}"
+                          SelectedItem="{Binding SelectedTargetFolio, Mode=TwoWay}"
+                          DisplayMemberPath="Display" Width="270" Height="30" Margin="0,0,6,4"
+                          ToolTip="Chỉ hiển thị Folio mở từ dữ liệu thật"/>
+                <Button Content="Nhân bản" Command="{Binding DuplicateServiceCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Separator Width="1" Height="20" Background="#E2E8F0" Margin="6,8" Style="{x:Null}"/>
+                <Button Content="Batch: Xác nhận" Command="{Binding BatchConfirmCommand}" Style="{StaticResource ToolbarBtn}" Foreground="#2563EB" FontSize="10" Padding="8,0"/>
+                <Button Content="Batch: Hoàn thành" Command="{Binding BatchCompleteCommand}" Style="{StaticResource ToolbarBtn}" Foreground="#16A34A" FontSize="10" Padding="8,0"/>
+                <Button Content="Batch: Hủy" Command="{Binding BatchCancelCommand}" Style="{StaticResource ToolbarBtn}" Foreground="#DC2626" FontSize="10" Padding="8,0"/>
+                <Button Content="Batch: Folio" Command="{Binding BatchPostFolioCommand}" Style="{StaticResource ToolbarBtn}" Foreground="#7C3AED" FontSize="10" Padding="8,0"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- ═══ FILTER BAR ═══ -->
+        <Border Grid.Row="3" Padding="14,8" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <WrapPanel>
+                    <StackPanel Margin="0,0,8,4" Width="210">
+                        <TextBlock Text="Đoàn" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{Binding GroupFilterOptions}"
+                                  SelectedItem="{Binding FilterGroup, Mode=TwoWay}"
+                                  Style="{StaticResource FilterCombo}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,4" Width="200">
+                        <TextBlock Text="Tìm kiếm" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,4" Width="140">
+                        <TextBlock Text="Trạng thái" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{x:Static vm:GroupServiceViewModel.StatusFilters}" SelectedItem="{Binding FilterStatus}" Style="{StaticResource FilterCombo}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,4" Width="130">
+                        <TextBlock Text="Loại dịch vụ" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{x:Static vm:GroupServiceViewModel.CategoryFilters}" SelectedItem="{Binding FilterCategory}" Style="{StaticResource FilterCombo}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,4" Width="140">
+                        <TextBlock Text="Department" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{x:Static vm:GroupServiceViewModel.DepartmentFilters}" SelectedItem="{Binding FilterDepartment}" Style="{StaticResource FilterCombo}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,4" Width="130">
+                        <TextBlock Text="Nhà hàng" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{x:Static vm:GroupServiceViewModel.RestaurantFilters}" SelectedItem="{Binding FilterRestaurant}" Style="{StaticResource FilterCombo}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,4" Width="130">
+                        <TextBlock Text="Charge To" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{x:Static vm:GroupServiceViewModel.ChargeToFilters}" SelectedItem="{Binding FilterChargeTo}" Style="{StaticResource FilterCombo}"/>
+                    </StackPanel>
+                    <Button Content="Thêm bộ lọc ▾" Style="{StaticResource SecondaryBtn}" Height="32" FontSize="11" Margin="0,14,8,4" Padding="10,0"
+                            Command="{Binding ToggleFilterCommand}"/>
+                    <Button Content="Xóa lọc" Style="{StaticResource SecondaryBtn}" Height="32" FontSize="11" Margin="0,14,0,4" Padding="10,0"
+                            Command="{Binding ClearFiltersCommand}"/>
+                </WrapPanel>
+                <!-- Expanded filters -->
+                <WrapPanel Grid.Row="1" Visibility="{Binding IsFilterExpanded, Converter={StaticResource BoolToVis}}" Margin="0,4,0,0">
+                    <StackPanel Margin="0,0,8,4" Width="160">
+                        <TextBlock Text="Đoàn" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{Binding GroupFilterOptions}" SelectedItem="{Binding FilterGroup, Mode=TwoWay}" Style="{StaticResource FilterCombo}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,4" Width="120">
+                        <TextBlock Text="Từ ngày" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <DatePicker SelectedDate="{Binding FilterDateFrom}" Style="{StaticResource DatePickerStyle}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,4" Width="120">
+                        <TextBlock Text="Đến ngày" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                        <DatePicker SelectedDate="{Binding FilterDateTo}" Style="{StaticResource DatePickerStyle}"/>
+                    </StackPanel>
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ MAIN CONTENT ═══ -->
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" MinWidth="180"/>
+                <ColumnDefinition Width="*" MinWidth="480"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: Category Panel -->
+            <Border Grid.Column="0" Margin="12,10,4,10" Style="{StaticResource PanelCard}" Padding="0">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.04" Color="#000000"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Padding="14,10" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
+                        <TextBlock Text="Danh mục" FontSize="13" FontWeight="SemiBold" Foreground="#102E5A"/>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="6,6">
+                        <ItemsControl ItemsSource="{Binding CategoryItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:ServiceCategoryItem}">
+                                    <Button Style="{StaticResource CategoryItemBtn}" Margin="0,0,0,2"
+                                            Command="{Binding DataContext.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                            <ItemsControl.AlternationCount>100</ItemsControl.AlternationCount>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- CENTER: DataGrid -->
+            <Border Grid.Column="1" Margin="4,10,6,10" Style="{StaticResource PanelCard}" Padding="0">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.04" Color="#000000"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+                    <!-- INFO BANNER -->
+                    <Border x:Name="InfoBanner" Background="#F0FDF4" CornerRadius="0" Padding="10,6"
+                            Visibility="{Binding InfoMessage, Converter={StaticResource StringToVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding InfoMessage}" FontSize="12" Foreground="#16A34A"/>
+                            <Button Grid.Column="1" Content="✕" Width="20" Height="20" FontSize="10" Background="Transparent" Foreground="#16A34A" BorderThickness="0"
+                                    Click="OnDismissInfo"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- ERROR BANNER -->
+                    <Border x:Name="ErrorBanner" Background="#FEF2F2" CornerRadius="0" Padding="10,6"
+                            Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}">
+                        <TextBlock Text="{Binding ErrorMessage}" FontSize="12" Foreground="#DC2626"/>
+                    </Border>
+
+                    <!-- DATA GRID -->
+                    <DataGrid x:Name="ServiceGrid" Grid.Row="1" Style="{StaticResource ModDataGrid}"
+                              ItemsSource="{Binding FilteredServices}"
+                              SelectedItem="{Binding SelectedService, Mode=TwoWay}"
+                              SelectionMode="Extended" SelectionUnit="FullRow"
+                              SelectionChanged="OnServiceSelectionChanged"
+                              MouseDoubleClick="OnServiceDoubleClick">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu FontFamily="Segoe UI" FontSize="12">
+                                <MenuItem Header="Xem chi tiết" Command="{Binding SelectServiceCommand}" CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Style="{StaticResource ServiceMenuItem}"/>
+                                <Separator/>
+                                <MenuItem Header="Sửa" Command="{Binding EditServiceCommand}" Style="{StaticResource ServiceMenuItem}"/>
+                                <MenuItem Header="Xóa" Command="{Binding DeleteServiceCommand}" Style="{StaticResource ServiceMenuItem}"/>
+                                <Separator/>
+                                <MenuItem Header="Xác nhận" Command="{Binding ConfirmServiceCommand}" Style="{StaticResource ServiceMenuItem}"/>
+                                <MenuItem Header="Hoàn thành" Command="{Binding CompleteServiceCommand}" Style="{StaticResource ServiceMenuItem}"/>
+                                <MenuItem Header="Hủy" Command="{Binding CancelServiceCommand}" Style="{StaticResource ServiceMenuItem}"/>
+                                <Separator/>
+                                <MenuItem Header="Chuyển Folio" Command="{Binding PostToFolioCommand}" Style="{StaticResource ServiceMenuItem}"/>
+                                <MenuItem Header="In" Command="{Binding PrintServiceCommand}" Style="{StaticResource ServiceMenuItem}"/>
+                                <Separator/>
+                                <MenuItem Header="Nhân bản" Command="{Binding DuplicateServiceCommand}" Style="{StaticResource ServiceMenuItem}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+
+                        <DataGrid.Columns>
+                            <!-- Mã DV + Tên -->
+                            <DataGridTemplateColumn Header="Mã DV / Tên DV" Width="210">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:GroupServiceDto}">
+                                        <StackPanel VerticalAlignment="Center" Margin="0,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding CategoryIcon}" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#7C3AED" Margin="0,0,4,0"/>
+                                                <TextBlock Text="{Binding ServiceCode}" FontSize="12" FontWeight="SemiBold" Foreground="#17365D"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding ServiceName}" FontSize="11" Foreground="#64748B" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Category -->
+                            <DataGridTemplateColumn Header="Loại" Width="90">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:GroupServiceDto}">
+                                        <Border CornerRadius="6" Padding="6,2" Background="#F1F5F9" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                            <TextBlock Text="{Binding CategoryBadge}" FontSize="10" Foreground="#475569" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Department -->
+                            <DataGridTextColumn Header="Department" Width="110" Binding="{Binding Department}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="FontSize" Value="11"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Date + Time -->
+                            <DataGridTemplateColumn Header="Ngày / Giờ" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:GroupServiceDto}">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ServiceDate, StringFormat='{}{0:dd/MM/yy}'}" FontSize="11" Foreground="#17365D"/>
+                                            <TextBlock Text="{Binding ServiceTime, StringFormat='{}{0:HH\\:mm}'}" FontSize="10" Foreground="#94A3B8"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Qty -->
+                            <DataGridTextColumn Header="SL" Width="45" Binding="{Binding Quantity}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="FontSize" Value="12"/><Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Unit Price -->
+                            <DataGridTextColumn Header="Đơn giá" Width="100" Binding="{Binding UnitPrice, StringFormat='{}{0:N0}'}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="FontSize" Value="11"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Discount -->
+                            <DataGridTextColumn Header="Giảm" Width="70" Binding="{Binding DiscountAmount, StringFormat='{}{0:N0}'}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="#DC2626"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Tax -->
+                            <DataGridTextColumn Header="Thuế" Width="70" Binding="{Binding TaxAmount, StringFormat='{}{0:N0}'}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="FontSize" Value="11"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Total -->
+                            <DataGridTextColumn Header="Tổng" Width="110" Binding="{Binding TotalAmount, StringFormat='{}{0:N0} đ'}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Group -->
+                            <DataGridTextColumn Header="Đoàn" Width="100" Binding="{Binding GroupName}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="FontSize" Value="10"/><Setter Property="Foreground" Value="#64748B"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- PIC -->
+                            <DataGridTextColumn Header="PIC" Width="90" Binding="{Binding PicPerson}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="FontSize" Value="10"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Status -->
+                            <DataGridTemplateColumn Header="Trạng thái" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:GroupServiceDto}">
+                                        <Border Style="{StaticResource StatusBadge}"
+                                                Background="{Binding StatusColor, Converter={StaticResource StringToBrush}}" Opacity="0.12"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StatusBadge}" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{Binding StatusColor, Converter={StaticResource StringToBrush}}"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Balance warning -->
+                            <DataGridTemplateColumn Header="" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:GroupServiceDto}">
+                                        <Border CornerRadius="4" Padding="3,2" Background="#FFF7ED" VerticalAlignment="Center"
+                                                Visibility="{Binding Balance, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="⚠" FontSize="10" ToolTip="Còn công nợ"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+
+                        <!-- Row style -->
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="Cancelled">
+                                        <Setter Property="Background" Value="#FEF2F2"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                        <Setter Property="Background" Value="#F0FDF4"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="PostedToFolio">
+                                        <Setter Property="Background" Value="#F5F3FF"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                    </DataGrid>
+
+                    <!-- Loading overlay -->
+                    <Border Grid.Row="1" Background="#80FFFFFF" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Đang tải dữ liệu..." Foreground="#64748B" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- In-grid pagination -->
+                    <Border Grid.Row="2" Padding="10,8" BorderBrush="#F1F5F9" BorderThickness="0,1,0,0" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Button Content="‹" Command="{Binding PrevPageCommand}" Style="{StaticResource PagerBtn}" IsEnabled="{Binding HasPrevPage}"/>
+                            <ItemsControl ItemsSource="{Binding PageButtons}" VerticalAlignment="Center">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Label}" Command="{Binding DataContext.SetPageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PageNumber}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource PagerBtn}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                            <Setter Property="Background" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderBrush" Value="#2F6BFF"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsEllipsis}" Value="True">
+                                                            <Setter Property="IsEnabled" Value="False"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Content="›" Command="{Binding NextPageCommand}" Style="{StaticResource PagerBtn}" IsEnabled="{Binding HasNextPage}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- RIGHT: Inspector Panel -->
+            <Border Grid.Column="2" Width="420" Margin="6,10,12,10" Style="{StaticResource PanelCard}"
+                    Visibility="{Binding IsDetailOpen, Converter={StaticResource BoolToVis}}">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.04" Color="#000000"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Inspector Header -->
+                    <Border Padding="16,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding SelectedService.CategoryIcon}" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#7C3AED" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="{Binding SelectedService.ServiceName}" FontSize="16" FontWeight="SemiBold" Foreground="#102E5A" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <Border CornerRadius="6" Padding="6,2" Background="#F5F3FF">
+                                        <TextBlock Text="{Binding SelectedService.ServiceCode}" FontSize="11" Foreground="#7C3AED" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border CornerRadius="6" Padding="6,2" Margin="8,0,0,0"
+                                            Background="{Binding SelectedService.StatusColor, Converter={StaticResource StringToBrush}}" Opacity="0.12">
+                                        <TextBlock Text="{Binding SelectedService.StatusBadge}" FontSize="10" FontWeight="SemiBold"
+                                                   Foreground="{Binding SelectedService.StatusColor, Converter={StaticResource StringToBrush}}"/>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="✕" Width="32" Height="32" Command="{Binding CloseDetailCommand}"
+                                    Style="{StaticResource SecondaryBtn}" FontSize="14" Padding="0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Inspector Tabs -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="12,10,12,0">
+                        <Button x:Name="TabOverview" Content="Tổng quan" Width="80" Style="{StaticResource InspectorTabBtn}"
+                                Click="OnInspectorTabClick" Tag="0" Margin="0,0,2,0"/>
+                        <Button x:Name="TabSchedule" Content="Lịch" Width="60" Style="{StaticResource InspectorTabBtn}"
+                                Click="OnInspectorTabClick" Tag="1" Margin="0,0,2,0"/>
+                        <Button x:Name="TabCharge" Content="Tài chính" Width="75" Style="{StaticResource InspectorTabBtn}"
+                                Click="OnInspectorTabClick" Tag="2" Margin="0,0,2,0"/>
+                        <Button x:Name="TabGuest" Content="Khách" Width="65" Style="{StaticResource InspectorTabBtn}"
+                                Click="OnInspectorTabClick" Tag="3" Margin="0,0,2,0"/>
+                        <Button x:Name="TabHistory" Content="Lịch sử" Width="65" Style="{StaticResource InspectorTabBtn}"
+                                Click="OnInspectorTabClick" Tag="4" Margin="0,0,2,0"/>
+                        <Button x:Name="TabRemark" Content="Ghi chú" Width="65" Style="{StaticResource InspectorTabBtn}"
+                                Click="OnInspectorTabClick" Tag="5"/>
+                    </StackPanel>
+
+                    <!-- Inspector Content -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="12,8,12,14">
+                        <StackPanel>
+                            <!-- TAB 0: OVERVIEW -->
+                            <StackPanel x:Name="InspectorTab0" Visibility="Visible">
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Thông tin dịch vụ" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Loại DV:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.CategoryBadge}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Department:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.Department}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Nhà cung cấp:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.Provider}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Địa điểm:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.Location}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Thời gian" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Ngày:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.ServiceDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Giờ:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.ServiceTime, StringFormat='{}{0:HH\\:mm}'}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Thời lượng:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.DurationMinutes, StringFormat='{}{0} phút'}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Đoàn" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Mã đoàn:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.GroupCode}" FontSize="11" Foreground="#2563EB" FontWeight="SemiBold"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Tên đoàn:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.GroupName}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Trưởng đoàn:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.LeaderName}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Charge To" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                        <Border CornerRadius="6" Padding="8,4" Background="#F5F3FF" HorizontalAlignment="Left">
+                                            <TextBlock Text="{Binding SelectedService.ChargeToBadge}" FontSize="12" FontWeight="SemiBold" Foreground="#7C3AED"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Category-specific fields -->
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Chi tiết đặc thù" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+
+                                        <!-- Restaurant fields -->
+                                        <StackPanel x:Name="RestaurantFields" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Nhà hàng:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.RestaurantName}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Loại menu:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.MenuType}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Meeting fields -->
+                                        <StackPanel x:Name="MeetingFields" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Phòng họp:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.MeetingRoom}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Setup:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.MeetingSetup}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                            <WrapPanel Margin="0,2">
+                                                <Border CornerRadius="4" Padding="4,2" Margin="0,0,4,2" Background="#EFF6FF" Visibility="{Binding SelectedService.HasProjector, Converter={StaticResource BoolToVis}}"><TextBlock Text="Projector" FontSize="9" Foreground="#2563EB"/></Border>
+                                                <Border CornerRadius="4" Padding="4,2" Margin="0,0,4,2" Background="#EFF6FF" Visibility="{Binding SelectedService.HasScreen, Converter={StaticResource BoolToVis}}"><TextBlock Text="Màn hình" FontSize="9" Foreground="#2563EB"/></Border>
+                                                <Border CornerRadius="4" Padding="4,2" Margin="0,0,4,2" Background="#EFF6FF" Visibility="{Binding SelectedService.HasSound, Converter={StaticResource BoolToVis}}"><TextBlock Text="Âm thanh" FontSize="9" Foreground="#2563EB"/></Border>
+                                                <Border CornerRadius="4" Padding="4,2" Margin="0,0,4,2" Background="#EFF6FF" Visibility="{Binding SelectedService.HasStage, Converter={StaticResource BoolToVis}}"><TextBlock Text="Sân khấu" FontSize="9" Foreground="#2563EB"/></Border>
+                                                <Border CornerRadius="4" Padding="4,2" Margin="0,0,4,2" Background="#EFF6FF" Visibility="{Binding SelectedService.HasFlower, Converter={StaticResource BoolToVis}}"><TextBlock Text="Hoa" FontSize="9" Foreground="#2563EB"/></Border>
+                                                <Border CornerRadius="4" Padding="4,2" Margin="0,0,4,2" Background="#EFF6FF" Visibility="{Binding SelectedService.HasWelcomeBoard, Converter={StaticResource BoolToVis}}"><TextBlock Text="Bảng Welcome" FontSize="9" Foreground="#2563EB"/></Border>
+                                            </WrapPanel>
+                                        </StackPanel>
+
+                                        <!-- Transport fields -->
+                                        <StackPanel x:Name="TransportFields" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Flight:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.FlightNumber}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Xe:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.VehicleType}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Tài xế:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.DriverName}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Đón:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.PickupLocation}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Trả:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.DropoffLocation}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Spa fields -->
+                                        <StackPanel x:Name="SpaFields" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Khách:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.GuestName}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Liệu trình:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.TreatmentName}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Chuyên viên:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.TherapistName}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Laundry fields -->
+                                        <StackPanel x:Name="LaundryFields" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Loại:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock FontSize="11" Foreground="#17365D"><Run Text="{Binding SelectedService.IsExpress, Converter={StaticResource BoolToVis}}"/></TextBlock></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Giao:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.DeliveryTime}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- PIC + Remark preview -->
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10">
+                                    <StackPanel>
+                                        <TextBlock Text="PIC &amp; Ghi chú" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="PIC:" Width="100" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.PicPerson}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        <TextBlock Text="{Binding SelectedService.Remark}" FontSize="11" Foreground="#64748B" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- TAB 1: SCHEDULE TIMELINE -->
+                            <StackPanel x:Name="InspectorTab1" Visibility="Collapsed">
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Lịch dịch vụ trong ngày" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,2"/>
+                                        <TextBlock Text="{Binding SelectedService.ServiceDate, StringFormat='{}{0:dddd, dd/MM/yyyy}'}" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                                        <ItemsControl ItemsSource="{Binding ScheduleTimeline}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:ServiceTimelineEntry}">
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                        <!-- Time -->
+                                                        <Border VerticalAlignment="Top" Margin="0,2,0,0">
+                                                            <TextBlock Text="{Binding Time, StringFormat='{}{0:HH\\:mm}'}" FontSize="12" FontWeight="SemiBold" Foreground="#7C3AED"/>
+                                                        </Border>
+                                                        <!-- Timeline line + dot -->
+                                                        <Grid Grid.Column="1" Width="20" Margin="4,0">
+                                                            <Rectangle Width="2" Fill="#E2E8F0" HorizontalAlignment="Center"/>
+                                                            <Ellipse Style="{StaticResource TimelineDot}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,4,0,0"/>
+                                                        </Grid>
+                                                        <!-- Content -->
+                                                        <Border Grid.Column="2" Background="White" CornerRadius="8" Padding="10,8" BorderBrush="#F1F5F9" BorderThickness="1">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding ServiceName}" FontSize="12" FontWeight="SemiBold" Foreground="#17365D" TextTrimming="CharacterEllipsis"/>
+                                                                <TextBlock Text="{Binding Location}" FontSize="10" Foreground="#94A3B8"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- TAB 2: CHARGE -->
+                            <StackPanel x:Name="InspectorTab2" Visibility="Collapsed">
+                                <Border Background="#F5F3FF" CornerRadius="8" Padding="14,12" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Tổng tiền" FontSize="11" Foreground="#7C3AED"/>
+                                        <TextBlock Text="{Binding SelectedService.TotalAmount, StringFormat='{}{0:N0} VND'}" FontSize="22" FontWeight="Bold" Foreground="#6D28D9"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Chi tiết tài chính" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="SL × Đơn giá:" Width="110" FontSize="11" Foreground="#94A3B8"/><TextBlock FontSize="11" Foreground="#17365D"><Run Text="{Binding SelectedService.Quantity}"/><Run Text=" × "/><Run Text="{Binding SelectedService.UnitPrice, StringFormat='{}{0:N0}'}"/><Run Text=" = "/><Run Text="{Binding SelectedService.SubTotal, StringFormat='{}{0:N0}'}"/></TextBlock></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Giảm giá:" Width="110" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.DiscountAmount, StringFormat='-{0:N0}'}" FontSize="11" Foreground="#DC2626"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Thuế (VAT):" Width="110" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.TaxAmount, StringFormat='{}{0:N0}'}" FontSize="11" Foreground="#D97706"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Phí dịch vụ:" Width="110" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.ServiceCharge, StringFormat='{}{0:N0}'}" FontSize="11" Foreground="#0891B2"/></StackPanel>
+                                        <Separator Background="#E2E8F0" Margin="0,6"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Tổng:" Width="110" FontSize="12" Foreground="#102E5A" FontWeight="SemiBold"/><TextBlock Text="{Binding SelectedService.TotalAmount, StringFormat='{}{0:N0} VND'}" FontSize="12" FontWeight="Bold" Foreground="#17365D"/></StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#F0FDF4" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Đã thanh toán / Còn lại" FontSize="12" FontWeight="SemiBold" Foreground="#16A34A" Margin="0,0,0,6"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Đã thanh toán:" Width="110" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.PaidAmount, StringFormat='{}{0:N0} VND'}" FontSize="12" FontWeight="SemiBold" Foreground="#16A34A"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Còn lại:" Width="110" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.Balance, StringFormat='{}{0:N0} VND'}" FontSize="12" FontWeight="SemiBold" Foreground="#DC2626"/></StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#EFF6FF" CornerRadius="8" Padding="12,10">
+                                    <StackPanel>
+                                        <TextBlock Text="Charge To" FontSize="12" FontWeight="SemiBold" Foreground="#2563EB" Margin="0,0,0,2"/>
+                                        <TextBlock Text="{Binding SelectedService.ChargeToBadge}" FontSize="14" FontWeight="SemiBold" Foreground="#2563EB"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- TAB 3: GUEST -->
+                            <StackPanel x:Name="InspectorTab3" Visibility="Collapsed">
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <WrapPanel>
+                                        <Border Width="180" Background="White" CornerRadius="8" Padding="10,8" Margin="0,0,6,4">
+                                            <StackPanel><TextBlock Text="Trưởng đoàn" FontSize="10" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.LeaderName}" FontSize="14" FontWeight="SemiBold" Foreground="#17365D"/></StackPanel>
+                                        </Border>
+                                        <Border Width="85" Background="#F0FDF4" CornerRadius="8" Padding="10,8" Margin="0,0,6,4">
+                                            <StackPanel><TextBlock Text="Khách" FontSize="10" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.GuestCount}" FontSize="18" FontWeight="Bold" Foreground="#16A34A"/></StackPanel>
+                                        </Border>
+                                        <Border Width="85" Background="#EFF6FF" CornerRadius="8" Padding="10,8" Margin="0,0,6,4">
+                                            <StackPanel><TextBlock Text="Phòng" FontSize="10" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.RoomCount}" FontSize="18" FontWeight="Bold" Foreground="#2563EB"/></StackPanel>
+                                        </Border>
+                                    </WrapPanel>
+                                </Border>
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="Thông tin đoàn" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Đoàn:" Width="80" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.GroupCode}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Tên đoàn:" Width="80" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.GroupName}" FontSize="11" Foreground="#17365D" TextTrimming="CharacterEllipsis"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="VIP:" Width="80" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.VipLevel}" FontSize="11" Foreground="#7C3AED" FontWeight="SemiBold"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="HDV:" Width="80" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.GuideName}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="Tài xế:" Width="80" FontSize="11" Foreground="#94A3B8"/><TextBlock Text="{Binding SelectedService.DriverName}" FontSize="11" Foreground="#17365D"/></StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- TAB 4: HISTORY -->
+                            <StackPanel x:Name="InspectorTab4" Visibility="Collapsed">
+                                <ItemsControl ItemsSource="{Binding ServiceHistory}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:ServiceHistoryEntry}">
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <!-- Timeline line + dot -->
+                                                <Grid Width="28" Margin="0,0,8,0">
+                                                    <Rectangle Width="2" Fill="#E2E8F0" HorizontalAlignment="Center"/>
+                                                    <Ellipse Width="8" Height="8" Fill="#7C3AED" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0"/>
+                                                </Grid>
+                                                <!-- Content -->
+                                                <Border Grid.Column="1" Background="White" CornerRadius="8" Padding="10,8" BorderBrush="#F1F5F9" BorderThickness="1" Margin="0,0,0,6">
+                                                    <StackPanel>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Event}" FontSize="11" FontWeight="SemiBold" Foreground="#102E5A"/>
+                                                            <TextBlock Text=" · " FontSize="10" Foreground="#CBD5E1"/>
+                                                            <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM HH:mm}'}" FontSize="10" Foreground="#94A3B8"/>
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding User}" FontSize="10" Foreground="#7C3AED" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="{Binding Detail}" FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- TAB 5: REMARK -->
+                            <StackPanel x:Name="InspectorTab5" Visibility="Collapsed">
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10">
+                                    <StackPanel>
+                                        <TextBlock Text="Ghi chú" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                        <Border Background="White" CornerRadius="8" Padding="12,10" BorderBrush="#E2E8F0" BorderThickness="1" MinHeight="200">
+                                            <TextBlock Text="{Binding SelectedService.Remark, TargetNullValue='Chưa có ghi chú.'}" FontSize="12" Foreground="#334155" TextWrapping="Wrap"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Empty detail placeholder -->
+            <Border Grid.Column="2" Width="420" Margin="6,10,12,10" Style="{StaticResource PanelCard}"
+                    Visibility="{Binding IsDetailClosed, Converter={StaticResource BoolToVis}}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="48" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Chọn một dịch vụ" FontSize="16" FontWeight="SemiBold" Foreground="#52657D" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBlock Text="để xem chi tiết và điều phối." FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" TextAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ═══ FIXED FOOTER ═══ -->
+        <Border Grid.Row="5" Padding="16,10" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding PageDisplay}" FontSize="12" Foreground="#64748B"/>
+                    <Border CornerRadius="6" Padding="6,3" Margin="12,0,0,0" Background="#FFF0F5">
+                        <TextBlock FontSize="11" Foreground="#E32F70" FontWeight="SemiBold">
+                            <Run Text="Tổng: "/><Run Text="{Binding TotalFilteredCount, Mode=OneWay}"/><Run Text=" dịch vụ · "/><Run Text="{Binding TotalRevenue, Mode=OneWay, StringFormat='{}{0:N0} đ'}"/>
+                        </TextBlock>
+                    </Border>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="‹" Command="{Binding PrevPageCommand}" Style="{StaticResource PagerBtn}" IsEnabled="{Binding HasPrevPage}"/>
+                    <ItemsControl ItemsSource="{Binding PageButtons}" VerticalAlignment="Center">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Label}"
+                                        Command="{Binding DataContext.SetPageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding PageNumber}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource PagerBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                    <Setter Property="Background" Value="#2F6BFF"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                    <Setter Property="BorderBrush" Value="#2F6BFF"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsEllipsis}" Value="True">
+                                                    <Setter Property="IsEnabled" Value="False"/>
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="›" Command="{Binding NextPageCommand}" Style="{StaticResource PagerBtn}" IsEnabled="{Binding HasNextPage}"/>
+                    <ComboBox ItemsSource="{x:Static vm:GroupServiceViewModel.PageSizeOptions}"
+                              SelectedItem="{Binding PageSize, Mode=TwoWay}"
+                              Style="{StaticResource FilterCombo}" Width="122" Margin="8,0,0,0">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate><TextBlock Text="{Binding StringFormat={}{0} dòng / trang}"/></DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ GROUP SELECTION GATE ═══
+             Dịch vụ đoàn luôn bắt đầu bằng việc chọn đoàn để tránh hiển thị
+             dữ liệu của nhiều đoàn cùng lúc. -->
+        <Grid Grid.RowSpan="6" Panel.ZIndex="100" Background="#F8FAFC"
+              Visibility="{Binding IsGroupSelectionVisible, Converter={StaticResource BoolToVis}}">
+            <Grid Margin="28,22">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Chọn đoàn" FontSize="24" FontWeight="SemiBold" Foreground="#102E5A"/>
+                    <TextBlock Text="Chọn đoàn trước khi xem và điều phối các dịch vụ liên quan." FontSize="13" Foreground="#64748B" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <Border Grid.Row="1" Style="{StaticResource PanelCard}" Padding="14,10" Margin="0,18,0,10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Danh sách đoàn" FontSize="13" FontWeight="SemiBold" Foreground="#102E5A"/>
+                            <TextBlock Text="Chọn một đoàn để mở trung tâm quản lý dịch vụ." FontSize="11" Foreground="#64748B" Margin="0,3,0,0"/>
+                        </StackPanel>
+                        <Border Grid.Column="1" Background="#F5F3FF" CornerRadius="8" Padding="10,6" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding GroupOptions.Count, StringFormat='{}{0} đoàn'}" FontSize="11" Foreground="#6D28D9" FontWeight="SemiBold"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="2" Style="{StaticResource PanelCard}" Padding="10" Margin="0,0,0,12">
+                    <DataGrid ItemsSource="{Binding GroupOptions}"
+                              SelectedItem="{Binding SelectedGroupOption, Mode=TwoWay}"
+                              Style="{StaticResource ModDataGrid}"
+                              RowHeight="52" ColumnHeaderHeight="40"
+                              SelectionMode="Single" SelectionUnit="FullRow"
+                              IsReadOnly="True" AutoGenerateColumns="False"
+                              CanUserResizeRows="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mã đoàn" Binding="{Binding GroupCode}" Width="170"/>
+                            <DataGridTextColumn Header="Tên đoàn" Binding="{Binding GroupName}" Width="*"/>
+                            <DataGridTextColumn Header="Trưởng đoàn" Binding="{Binding LeaderName}" Width="180"/>
+                            <DataGridTextColumn Header="Khách" Binding="{Binding GuestCount}" Width="85"/>
+                            <DataGridTextColumn Header="Phòng" Binding="{Binding RoomCount}" Width="85"/>
+                            <DataGridTextColumn Header="Dịch vụ" Binding="{Binding ServiceCount}" Width="90"/>
+                            <DataGridTextColumn Header="VIP" Binding="{Binding VipLevel}" Width="90"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+
+                <Grid Grid.Row="3">
+                    <TextBlock Text="Chọn một dòng đoàn để tiếp tục." VerticalAlignment="Center" FontSize="12" Foreground="#64748B"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Làm mới" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryBtn}" Margin="0,0,8,0"/>
+                        <Button Content="Mở dịch vụ đoàn →" Command="{Binding SelectGroupCommand}"
+                                CommandParameter="{Binding SelectedGroupOption}" Style="{StaticResource PrimaryBtn}"
+                                IsEnabled="{Binding HasSelectedGroup}"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

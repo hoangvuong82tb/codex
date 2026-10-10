@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ASMILE.BO.Application.FrontOffice.Feedback;
+using ASMILE.BO.Application.FrontOffice.Foundation.Contexts;
+using ASMILE.BO.Application.Interfaces;
 
 namespace ASMILE.BO.App.ViewModels;
 
@@ -26,6 +29,20 @@ public sealed class FeedbackDto
 
 public sealed partial class GuestFeedbackViewModel : ViewModelBase
 {
+    private readonly IGuestFeedbackService? _service;
+    private readonly IFrontOfficeExecutionContextAccessor? _contextAccessor;
+    private readonly ICurrentUserService? _currentUserService;
+
+    public GuestFeedbackViewModel(
+        IGuestFeedbackService? service = null,
+        IFrontOfficeExecutionContextAccessor? contextAccessor = null,
+        ICurrentUserService? currentUserService = null)
+    {
+        _service = service;
+        _contextAccessor = contextAccessor;
+        _currentUserService = currentUserService;
+    }
+
     public ObservableCollection<FeedbackDto> Feedbacks { get; } = new();
     [ObservableProperty] private FeedbackDto? _selectedFeedback;
     [ObservableProperty] private bool _isLoading;
@@ -57,24 +74,116 @@ public sealed partial class GuestFeedbackViewModel : ViewModelBase
         try
         {
             Feedbacks.Clear();
-            var f1 = new FeedbackDto { GuestFeedbackId = Guid.NewGuid(), FeedbackNumber = "FDB-202607-000001", GuestName = "Nguyen Van A", RoomNumber = "101", FeedbackType = "Complaint", Category = "Noise", Priority = "High", Status = "Resolved", Rating = 2, Subject = "On hang xom", Description = "Phong ben canh qua on ao luc 23h. Khong ngu duoc.", Source = "Front Desk", AssignedDepartment = "Front Office", Resolution = "Da chuyen phong cho khach. Da canh cao khach phong 102.", CreatedAt = DateTime.UtcNow.AddHours(-4) }; f1.History.Add("Registered"); f1.History.Add("Assigned → Front Office"); f1.History.Add("Resolved"); f1.History.Add("Closed");
-            var f2 = new FeedbackDto { GuestFeedbackId = Guid.NewGuid(), FeedbackNumber = "FDB-202607-000002", GuestName = "Le Van C", RoomNumber = "301", FeedbackType = "Compliment", Category = "Staff Attitude", Priority = "Normal", Status = "New", Rating = 5, Subject = "Nhan vien tuyet voi", Description = "Nhan vien le tan Mai Lan rat nhiet tinh va chu dao.", Source = "In Person", CreatedAt = DateTime.UtcNow.AddHours(-1) }; f2.History.Add("Registered");
-            var f3 = new FeedbackDto { GuestFeedbackId = Guid.NewGuid(), FeedbackNumber = "FDB-202607-000003", GuestName = "Tran Thi B", RoomNumber = "201", FeedbackType = "Maintenance", Category = "Room Condition", Priority = "Urgent", Status = "InProgress", Rating = 3, Subject = "Dieu hoa hong", Description = "Dieu hoa khong hoat dong. Phong rat nong.", AssignedDepartment = "Engineering", CreatedAt = DateTime.UtcNow.AddHours(-2) }; f3.History.Add("Registered"); f3.History.Add("Assigned → Engineering"); f3.History.Add("Investigation started");
-            Feedbacks.Add(f1); Feedbacks.Add(f2); Feedbacks.Add(f3);
-            TotalNew = Feedbacks.Count(f => f.Status is "New"); TotalResolved = Feedbacks.Count(f => f.Status is "Resolved" or "Closed");
-            AvgRating = Feedbacks.Any() ? Feedbacks.Average(f => f.Rating) : 0;
+            SelectedFeedback = null;
+            TotalNew = 0;
+            TotalResolved = 0;
+            AvgRating = 0;
+            ErrorMessage = string.Empty;
+            var propertyId = TryGetPropertyId();
+            if (_service is null || propertyId is null)
+            {
+                InfoMessage = "Chưa chọn cơ sở hoặc nguồn dữ liệu phản hồi chưa được cấu hình; không hiển thị dữ liệu mẫu.";
+                return;
+            }
+
+            var result = await _service.SearchAsync(propertyId.Value, cancellationToken: ct);
+            foreach (var item in result.Items) Feedbacks.Add(ToDto(item));
+            TotalNew = result.TotalNew;
+            TotalResolved = result.TotalResolved;
+            AvgRating = result.AverageRating;
+            InfoMessage = $"Đã tải {result.TotalCount:N0} phản hồi từ CSDL thật.";
         }
-        catch (Exception ex) { ErrorMessage = $"Loi: {ex.Message}"; }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex) { ErrorMessage = $"Không thể tải phản hồi: {ex.Message}"; }
         finally { IsLoading = false; }
     }
 
     [RelayCommand] private async Task RefreshAsync(CancellationToken ct) => await LoadAsync(ct);
     [RelayCommand] private void SelectFeedback(FeedbackDto? f) => SelectedFeedback = f;
-    [RelayCommand] private void CreateFeedback() { if (string.IsNullOrWhiteSpace(NewDescription)) { ErrorMessage = "Vui long nhap mo ta."; return; } var nf = new FeedbackDto { GuestFeedbackId = Guid.NewGuid(), FeedbackNumber = $"FDB-202607-{Feedbacks.Count + 1:D6}", FeedbackType = NewType, Category = NewCategory, GuestName = NewGuest, RoomNumber = NewRoom, Description = NewDescription, Rating = NewRating, Priority = NewPriority, Status = "New", CreatedAt = DateTime.UtcNow }; nf.History.Add("Registered"); Feedbacks.Insert(0, nf); TotalNew++; InfoMessage = $"Da ghi nhan {nf.FeedbackNumber}."; }
-    [RelayCommand] private void AssignFeedback() { if (SelectedFeedback is null) return; SelectedFeedback.AssignedDepartment = AssignDept; SelectedFeedback.Status = "Assigned"; SelectedFeedback.History.Add($"Assigned → {AssignDept}"); InfoMessage = $"Phan cong {SelectedFeedback.FeedbackNumber}."; }
-    [RelayCommand] private void ResolveFeedback() { if (SelectedFeedback is null) return; SelectedFeedback.Resolution = Resolution; SelectedFeedback.Status = "Resolved"; SelectedFeedback.History.Add("Resolved"); TotalResolved++; InfoMessage = $"Da giai quyet {SelectedFeedback.FeedbackNumber}."; }
-    [RelayCommand] private void CloseFeedback() { if (SelectedFeedback is null) return; SelectedFeedback.Status = "Closed"; SelectedFeedback.History.Add("Closed"); InfoMessage = $"Da dong {SelectedFeedback.FeedbackNumber}."; }
+    [RelayCommand] private async Task CreateFeedback(CancellationToken ct)
+    {
+        if (_service is null || TryGetPropertyId() is not { } propertyId)
+        {
+            ErrorMessage = "Chưa chọn cơ sở hoặc nguồn dữ liệu phản hồi chưa được cấu hình.";
+            return;
+        }
+        try
+        {
+            ErrorMessage = string.Empty;
+            var created = await _service.CreateAsync(new CreateGuestFeedbackCommand(
+                propertyId, NewType, NewCategory, NewDescription, NewGuest, NewRoom, NewRating,
+                "Front Office", NewPriority, null, ActorId()), ct);
+            NewDescription = string.Empty;
+            await LoadAsync(ct);
+            SelectedFeedback = Feedbacks.FirstOrDefault(x => x.GuestFeedbackId == created.GuestFeedbackId);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex) { ErrorMessage = $"Không thể ghi nhận phản hồi: {ex.Message}"; }
+    }
 
-    partial void OnSelectedFeedbackChanged(FeedbackDto? v) => OnPropertyChanged(nameof(HasSelection));
-    partial void OnErrorMessageChanged(string v) => OnPropertyChanged(nameof(HasError));
+    [RelayCommand] private async Task AssignFeedback(CancellationToken ct)
+    {
+        if (SelectedFeedback is null) return;
+        await RunTransitionAsync(
+            () => _service!.AssignAsync(TryGetPropertyId()!.Value, SelectedFeedback.GuestFeedbackId, AssignDept, ct),
+            ct);
+    }
+
+    [RelayCommand] private async Task ResolveFeedback(CancellationToken ct)
+    {
+        if (SelectedFeedback is null) return;
+        await RunTransitionAsync(
+            () => _service!.ResolveAsync(TryGetPropertyId()!.Value, SelectedFeedback.GuestFeedbackId, Resolution, ct),
+            ct);
+    }
+
+    [RelayCommand] private async Task CloseFeedback(CancellationToken ct)
+    {
+        if (SelectedFeedback is null) return;
+        await RunTransitionAsync(
+            () => _service!.CloseAsync(TryGetPropertyId()!.Value, SelectedFeedback.GuestFeedbackId, ct),
+            ct);
+    }
+
+    private async Task RunTransitionAsync(Func<Task> operation, CancellationToken ct)
+    {
+        if (_service is null || TryGetPropertyId() is null)
+        {
+            ErrorMessage = "Chưa chọn cơ sở hoặc nguồn dữ liệu phản hồi chưa được cấu hình.";
+            return;
+        }
+        try
+        {
+            ErrorMessage = string.Empty;
+            await operation();
+            await LoadAsync(ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex) { ErrorMessage = $"Không thể cập nhật phản hồi: {ex.Message}"; }
+    }
+
+    private Guid? TryGetPropertyId() => _contextAccessor?.Current?.Property.PropertyId.Value is { } value && value != Guid.Empty ? value : null;
+    private Guid? ActorId() => _contextAccessor?.Current?.Actor.ActorId?.Value ?? _currentUserService?.CurrentUser?.Id;
+    private static FeedbackDto ToDto(GuestFeedbackDto item) => new()
+    {
+        GuestFeedbackId = item.GuestFeedbackId,
+        FeedbackNumber = item.FeedbackNumber,
+        GuestName = item.GuestName,
+        RoomNumber = item.RoomNumber,
+        FeedbackType = item.FeedbackType,
+        Category = item.Category,
+        Priority = item.Priority,
+        Status = item.Status.ToString(),
+        Source = item.Source,
+        Rating = item.Rating,
+        Subject = item.Subject,
+        Description = item.Description,
+        AssignedDepartment = item.AssignedDepartment,
+        Resolution = item.Resolution,
+        CreatedAt = item.CreatedAtUtc,
+        History = new ObservableCollection<string>(item.History.Select(x => $"{x.OccurredAtUtc:dd/MM/yyyy HH:mm} · {x.Action}"))
+    };
+
+    partial void OnSelectedFeedbackChanged(FeedbackDto? value) => OnPropertyChanged(nameof(HasSelection));
+    partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
 }

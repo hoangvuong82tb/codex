@@ -3,8 +3,10 @@ using System.Text;
 using System.Text.Json;
 using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Interfaces.Settings;
 using ASMILE.BO.Core.Accounting;
 using ASMILE.BO.Core.Entities;
+using ASMILE.BO.Core.Entities.Settings;
 using ASMILE.BO.Core.Enums;
 using ASMILE.BO.Infrastructure.Persistence;
 using ClosedXML.Excel;
@@ -21,13 +23,15 @@ public sealed class ReportEngine : IReportEngine
     private readonly IRuntimeTelemetryService? _telemetryService;
     private readonly IAuditService? _auditService;
     private readonly IAuditCorrelationService? _auditCorrelationService;
+    private readonly ISettingsService? _settingsService;
 
-    public ReportEngine(AppDbContext dbContext, IAuditService? auditService = null, IAuditCorrelationService? auditCorrelationService = null, IRuntimeTelemetryService? telemetryService = null)
+    public ReportEngine(AppDbContext dbContext, IAuditService? auditService = null, IAuditCorrelationService? auditCorrelationService = null, IRuntimeTelemetryService? telemetryService = null, ISettingsService? settingsService = null)
     {
         _dbContext = dbContext;
         _telemetryService = telemetryService;
         _auditService = auditService;
         _auditCorrelationService = auditCorrelationService;
+        _settingsService = settingsService;
     }
 
     public async Task<IReadOnlyList<ReportTemplate>> GetTemplatesAsync(string? category = null, CancellationToken cancellationToken = default)
@@ -572,8 +576,42 @@ public sealed class ReportEngine : IReportEngine
     {
         var result = await ExecuteAsync(request, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return SimplePdfWriter.Write(result);
+        var presentation = await GetPdfPresentationAsync(result.ReportCode, cancellationToken);
+        return SimplePdfWriter.Write(result, presentation);
     }
+
+    private async Task<LedgerPdfPresentation?> GetPdfPresentationAsync(string reportCode, CancellationToken cancellationToken)
+    {
+        if (_settingsService is null
+            || !new[] { "GENERAL_LEDGER", "TRIAL_BALANCE" }.Contains(reportCode, StringComparer.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        try
+        {
+            var footer = await _settingsService.GetValueAsync("GeneralLedger.ReportFooterNote", SettingScope.App, "general-ledger");
+            var accountant = await _settingsService.GetValueAsync("GeneralLedger.ShowAccountantSignature", SettingScope.App, "general-ledger");
+            var director = await _settingsService.GetValueAsync("GeneralLedger.ShowDirectorSignature", SettingScope.App, "general-ledger");
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return new LedgerPdfPresentation(
+                footer?.Value ?? "Báo cáo được lập từ dữ liệu sổ cái.",
+                !bool.TryParse(accountant?.Value, out var showAccountant) || showAccountant,
+                !bool.TryParse(director?.Value, out var showDirector) || showDirector);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // PDF export remains available with documented defaults if the optional settings provider is unavailable.
+            return new LedgerPdfPresentation("Báo cáo được lập từ dữ liệu sổ cái.", true, true);
+        }
+    }
+
+    private sealed record LedgerPdfPresentation(string FooterNote, bool ShowAccountantSignature, bool ShowDirectorSignature);
 
     private async Task<ReportResultDto> BuildGeneralLedgerAsync(ReportRequestDto request, CancellationToken cancellationToken)
     {
@@ -2446,7 +2484,9 @@ public sealed class ReportEngine : IReportEngine
 
     private static class SimplePdfWriter
     {
-        public static byte[] Write(ReportResultDto report)
+        private const int LinesPerPage = 42;
+
+        public static byte[] Write(ReportResultDto report, LedgerPdfPresentation? presentation)
         {
             var lines = new List<string>
             {
@@ -2462,28 +2502,62 @@ public sealed class ReportEngine : IReportEngine
                 lines.Add($"... con {report.Rows.Count - 40} dong. Dung Excel/CSV de xem day du.");
             }
 
-            var content = new StringBuilder();
-            content.AppendLine("BT /F1 10 Tf 40 800 Td 12 TL");
-            foreach (var line in lines)
+            if (presentation is not null)
             {
-                content.Append('(').Append(EscapePdf(line)).AppendLine(") Tj T*");
+                if (!string.IsNullOrWhiteSpace(presentation.FooterNote))
+                {
+                    lines.Add(string.Empty);
+                    var normalizedFooter = string.Join(" ", presentation.FooterNote.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+                    lines.Add($"Ghi chu: {StripPdfText(normalizedFooter)}");
+                }
+                if (presentation.ShowAccountantSignature)
+                {
+                    lines.Add("Ke toan");
+                }
+                if (presentation.ShowDirectorSignature)
+                {
+                    lines.Add("Giam doc");
+                }
             }
-            content.Append("ET");
 
-            return BuildPdf(content.ToString());
+            var pages = lines
+                .Chunk(LinesPerPage)
+                .Select(page => (IReadOnlyList<string>)page)
+                .ToArray();
+            return BuildPdf(pages);
         }
 
-        private static byte[] BuildPdf(string streamText)
+        private static byte[] BuildPdf(IReadOnlyList<IReadOnlyList<string>> pages)
         {
             var objects = new List<string>
             {
-                "<< /Type /Catalog /Pages 2 0 R >>",
-                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+                string.Empty,
+                string.Empty,
                 "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
             };
-            var streamBytes = Encoding.ASCII.GetBytes(streamText);
-            objects.Add($"<< /Length {streamBytes.Length} >>\nstream\n{streamText}\nendstream");
+
+            var pageObjectIds = new List<int>();
+            for (var pageIndex = 0; pageIndex < pages.Count; pageIndex++)
+            {
+                var pageObjectId = objects.Count + 1;
+                var contentObjectId = pageObjectId + 1;
+                pageObjectIds.Add(pageObjectId);
+                objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R >> >> /Contents {contentObjectId} 0 R >>");
+
+                var content = new StringBuilder();
+                content.AppendLine("BT /F1 10 Tf 40 555 Td 12 TL");
+                foreach (var line in pages[pageIndex])
+                {
+                    content.Append('(').Append(EscapePdf(line)).AppendLine(") Tj T*");
+                }
+                content.Append("ET");
+                var streamText = content.ToString();
+                var streamBytes = Encoding.ASCII.GetBytes(streamText);
+                objects.Add($"<< /Length {streamBytes.Length} >>\nstream\n{streamText}\nendstream");
+            }
+
+            objects[0] = "<< /Type /Catalog /Pages 2 0 R >>";
+            objects[1] = $"<< /Type /Pages /Kids [{string.Join(" ", pageObjectIds.Select(id => $"{id} 0 R"))}] /Count {pageObjectIds.Count} >>";
 
             using var memory = new MemoryStream();
             using var writer = new StreamWriter(memory, Encoding.ASCII, leaveOpen: true);

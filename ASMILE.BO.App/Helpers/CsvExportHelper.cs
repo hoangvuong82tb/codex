@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.IO;
 using System.Text;
+using ASMILE.BO.Shared.Storage;
 
 namespace ASMILE.BO.App.Helpers;
 
@@ -8,7 +9,7 @@ public static class CsvExportHelper
 {
     public static string Export(string filePrefix, IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows)
     {
-        var exportDir = Path.Combine(AppContext.BaseDirectory, "exports", "accounting");
+        var exportDir = ApplicationDataPaths.GetUserExportPath("accounting");
         Directory.CreateDirectory(exportDir);
         var filePath = Path.Combine(exportDir, $"{filePrefix}_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
 

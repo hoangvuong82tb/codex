@@ -9,6 +9,7 @@ using ASMILE.BO.Core.FrontOffice.Foundation.DomainEvents;
 using ASMILE.BO.Core.FrontOffice.Foundation.Identifiers;
 using ASMILE.BO.Core.FrontOffice.HotelMasterData;
 using ASMILE.BO.Core.FrontOffice.Reservation;
+using ReservationAggregate = ASMILE.BO.Core.FrontOffice.Reservation.Reservation;
 using ASMILE.BO.Core.Security;
 using ASMILE.BO.Infrastructure.FrontOffice.Foundation;
 using ASMILE.BO.Shared.Foundation;
@@ -18,6 +19,51 @@ namespace ASMILE.BO.Tests.Unit;
 
 public sealed class ReservationAcceptanceTests
 {
+    [Fact]
+    public void RES_DOM_U_001_create_preserves_selected_rate_plan()
+    {
+        var setup = Context();
+        var ratePlanId = Guid.NewGuid();
+        var reservation = ReservationAggregate.Create(
+            "RSV-RATE-001", setup.context.Property.PropertyId, null, "Guest",
+            StayPeriod.Create(new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 21)),
+            GuestCount.Create(1, 0), Guid.NewGuid(), "Direct", new DateTime(2026, 7, 18, 0, 0, 0, DateTimeKind.Utc),
+            setup.context.Actor.ActorId, ratePlanId: ratePlanId);
+
+        reservation.RatePlanId.Should().Be(ratePlanId);
+    }
+
+    [Fact]
+    public void RES_DOM_U_002_create_preserves_hotel_master_links_and_snapshots()
+    {
+        var setup = Context();
+        var sourceId = Guid.NewGuid();
+        var channelId = Guid.NewGuid();
+        var segmentId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        var agentId = Guid.NewGuid();
+        var commissionId = Guid.NewGuid();
+        var reservation = ReservationAggregate.Create(
+            "RSV-MASTER-001", setup.context.Property.PropertyId, null, "Guest",
+            StayPeriod.Create(new DateOnly(2026, 7, 20), new DateOnly(2026, 7, 21)),
+            GuestCount.Create(1, 0), Guid.NewGuid(), "DIRECT", new DateTime(2026, 7, 18, 0, 0, 0, DateTimeKind.Utc),
+            setup.context.Actor.ActorId, bookingSourceProfileId: sourceId, bookingChannelProfileId: channelId,
+            marketSegmentProfileId: segmentId, companyProfileId: companyId, travelAgentProfileId: agentId,
+            commissionRuleProfileId: commissionId, marketSegment: "CORPORATE", companyName: "Contoso",
+            travelAgentName: "Agent One", isVip: true);
+
+        reservation.BookingSourceProfileId.Should().Be(sourceId);
+        reservation.BookingChannelProfileId.Should().Be(channelId);
+        reservation.MarketSegmentProfileId.Should().Be(segmentId);
+        reservation.CompanyProfileId.Should().Be(companyId);
+        reservation.TravelAgentProfileId.Should().Be(agentId);
+        reservation.CommissionRuleProfileId.Should().Be(commissionId);
+        reservation.MarketSegment.Should().Be("CORPORATE");
+        reservation.CompanyName.Should().Be("Contoso");
+        reservation.TravelAgentName.Should().Be("Agent One");
+        reservation.IsVip.Should().BeTrue();
+    }
+
     [Fact]
     public async Task RES_AUTH_U_002_create_without_permission_is_rejected_before_number_allocation()
     {
@@ -77,7 +123,7 @@ public sealed class ReservationAcceptanceTests
     private sealed class TestAuthorization(bool allow) : IAuthorizationService { public bool HasPermission(string permissionCode) => allow; public void Demand(string permissionCode) { } public Task<bool> CanAccessAsync(string permissionCode) => Task.FromResult(allow); public bool HasPermission(Permission permission) => allow; public void Demand(Permission permission) { } public Task<bool> ConfirmDangerousActionAsync(string title, string message) => Task.FromResult(allow); }
     private sealed class TestPersistence : IFrontOfficePersistenceSession { public void StageDomainEvent(IFrontOfficeDomainEvent domainEvent) { } public void StageAudit(FrontOfficeAuditIntent intent) { } public Task<Result<int>> CommitAsync(CancellationToken cancellationToken = default) => Task.FromResult(Result<int>.Success(1)); }
     private sealed class TestOverbooking : IOverbookingChecker { public Task<bool> IsOverbookingLimitReachedAsync(Guid propertyId, Guid roomTypeId, DateOnly arrival, DateOnly departure, Guid? excludedReservationId, CancellationToken ct) => Task.FromResult(false); }
-    private sealed class TestReferences : IHotelReservationReferenceReader { public Task<HotelRoomTypeReference?> GetRoomTypeReferenceAsync(Guid propertyId, Guid roomTypeId, CancellationToken ct = default) => Task.FromResult<HotelRoomTypeReference?>(null); public Task<HotelRoomReference?> GetRoomReferenceAsync(Guid propertyId, Guid roomId, CancellationToken ct = default) => Task.FromResult<HotelRoomReference?>(null); public Task<bool> HotelRoomMatchesRoomTypeAsync(Guid propertyId, Guid roomId, Guid roomTypeId, CancellationToken ct = default) => Task.FromResult(false); }
+    private sealed class TestReferences : IHotelReservationReferenceReader { public Task<HotelRoomTypeReference?> GetRoomTypeReferenceAsync(Guid propertyId, Guid roomTypeId, CancellationToken ct = default) => Task.FromResult<HotelRoomTypeReference?>(null); public Task<HotelRoomReference?> GetRoomReferenceAsync(Guid propertyId, Guid roomId, CancellationToken ct = default) => Task.FromResult<HotelRoomReference?>(null); public Task<bool> HotelRoomMatchesRoomTypeAsync(Guid propertyId, Guid roomId, Guid roomTypeId, CancellationToken ct = default) => Task.FromResult(false); public Task<bool> IsActiveBookingSourceAsync(Guid propertyId, Guid id, CancellationToken ct = default) => Task.FromResult(false); public Task<bool> IsActiveBookingChannelAsync(Guid propertyId, Guid id, CancellationToken ct = default) => Task.FromResult(false); public Task<bool> IsActiveMarketSegmentAsync(Guid propertyId, Guid id, CancellationToken ct = default) => Task.FromResult(false); public Task<bool> IsActiveCompanyAsync(Guid propertyId, Guid id, CancellationToken ct = default) => Task.FromResult(false); public Task<bool> IsActiveTravelAgentAsync(Guid propertyId, Guid id, CancellationToken ct = default) => Task.FromResult(false); public Task<bool> IsActiveCommissionRuleAsync(Guid propertyId, Guid id, CancellationToken ct = default) => Task.FromResult(false); }
     private sealed class TestRepository : IReservationRepository
     {
         public int GetDtoCalls { get; private set; }

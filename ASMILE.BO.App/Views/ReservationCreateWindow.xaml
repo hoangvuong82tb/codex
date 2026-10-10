@@ -207,7 +207,7 @@
                     <StackPanel Orientation="Horizontal">
                         <Border Width="148" Height="64" CornerRadius="10" Margin="0,0,4,0"
                                 Background="{Binding Bg}" BorderBrush="{Binding Brd}" BorderThickness="1.5"
-                                Cursor="Hand" ToolTip="{Binding Label}" Padding="12,8"
+                                Cursor="Hand" ToolTip="{Binding Label}" Padding="12,8" IsHitTestVisible="{Binding IsNavigable}"
                                 MouseLeftButtonDown="Step_Click" Tag="{Binding Index}">
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <Border Width="32" Height="32" CornerRadius="8" Background="{Binding BadgeBg}" VerticalAlignment="Center">
@@ -242,6 +242,25 @@
                     <TextBlock Text="Thông tin lưu trú" FontSize="18" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Margin="0,0,0,14"/>
 
                     <StackPanel Grid.Row="1">
+                        <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="10" Padding="14" Margin="0,0,0,12"
+                                Visibility="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
+                            <StackPanel>
+                                <TextBlock Text="Thông tin khách đặt phòng" FontSize="13" FontWeight="SemiBold" Foreground="#1E40AF" Margin="0,0,0,8"/>
+                                <TextBlock Text="Màn sửa lưu thông tin khách, lưu trú, hạng phòng và ghi chú. Giấy tờ, tài chính và trạng thái được quản lý ở nghiệp vụ riêng."
+                                           FontSize="11" Foreground="#52657D" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Text="Họ và tên" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/><TextBox Style="{StaticResource ModernTextBox}" Text="{Binding Modal.Workspace.GuestName, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                    <StackPanel Grid.Column="2"><TextBlock Text="Điện thoại" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/><TextBox Style="{StaticResource ModernTextBox}" Text="{Binding Modal.Workspace.GuestPhone, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                    <StackPanel Grid.Column="4"><TextBlock Text="Email" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/><TextBox Style="{StaticResource ModernTextBox}" Text="{Binding Modal.Workspace.GuestEmail, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                </Grid>
+                                <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="220"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Nguồn đặt" VerticalAlignment="Center" FontSize="12" Foreground="#52657D"/>
+                                    <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" ItemsSource="{Binding Modal.Workspace.BookingSourceOptions}" SelectedItem="{Binding Modal.Workspace.SelectedBookingSource, Mode=TwoWay}" DisplayMemberPath="DisplayText" IsEnabled="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
                         <!-- ROW 1: Confirm | Phòng -->
                         <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -264,7 +283,7 @@
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="HP thực tế" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="6"><ComboBoxItem Content="(Giống dự kiến)"/></ComboBox>
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="6" IsEnabled="{Binding IsCreateMode, RelativeSource={RelativeSource AncestorType=UserControl}}"><ComboBoxItem Content="(Giống dự kiến)"/></ComboBox>
                             </Grid>
                         </Grid>
 
@@ -292,7 +311,7 @@
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Book Status" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="11"><ComboBoxItem Content="Reserved"/><ComboBoxItem Content="Confirmed"/><ComboBoxItem Content="Tentative"/></ComboBox>
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="11" IsEnabled="{Binding IsCreateMode, RelativeSource={RelativeSource AncestorType=UserControl}}"><ComboBoxItem Content="Reserved"/><ComboBoxItem Content="Confirmed"/><ComboBoxItem Content="Tentative"/></ComboBox>
                             </Grid>
                         </Grid>
 
@@ -319,10 +338,10 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Meal Code" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                            <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="16"><ComboBoxItem Content="RO"/><ComboBoxItem Content="BB"/><ComboBoxItem Content="HB"/><ComboBoxItem Content="FB"/></ComboBox>
-                            <CheckBox Grid.Column="3" Content="BF" Style="{StaticResource ModernCheckBox}" TabIndex="17"/>
-                            <CheckBox Grid.Column="5" Content="Connecting Room" Style="{StaticResource ModernCheckBox}" TabIndex="18"/>
-                            <CheckBox Grid.Column="7" Content="Complimentary" Style="{StaticResource ModernCheckBox}" TabIndex="19"/>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="16" IsEnabled="{Binding IsCreateMode, RelativeSource={RelativeSource AncestorType=UserControl}}"><ComboBoxItem Content="RO"/><ComboBoxItem Content="BB"/><ComboBoxItem Content="HB"/><ComboBoxItem Content="FB"/></ComboBox>
+                            <CheckBox Grid.Column="3" Content="BF" Style="{StaticResource ModernCheckBox}" TabIndex="17" IsEnabled="{Binding IsCreateMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <CheckBox Grid.Column="5" Content="Connecting Room" Style="{StaticResource ModernCheckBox}" TabIndex="18" IsEnabled="{Binding IsCreateMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <CheckBox Grid.Column="7" Content="Complimentary" Style="{StaticResource ModernCheckBox}" TabIndex="19" IsEnabled="{Binding IsCreateMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                         </Grid>
                     </StackPanel>
                 </Grid>
@@ -402,7 +421,7 @@
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Loại giấy tờ" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectedValue="{Binding DocumentType, RelativeSource={RelativeSource AncestorType=UserControl}}" TabIndex="21">
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectedValue="{Binding DocumentType, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedValuePath="Content" TabIndex="21">
                                     <ComboBoxItem Content="CCCD"/><ComboBoxItem Content="Hộ chiếu"/>
                                 </ComboBox>
                             </Grid>
@@ -546,7 +565,7 @@
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Loại giấy tờ" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectedValue="{Binding DocumentType, RelativeSource={RelativeSource AncestorType=UserControl}}" TabIndex="34">
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectedValue="{Binding DocumentType, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedValuePath="Content" TabIndex="34">
                                     <ComboBoxItem Content="CCCD"/><ComboBoxItem Content="Hộ chiếu"/><ComboBoxItem Content="CMND"/><ComboBoxItem Content="GPLX"/><ComboBoxItem Content="Khác"/>
                                 </ComboBox>
                             </Grid>
@@ -699,9 +718,14 @@
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="4"/><ColumnDefinition Width="36"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Company/TA" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" TabIndex="47"/>
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" ItemsSource="{Binding Modal.Workspace.CompanyOptions}" SelectedItem="{Binding Modal.Workspace.SelectedCompany, Mode=TwoWay}" DisplayMemberPath="DisplayText" TabIndex="47"/>
                                 <Button Grid.Column="3" Content="…" Style="{StaticResource ModernSelectBtn}" TabIndex="48"/>
                             </Grid>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Travel Agent" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" ItemsSource="{Binding Modal.Workspace.TravelAgentOptions}" SelectedItem="{Binding Modal.Workspace.SelectedTravelAgent, Mode=TwoWay}" DisplayMemberPath="DisplayText" TabIndex="49"/>
                         </Grid>
 
                         <Border Height="1" Background="#E2E8F0" Margin="0,2,0,10"/>
@@ -711,11 +735,11 @@
                         <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Rate Code" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="49"><ComboBoxItem Content="RACK"/><ComboBoxItem Content="CORP"/><ComboBoxItem Content="PROMO"/><ComboBoxItem Content="GOV"/><ComboBoxItem Content="PKG"/></ComboBox>
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" ItemsSource="{Binding Modal.Workspace.RatePlans}" SelectedItem="{Binding Modal.Workspace.SelectedRatePlan, Mode=TwoWay}" DisplayMemberPath="DisplayText" TabIndex="50"/>
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Payment" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="50"><ComboBoxItem Content="Cash"/><ComboBoxItem Content="Card"/><ComboBoxItem Content="Transfer"/><ComboBoxItem Content="City Ledger"/></ComboBox>
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="51"><ComboBoxItem Content="Cash"/><ComboBoxItem Content="Card"/><ComboBoxItem Content="Transfer"/><ComboBoxItem Content="City Ledger"/></ComboBox>
                             </Grid>
                         </Grid>
 
@@ -726,16 +750,25 @@
                         <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Book Source" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="51"><ComboBoxItem Content="Walk In"/><ComboBoxItem Content="OTA"/><ComboBoxItem Content="Corporate"/><ComboBoxItem Content="Travel Agent"/><ComboBoxItem Content="Direct"/></ComboBox>
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" ItemsSource="{Binding Modal.Workspace.BookingSourceOptions}" SelectedItem="{Binding Modal.Workspace.SelectedBookingSource, Mode=TwoWay}" DisplayMemberPath="DisplayText" TabIndex="52"/>
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Market" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="52"><ComboBoxItem Content="Leisure"/><ComboBoxItem Content="Business"/><ComboBoxItem Content="Group"/><ComboBoxItem Content="Government"/></ComboBox>
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" ItemsSource="{Binding Modal.Workspace.MarketSegmentOptions}" SelectedItem="{Binding Modal.Workspace.SelectedMarketSegment, Mode=TwoWay}" DisplayMemberPath="DisplayText" TabIndex="53"/>
                             </Grid>
                         </Grid>
                         <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Mã ngoài" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                            <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" TabIndex="53"/>
+                            <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" TabIndex="54"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Booking Channel" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" ItemsSource="{Binding Modal.Workspace.BookingChannelOptions}" SelectedItem="{Binding Modal.Workspace.SelectedBookingChannel, Mode=TwoWay}" DisplayMemberPath="DisplayText" TabIndex="55"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Commission" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" ItemsSource="{Binding Modal.Workspace.CommissionRuleOptions}" SelectedItem="{Binding Modal.Workspace.SelectedCommissionRule, Mode=TwoWay}" DisplayMemberPath="DisplayText" TabIndex="56"/>
                         </Grid>
 
                         <Border Height="1" Background="#E2E8F0" Margin="0,2,0,10"/>
@@ -745,7 +778,7 @@
                         <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Sales" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="54"><ComboBoxItem Content="FO"/><ComboBoxItem Content="KD"/><ComboBoxItem Content="Owner"/></ComboBox>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" TabIndex="57"><ComboBoxItem Content="FO"/><ComboBoxItem Content="KD"/><ComboBoxItem Content="Owner"/></ComboBox>
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Lễ tân" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
@@ -758,9 +791,9 @@
                         <!-- ── Special ── -->
                         <TextBlock Text="Special" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
                         <Grid Margin="0,0,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="20"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="20"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <CheckBox Content="Corporate" Style="{StaticResource ModernCheckBox}" TabIndex="55"/>
-                            <CheckBox Grid.Column="2" Content="Walk-in" Style="{StaticResource ModernCheckBox}" TabIndex="56"/>
-                            <CheckBox Grid.Column="4" Content="Commission" Style="{StaticResource ModernCheckBox}" TabIndex="57"/>
+                            <CheckBox Content="Corporate" Style="{StaticResource ModernCheckBox}" TabIndex="58"/>
+                            <CheckBox Grid.Column="2" Content="Walk-in" Style="{StaticResource ModernCheckBox}" TabIndex="59"/>
+                            <CheckBox Grid.Column="4" Content="Commission" Style="{StaticResource ModernCheckBox}" TabIndex="60"/>
                         </Grid>
                     </StackPanel>
                     </ScrollViewer>
@@ -776,21 +809,23 @@
                     <Border Background="#FAFBFD" CornerRadius="8" Padding="14,12" Margin="0,0,0,6">
                         <StackPanel>
                             <TextBlock Text="Booking" FontSize="12" Foreground="#7B8DA6" FontFamily="Segoe UI" Margin="0,0,0,6"/>
-                            <TextBlock FontSize="13" Foreground="#6F8198" FontFamily="Segoe UI" Text="Booker · Company/TA"/>
+                            <TextBlock FontSize="13" Foreground="#6F8198" FontFamily="Segoe UI" Text="{Binding Modal.Workspace.SelectedCompany.DisplayText, StringFormat=Company: {0}, FallbackValue=Company: —}"/>
+                            <TextBlock FontSize="13" Foreground="#6F8198" FontFamily="Segoe UI" Text="{Binding Modal.Workspace.SelectedTravelAgent.DisplayText, StringFormat=Travel Agent: {0}, FallbackValue=Travel Agent: —}"/>
                         </StackPanel>
                     </Border>
                     <Border Background="#FAFBFD" CornerRadius="8" Padding="14,12" Margin="0,0,0,6">
                         <StackPanel>
                             <TextBlock Text="Pricing" FontSize="12" Foreground="#7B8DA6" FontFamily="Segoe UI" Margin="0,0,0,6"/>
                             <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Text="RACK"/>
-                            <TextBlock FontSize="13" Foreground="#6F8198" FontFamily="Segoe UI" Text="Cash"/>
+                            <TextBlock FontSize="13" Foreground="#6F8198" FontFamily="Segoe UI" Text="Nguồn thanh toán: Cash"/>
                         </StackPanel>
                     </Border>
                     <Border Background="#FAFBFD" CornerRadius="8" Padding="14,12" Margin="0,0,0,6">
                         <StackPanel>
                             <TextBlock Text="Channel" FontSize="12" Foreground="#7B8DA6" FontFamily="Segoe UI" Margin="0,0,0,6"/>
-                            <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Text="Walk In"/>
-                            <TextBlock FontSize="13" Foreground="#6F8198" FontFamily="Segoe UI" Text="Leisure"/>
+                            <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Text="{Binding Modal.Workspace.SelectedBookingSource.DisplayText, FallbackValue=—}"/>
+                            <TextBlock FontSize="13" Foreground="#6F8198" FontFamily="Segoe UI" Text="{Binding Modal.Workspace.SelectedMarketSegment.DisplayText, FallbackValue=—}"/>
+                            <TextBlock FontSize="13" Foreground="#6F8198" FontFamily="Segoe UI" Text="{Binding Modal.Workspace.SelectedBookingChannel.DisplayText, FallbackValue=—}"/>
                         </StackPanel>
                     </Border>
                     <Border Background="#FAFBFD" CornerRadius="8" Padding="14,12" Margin="0,0,0,6">
@@ -830,7 +865,7 @@
                         <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Rate Code" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" Text="{Binding RateCodeValue, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding UseNegotiatedRate, RelativeSource={RelativeSource AncestorType=UserControl}}" TabIndex="60"/>
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" ItemsSource="{Binding Modal.Workspace.RatePlans}" SelectedItem="{Binding Modal.Workspace.SelectedRatePlan, Mode=TwoWay}" DisplayMemberPath="DisplayText" IsEnabled="{Binding UseRateCode, RelativeSource={RelativeSource AncestorType=UserControl}}" TabIndex="60"/>
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Room Rate" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
@@ -846,7 +881,7 @@
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="18"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <!-- Price Source toggle -->
                                 <TextBlock Text="Nguồn giá" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ToggleButton Grid.Column="2" Style="{StaticResource VatToggleSwitch}" IsChecked="{Binding UseRateCode, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" TabIndex="63"/>
+                                <ToggleButton Grid.Column="2" Style="{StaticResource VatToggleSwitch}" IsChecked="{Binding UseRateCode, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" IsEnabled="False" ToolTip="Giá thỏa thuận được thực hiện tại Folio/Invoice sau khi có lưu trú" TabIndex="63"/>
                                 <TextBlock Grid.Column="4" VerticalAlignment="Center" FontSize="13" Foreground="#17365D" FontFamily="Segoe UI" Text="{Binding PriceSourceLabel, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"/>
                                 <!-- VAT toggle -->
                                 <TextBlock Grid.Column="6" Text="VAT" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
@@ -876,32 +911,33 @@
                                 <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" Text="{Binding DepositAmountInput, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" TabIndex="65"/>
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <TextBlock Text="Hình thức" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectedValue="{Binding PaymentMethodValue, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedValuePath="Content" TabIndex="66"><ComboBoxItem Content="Tiền mặt"/><ComboBoxItem Content="Chuyển khoản"/><ComboBoxItem Content="Thẻ"/></ComboBox>
+                                <TextBlock Text="Hình thức thu" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI" ToolTip="Thu tiền thực tế tại Thu ngân/Folio sau khi đặt phòng có hồ sơ tài chính"/>
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}" IsEnabled="False" ToolTip="Thu tiền thực tế tại Thu ngân/Folio sau khi đặt phòng có hồ sơ tài chính" TabIndex="66"><ComboBoxItem Content="Thu tại Thu ngân/Folio" IsSelected="True"/></ComboBox>
                             </Grid>
                         </Grid>
                         <Grid Margin="0,0,0,24"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Ngày cọc" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <DatePicker Grid.Column="1" Style="{StaticResource ModernDatePicker}" TabIndex="67"/>
+                                <DatePicker Grid.Column="1" Style="{StaticResource ModernDatePicker}" SelectedDate="{Binding DepositDueDate, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" TabIndex="67"/>
                             </Grid>
                             <Grid Grid.Column="2" VerticalAlignment="Center">
-                                <CheckBox Content="Đã thu" Style="{StaticResource ModernCheckBox}" IsChecked="{Binding IsDepositCollected, RelativeSource={RelativeSource AncestorType=UserControl}}" TabIndex="68"/>
+                                <TextBlock Text="Chờ thu tại Thu ngân/Folio" VerticalAlignment="Center" FontSize="12" Foreground="#64748B" ToolTip="Không ghi nhận thanh toán tiền mặt tại bước đặt phòng"/>
                             </Grid>
                         </Grid>
 
                         <Border Height="1" Background="#E2E8F0" Margin="0,0,0,24"/>
 
                         <!-- 3. Giảm giá -->
-                        <TextBlock Text="Giảm giá" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                        <TextBlock Text="Giảm giá (thực hiện tại Folio/Invoice)" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,4"/>
+                        <TextBlock Text="Các khoản giảm giá và VAT chưa hạch toán ở bước đặt phòng; Thu ngân/Invoice sẽ ghi nhận trên Folio thật." FontSize="11" Foreground="#64748B" TextWrapping="Wrap" Margin="0,0,0,8"/>
                         <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Discount %" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" Text="{Binding DiscountPercentInput, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" TabIndex="69"/>
+                                <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" IsEnabled="False" ToolTip="Thực hiện tại Folio/Invoice" Text="{Binding DiscountPercentInput, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" TabIndex="69"/>
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Discount tiền" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" Text="{Binding DiscountAmountInput, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" TabIndex="70"/>
+                                <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" IsEnabled="False" ToolTip="Thực hiện tại Folio/Invoice" Text="{Binding DiscountAmountInput, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" TabIndex="70"/>
                             </Grid>
                         </Grid>
                         <Grid>
@@ -912,7 +948,7 @@
                             </Grid>
                             <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Lý do" VerticalAlignment="Center" FontSize="13" Foreground="#52657D" FontWeight="Medium" FontFamily="Segoe UI"/>
-                                <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" TabIndex="72"/>
+                                <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" IsEnabled="False" ToolTip="Thực hiện tại Folio/Invoice" TabIndex="72"/>
                             </Grid>
                         </Grid>
                     </StackPanel>
@@ -1251,7 +1287,7 @@
             <Border Grid.Column="2" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="16" Padding="22,24">
                 <Border.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.04" Color="#000000"/></Border.Effect>
                 <StackPanel>
-                    <TextBlock Text="Kiểm tra trước khi tạo" FontSize="16" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Margin="0,0,0,18"/>
+                    <TextBlock Text="{Binding ReviewTitle, RelativeSource={RelativeSource AncestorType=UserControl}}" FontSize="16" FontWeight="SemiBold" Foreground="#17365D" FontFamily="Segoe UI" Margin="0,0,0,18"/>
 
                     <!-- Step Status List -->
                     <ItemsControl ItemsSource="{Binding StepGStatuses, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,0,12">
@@ -1295,7 +1331,7 @@
                     <!-- All Good -->
                     <Border Padding="14,10" CornerRadius="8" BorderThickness="1" Background="#F0FDF4" BorderBrush="#86EFAC"
                             Visibility="{Binding CanCreateReservation, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
-                        <TextBlock Text="✓ Sẵn sàng tạo đặt phòng" FontSize="13" FontFamily="Segoe UI" TextAlignment="Center" Foreground="#166534" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding ReadyMessage, RelativeSource={RelativeSource AncestorType=UserControl}}" FontSize="13" FontFamily="Segoe UI" TextAlignment="Center" Foreground="#166534" FontWeight="SemiBold"/>
                     </Border>
                 </StackPanel>
             </Border>
@@ -1308,13 +1344,14 @@
             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock Foreground="#DC2626" TextWrapping="Wrap" Visibility="{Binding Modal.Workspace.HasError, Converter={StaticResource BoolVis}}"><Run Text="{Binding Modal.Workspace.ErrorMessage}"/></TextBlock>
+                    <TextBlock Foreground="#15803D" TextWrapping="Wrap" Visibility="{Binding Modal.Workspace.HasInfo, Converter={StaticResource BoolVis}}"><Run Text="{Binding Modal.Workspace.InfoMessage}"/></TextBlock>
                     <TextBlock Text="{Binding CurrentStepLabel, StringFormat=Bước {0}/G}" FontSize="13" Foreground="#64748B"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button Content="Hủy" Command="{Binding Modal.CloseCommand}" Style="{StaticResource ModernFooterBtn}" Background="#F3F6FA" Foreground="#52657D"/>
                     <Button Content="← Quay lại" Command="{Binding GoBackCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource ModernFooterBtn}" Background="#F3F6FA" Foreground="#52657D" Margin="10,0,0,0" Visibility="{Binding CanGoBack, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}"/>
                     <Button Content="Tiếp theo →" Command="{Binding GoNextCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource ModernFooterBtn}" Background="#2F6BFF" Foreground="White" FontWeight="SemiBold" Margin="10,0,0,0" Visibility="{Binding CanGoNext, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}"/>
-                    <Button Content="{Binding FooterActionLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Command="{Binding Modal.SaveNewCommand}" IsEnabled="{Binding CanCreateReservation, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource ModernFooterBtn}" Background="#16A34A" Foreground="White" FontWeight="SemiBold" Margin="10,0,0,0" Visibility="{Binding IsLastStep, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}"/>
+                    <Button Content="{Binding FooterActionLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="CreateReservation_Click" IsEnabled="{Binding CanFinish, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource ModernFooterBtn}" Background="#16A34A" Foreground="White" FontWeight="SemiBold" Margin="10,0,0,0" Visibility="{Binding IsLastStep, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}"/>
                 </StackPanel>
             </Grid>
         </Border>

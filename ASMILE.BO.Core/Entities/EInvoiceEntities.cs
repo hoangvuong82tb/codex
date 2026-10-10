@@ -20,10 +20,15 @@ public sealed class Invoice : ICompanyScoped, IBranchScoped
     public string Status { get; set; } = "Draft";
     public string ProviderCode { get; set; } = string.Empty;
     public string? ProviderInvoiceId { get; set; }
+    public Guid? AdjustsInvoiceId { get; set; }
+    public string? AdjustmentType { get; set; }
+    public string? AdjustmentReason { get; set; }
     public Guid? JournalHeaderId { get; set; }
     public Guid? ReceivableTransactionId { get; set; }
     public Guid? PayableTransactionId { get; set; }
     public Guid? VatDeclarationDraftId { get; set; }
+    /// <summary>Optional hotel folio source for invoices issued from Front Office.</summary>
+    public Guid? FolioId { get; set; }
     public string? XmlPayload { get; set; }
     public string? PdfPreviewPath { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

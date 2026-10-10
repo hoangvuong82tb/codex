@@ -1034,7 +1034,7 @@ END;
             BusinessEntityType.Customer => document.DocumentType switch
             {
                 BusinessDocumentType.Invoice or BusinessDocumentType.ExportVoucher => (LedgerDocumentType.ExportVoucher, accounts.ReceivableAccount, accounts.RevenueAccount),
-                BusinessDocumentType.PaymentVoucher => (LedgerDocumentType.PaymentReceipt, accounts.CashAccount, accounts.ReceivableAccount),
+                BusinessDocumentType.PaymentReceipt or BusinessDocumentType.PaymentVoucher => (LedgerDocumentType.PaymentReceipt, accounts.CashAccount, accounts.ReceivableAccount),
                 BusinessDocumentType.AdvancePayment => (LedgerDocumentType.AdvancePayment, accounts.CashAccount, accounts.ReceivableAccount),
                 _ => null
             },

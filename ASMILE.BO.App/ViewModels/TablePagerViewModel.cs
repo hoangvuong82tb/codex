@@ -10,16 +10,18 @@ public sealed partial class TablePagerViewModel<T> : ObservableObject
     private readonly List<T> _source = new();
 
     public ObservableCollection<T> Items { get; } = new();
-    public ObservableCollection<string> PageSizeOptions { get; } = new() { "15 / trang", "20 / trang", "50 / trang", "100 / trang" };
+    public ObservableCollection<string> PageSizeOptions { get; } = new() { "20 / trang", "50 / trang", "100 / trang" };
     public ObservableCollection<TablePageButton> PageButtons { get; } = new();
 
-    [ObservableProperty] private string selectedPageSize = "15 / trang";
+    [ObservableProperty] private string selectedPageSize = "20 / trang";
     [ObservableProperty] private int currentPage = 1;
     [ObservableProperty] private string itemName = "bản ghi";
 
     public int TotalCount => _source.Count;
     public int PageSize => ParsePageSize(SelectedPageSize);
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)Math.Max(1, PageSize)));
+    public bool HasPreviousPage => CurrentPage > 1;
+    public bool HasNextPage => CurrentPage < TotalPages;
 
     public string PageText
     {
@@ -55,6 +57,13 @@ public sealed partial class TablePagerViewModel<T> : ObservableObject
         CurrentPage = 1;
         RefreshPage();
     }
+
+    // Async-named aliases keep the shared server pager compatible with
+    // server-backed workspaces while preserving the synchronous commands
+    // used by existing table pagers.
+    public IRelayCommand PreviousPageAsyncCommand => PreviousPageCommand;
+    public IRelayCommand NextPageAsyncCommand => NextPageCommand;
+    public IRelayCommand<TablePageButton?> GoToPageAsyncCommand => GoToPageCommand;
 
     partial void OnCurrentPageChanged(int value)
     {
@@ -102,6 +111,8 @@ public sealed partial class TablePagerViewModel<T> : ObservableObject
         OnPropertyChanged(nameof(TotalCount));
         OnPropertyChanged(nameof(PageSize));
         OnPropertyChanged(nameof(TotalPages));
+        OnPropertyChanged(nameof(HasPreviousPage));
+        OnPropertyChanged(nameof(HasNextPage));
         OnPropertyChanged(nameof(PageText));
     }
 
@@ -166,7 +177,7 @@ public sealed partial class TablePagerViewModel<T> : ObservableObject
         var first = value?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         return int.TryParse(first, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed > 0
             ? parsed
-            : 15;
+            : 20;
     }
 }
 

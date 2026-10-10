@@ -233,8 +233,8 @@ public sealed partial class TapeChartViewModel : ViewModelBase
         }
     }
 
-    partial void OnSelectedBarChanged(TapeChartBar? v) => OnPropertyChanged(nameof(HasSelection));
-    partial void OnErrorMessageChanged(string v) => OnPropertyChanged(nameof(HasError));
-    partial void OnConflictCountChanged(int v) => OnPropertyChanged(nameof(HasConflicts));
-    partial void OnZoomDaysChanged(int v) { OnPropertyChanged(nameof(DateHeaders)); _ = LoadAsync(CancellationToken.None); }
+    partial void OnSelectedBarChanged(TapeChartBar? value) => OnPropertyChanged(nameof(HasSelection));
+    partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
+    partial void OnConflictCountChanged(int value) => OnPropertyChanged(nameof(HasConflicts));
+    partial void OnZoomDaysChanged(int value) { OnPropertyChanged(nameof(DateHeaders)); _ = LoadAsync(CancellationToken.None); }
 }

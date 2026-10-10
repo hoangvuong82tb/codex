@@ -91,6 +91,7 @@ public interface IWorkspaceService
     Task AddRecentReportAsync(string reportCode, CancellationToken cancellationToken = default);
     Task AddRecentDrilldownAsync(string drilldownKey, CancellationToken cancellationToken = default);
     Task SaveLastOpenedTabsAsync(IReadOnlyList<string> moduleKeys, CancellationToken cancellationToken = default);
+    Task SaveStartupModulesAsync(IReadOnlyList<string> moduleKeys, CancellationToken cancellationToken = default);
     Task SaveShellLayoutAsync(string layoutJson, CancellationToken cancellationToken = default);
     Task<WorkspaceSettingsDto> LoadSettingsAsync(CancellationToken cancellationToken = default);
     Task SaveSettingsAsync(WorkspaceSettingsDto settings, CancellationToken cancellationToken = default);

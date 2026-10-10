@@ -2,6 +2,13 @@
 using ASMILE.BO.Application.Interfaces;
 using ASMILE.BO.Core.Accounting;
 using ASMILE.BO.Core.Entities;
+using ASMILE.BO.Core.FrontOffice.Folio;
+using ASMILE.BO.Core.FrontOffice.Foundation.Identifiers;
+using ASMILE.BO.Core.FrontOffice.Guest;
+using ASMILE.BO.Core.FrontOffice.HotelMasterData;
+using ASMILE.BO.Core.FrontOffice.Payment;
+using ASMILE.BO.Core.FrontOffice.Reservation;
+using ASMILE.BO.Core.FrontOffice.Stay;
 using ASMILE.BO.Infrastructure.Options;
 using ASMILE.BO.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -831,6 +838,7 @@ public sealed class TrainingDataCleaner : ITrainingDataCleaner
         await AppendAsync("DEL_TXN_01", "Xóa chứng từ và bút toán", "CashTransactions", () => _dbContext.CashTransactions);
         await AppendAsync("DEL_TXN_01", "Xóa chứng từ và bút toán", "BankTransactions", () => _dbContext.BankTransactions);
         await AppendAsync("DEL_TXN_01", "Xóa chứng từ và bút toán", "VatTransactions", () => _dbContext.VatTransactions);
+        await AppendAsync("DEL_TXN_01", "Xóa chứng từ và bút toán", "InventoryCostTransactions", () => _dbContext.InventoryCostTransactions);
         await AppendAsync("DEL_TXN_01", "Xóa chứng từ và bút toán", "ClosingEntryLines", () => _dbContext.ClosingEntryLines);
         await AppendAsync("DEL_TXN_01", "Xóa chứng từ và bút toán", "ClosingEntries", () => _dbContext.ClosingEntries);
         await AppendAsync("DEL_TXN_01", "Xóa chứng từ và bút toán", "PostingSources", () => _dbContext.PostingSources);
@@ -838,7 +846,6 @@ public sealed class TrainingDataCleaner : ITrainingDataCleaner
         await AppendAsync("DEL_TXN_01", "Xóa chứng từ và bút toán", "JournalHeaders", () => _dbContext.JournalHeaders);
         await AppendAsync("DEL_TXN_01", "Xóa chứng từ và bút toán", "BusinessDocuments", () => _dbContext.BusinessDocuments);
 
-        await AppendAsync("DEL_TXN_02", "Xóa dữ liệu kho, công cụ, tài sản", "InventoryCostTransactions", () => _dbContext.InventoryCostTransactions);
         await AppendAsync("DEL_TXN_02", "Xóa dữ liệu kho, công cụ, tài sản", "InventoryCostLayers", () => _dbContext.InventoryCostLayers);
         await AppendAsync("DEL_TXN_02", "Xóa dữ liệu kho, công cụ, tài sản", "StockBalances", () => _dbContext.StockBalances);
         await AppendAsync("DEL_TXN_02", "Xóa dữ liệu kho, công cụ, tài sản", "ToolAllocationRuns", () => _dbContext.ToolAllocationRuns);
@@ -1275,12 +1282,103 @@ public sealed class TrainingDataSeeder : ITrainingDataSeeder
             created += await SeedHospitalityMenuRecipeAsync(needRestaurant, needHotel);
         }
 
+        if (needHotel)
+        {
+            created += await SeedHotelOperationalFoundationAsync();
+        }
+
         if (created > 0)
         {
             await _dbContext.SaveChangesAsync();
         }
 
         return created;
+    }
+
+    private async Task<int> SeedHotelOperationalFoundationAsync()
+    {
+        var propertyId = new PropertyId(CurrentCompanyContext.DefaultBranchId);
+        if (await _dbContext.HotelRoomTypes.AnyAsync(x => x.PropertyId == propertyId.Value && x.Code == "STD"))
+        {
+            return 0;
+        }
+
+        var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
+        var roomTypes = new[]
+        {
+            HotelRoomType.Create(propertyId, "STD", "Standard", "Phòng tiêu chuẩn", 2, 0, 2, 1, 2, 1, now, null),
+            HotelRoomType.Create(propertyId, "DLX", "Deluxe", "Phòng deluxe", 2, 1, 3, 1, 2, 2, now, null),
+            HotelRoomType.Create(propertyId, "STE", "Suite", "Phòng suite", 2, 1, 4, 2, 2, 3, now, null)
+        };
+        _dbContext.HotelRoomTypes.AddRange(roomTypes);
+
+        var rooms = new[]
+        {
+            HotelRoom.Create(propertyId, roomTypes[0].HotelRoomTypeId, "101", "Standard 101", "1", null, "A", null, now, null,
+                roomCondition: "Normal", view: "Thành phố", bedType: "Queen", isSmoking: false, isConnecting: false),
+            HotelRoom.Create(propertyId, roomTypes[0].HotelRoomTypeId, "102", "Standard 102", "1", null, "A", null, now, null,
+                roomCondition: "Normal", view: "Vườn", bedType: "Twin", isSmoking: false, isConnecting: true),
+            HotelRoom.Create(propertyId, roomTypes[1].HotelRoomTypeId, "201", "Deluxe 201", "2", null, "A", null, now, null,
+                roomCondition: "Normal", view: "Biển", bedType: "King", isSmoking: false, isConnecting: false),
+            HotelRoom.Create(propertyId, roomTypes[1].HotelRoomTypeId, "202", "Deluxe 202", "2", null, "A", null, now, null,
+                roomCondition: "Normal", view: "Thành phố", bedType: "King", isSmoking: true, isConnecting: false),
+            HotelRoom.Create(propertyId, roomTypes[2].HotelRoomTypeId, "301", "Suite 301", "3", null, "A", null, now, null,
+                roomCondition: "Normal", view: "Biển", bedType: "King", isSmoking: false, isConnecting: false),
+            HotelRoom.Create(propertyId, roomTypes[2].HotelRoomTypeId, "302", "Suite 302", "3", null, "A", null, now, null,
+                roomCondition: "Normal", view: "Hồ bơi", bedType: "King", isSmoking: false, isConnecting: false)
+        };
+        _dbContext.HotelRooms.AddRange(rooms);
+
+        var guests = new[]
+        {
+            GuestProfile.Create(propertyId.Value, "G-DEM-001", "Nguyễn Minh Anh", "0903000001", "minhanh.demo@example.com", GuestSource.Direct, now, null),
+            GuestProfile.Create(propertyId.Value, "G-DEM-002", "Trần Quốc Bảo", "0903000002", "quocbao.demo@example.com", GuestSource.OTA, now, null),
+            GuestProfile.Create(propertyId.Value, "G-DEM-003", "Công ty ABC", "0903000003", "booking@abc.example.com", GuestSource.Corporate, now, null)
+        };
+        _dbContext.GuestProfiles.AddRange(guests);
+
+        var upcomingReservation = Reservation.Create(
+            "RES-DEM-001", propertyId, guests[0].GuestProfileId, guests[0].FullName,
+            new StayPeriod(today.AddDays(1), today.AddDays(3)), GuestCount.Create(2, 0),
+            roomTypes[0].HotelRoomTypeId, "Direct", now, null);
+        upcomingReservation.Update(guests[0].FullName, guests[0].Phone, guests[0].Email, roomTypes[0].HotelRoomTypeId, null, "Tầng yên tĩnh", "Dữ liệu demo", now, null);
+        upcomingReservation.AssignRoom(rooms[0].HotelRoomId, now, null);
+        upcomingReservation.MarkTentative(now, null);
+        upcomingReservation.Confirm(now, null);
+
+        var inHouseReservation = Reservation.Create(
+            "RES-DEM-002", propertyId, guests[1].GuestProfileId, guests[1].FullName,
+            new StayPeriod(today.AddDays(-1), today.AddDays(2)), GuestCount.Create(1, 0),
+            roomTypes[1].HotelRoomTypeId, "OTA", now, null);
+        inHouseReservation.Update(guests[1].FullName, guests[1].Phone, guests[1].Email, roomTypes[1].HotelRoomTypeId, null, null, "Đã thanh toán cọc", now, null);
+        inHouseReservation.AssignRoom(rooms[2].HotelRoomId, now, null);
+        inHouseReservation.MarkTentative(now, null);
+        inHouseReservation.Confirm(now, null);
+        _dbContext.FrontOfficeReservations.AddRange(upcomingReservation, inHouseReservation);
+
+        var upcomingStay = HotelStay.Prepare(
+            "STAY-DEM-001", propertyId, upcomingReservation.ReservationId, upcomingReservation.ReservationNumber,
+            guests[0].GuestProfileId, guests[0].FullName, guests[0].Phone,
+            rooms[0].HotelRoomId, rooms[0].RoomNumber, roomTypes[0].HotelRoomTypeId, roomTypes[0].Code,
+            new HotelStayPeriod(today.AddDays(1), today.AddDays(3)), new HotelStayGuestCount(2, 0), "Direct", now, null);
+        var inHouseStay = HotelStay.Prepare(
+            "STAY-DEM-002", propertyId, inHouseReservation.ReservationId, inHouseReservation.ReservationNumber,
+            guests[1].GuestProfileId, guests[1].FullName, guests[1].Phone,
+            rooms[2].HotelRoomId, rooms[2].RoomNumber, roomTypes[1].HotelRoomTypeId, roomTypes[1].Code,
+            new HotelStayPeriod(today.AddDays(-1), today.AddDays(2)), new HotelStayGuestCount(1, 0), "OTA", now, null);
+        inHouseStay.CheckIn(now, null);
+        _dbContext.HotelStays.AddRange(upcomingStay, inHouseStay);
+
+        var folio = HotelFolio.Create(propertyId.Value, inHouseStay.HotelStayId, "FOL-DEM-002", now, null);
+        folio.AddRoomCharge(2_400_000m, "Tiền phòng Deluxe - 2 đêm", today, null, now, null);
+        folio.AddRestaurantCharge(450_000m, "Ăn sáng và nhà hàng", null, now, null, today);
+        folio.AddMiniBarCharge(120_000m, "Minibar", null, now, null, today);
+        folio.AddPayment(1_000_000m, "Đặt cọc tiền mặt", HotelPaymentMethod.Cash, "PAY-DEM-002", now, null, today);
+        _dbContext.HotelFolios.Add(folio);
+
+        await _dbContext.SaveChangesAsync();
+        return roomTypes.Length + rooms.Length + guests.Length + 2 + 2 + 1 + folio.Entries.Count;
     }
 
     private async Task<int> SeedHospitalityMenuRecipeAsync(bool needRestaurant, bool needHotel)
@@ -1486,6 +1584,7 @@ public sealed class TrainingDataSeeder : ITrainingDataSeeder
         var created = 0;
         var fallbackDepartmentId = await EnsureDepartmentForTrainingAsync();
         created += await RepairInvalidTrainingPeopleReferencesAsync(fallbackDepartmentId);
+        created += await EnsureTrainingLedgerAccountsAsync();
         var cashAccountCode = await ResolvePostingAccountCodeAsync("1111", "111");
         var bankAccountCode = await ResolvePostingAccountCodeAsync("1121", "112");
         var vatInputAccountCode = await ResolvePostingAccountCodeAsync("1331", "133");
@@ -1553,7 +1652,9 @@ public sealed class TrainingDataSeeder : ITrainingDataSeeder
             created++;
         }
 
-        if (!await _dbContext.TaxCodes.AnyAsync(x => x.Code == "VAT10"))
+        if (!await _dbContext.TaxCodes
+            .IgnoreQueryFilters()
+            .AnyAsync(x => x.Code == "VAT10"))
         {
             _dbContext.TaxCodes.AddRange(
                 new TaxCode { Id = Guid.NewGuid(), Code = "VAT0", Name = "VAT 0%", TaxRate = 0m, TaxType = "VAT", InputAccountCode = vatInputAccountCode, OutputAccountCode = vatOutputAccountCode, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
@@ -1614,6 +1715,66 @@ public sealed class TrainingDataSeeder : ITrainingDataSeeder
         }
 
         return created;
+    }
+
+    private async Task<int> EnsureTrainingLedgerAccountsAsync()
+    {
+        var requiredAccounts = new[]
+        {
+            (Code: "1111", Name: "Tiền mặt VND", Type: "Asset", Nature: "B", Balance: "Debit"),
+            (Code: "1121", Name: "Tiền gửi ngân hàng VND", Type: "Asset", Nature: "B", Balance: "Debit"),
+            (Code: "1311", Name: "Phải thu khách hàng", Type: "Receivable", Nature: "B", Balance: "Debit"),
+            (Code: "1331", Name: "Thuế GTGT được khấu trừ", Type: "Tax", Nature: "B", Balance: "Debit"),
+            (Code: "1561", Name: "Hàng hóa", Type: "Inventory", Nature: "B", Balance: "Debit"),
+            (Code: "3311", Name: "Phải trả nhà cung cấp", Type: "Payable", Nature: "B", Balance: "Credit"),
+            (Code: "33311", Name: "Thuế GTGT đầu ra", Type: "Tax", Nature: "B", Balance: "Credit"),
+            (Code: "5111", Name: "Doanh thu bán hàng và dịch vụ", Type: "Revenue", Nature: "P", Balance: "Credit"),
+            (Code: "6321", Name: "Giá vốn hàng bán", Type: "CostOfGoodsSold", Nature: "P", Balance: "Debit"),
+            (Code: "6421", Name: "Chi phí quản lý doanh nghiệp", Type: "Expense", Nature: "P", Balance: "Debit")
+        };
+
+        var existingCodes = (await _dbContext.LedgerAccounts
+            .AsNoTracking()
+            .Where(x => requiredAccounts.Select(account => account.Code).Contains(x.AccountCode))
+            .Select(x => x.AccountCode)
+            .ToListAsync())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var now = DateTime.UtcNow;
+        var missing = requiredAccounts
+            .Where(account => !existingCodes.Contains(account.Code))
+            .Select((account, index) => new ASMILE.BO.Core.Entities.LedgerAccount
+            {
+                Id = Guid.NewGuid(),
+                SortOrder = 10_000 + index,
+                AccountCode = account.Code,
+                AccountName = account.Name,
+                ReportName = account.Name,
+                AccountLevel = 2,
+                AccountKind = "D",
+                AccountNature = account.Nature,
+                AccountType = account.Type,
+                AccountingStandardCode = "TT99",
+                NormalBalance = account.Balance,
+                AllowPosting = true,
+                IsSystemAccount = true,
+                IsEditable = false,
+                IsDeletable = false,
+                IsFinancialAccount = true,
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now
+            })
+            .ToArray();
+
+        if (missing.Length == 0)
+        {
+            return 0;
+        }
+
+        _dbContext.LedgerAccounts.AddRange(missing);
+        await _dbContext.SaveChangesAsync();
+        return missing.Length;
     }
 
     private async Task<string> ResolvePostingAccountCodeAsync(params string[] candidates)
@@ -1797,7 +1958,10 @@ public sealed class TrainingDataSeeder : ITrainingDataSeeder
         var item2 = await _dbContext.Items.AsNoTracking().FirstOrDefaultAsync(x => x.ItemCode == "HH002");
         var supplier = await _dbContext.Suppliers.AsNoTracking().FirstOrDefaultAsync();
         var customer = await _dbContext.Customers.AsNoTracking().FirstOrDefaultAsync();
-        var vat10 = await _dbContext.TaxCodes.AsNoTracking().FirstOrDefaultAsync(x => x.Code == "VAT10");
+        var vat10 = await _dbContext.TaxCodes
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Code == "VAT10");
         var accountNames = await _dbContext.LedgerAccounts.AsNoTracking().ToDictionaryAsync(x => x.AccountCode, x => x.AccountName);
         var receiptNo = $"PN-TD-{today:yyyyMMdd}";
         var issueNo = $"PX-TD-{today:yyyyMMdd}";
@@ -1865,8 +2029,8 @@ public sealed class TrainingDataSeeder : ITrainingDataSeeder
                 var hotelJournal = await _journalService.CreateDraftAsync(new JournalHeader
                 {
                     JournalNo = hotelJournalNo,
-                    JournalDate = today.AddDays(-2),
-                    PostingDate = today.AddDays(-2),
+                    JournalDate = today,
+                    PostingDate = today,
                     PeriodCode = periodCode,
                     SourceType = "TrainingDataHotel",
                     SourceNo = $"TD-HOTEL-{today:yyyyMMdd}",
@@ -1891,8 +2055,8 @@ public sealed class TrainingDataSeeder : ITrainingDataSeeder
             {
                 Id = Guid.NewGuid(),
                 JournalNo = salesJournalNo,
-                JournalDate = today.AddDays(-3),
-                PostingDate = today.AddDays(-3),
+                JournalDate = today,
+                PostingDate = today,
                 SourceType = "TrainingDataSales",
                 SourceNo = $"TD-SALE-{today:yyyyMMdd}",
                 Description = "Ban hang training",
@@ -1937,8 +2101,8 @@ public sealed class TrainingDataSeeder : ITrainingDataSeeder
             {
                 Id = Guid.NewGuid(),
                 JournalNo = expenseJournalNo,
-                JournalDate = today.AddDays(-2),
-                PostingDate = today.AddDays(-2),
+                JournalDate = today,
+                PostingDate = today,
                 SourceType = "TrainingDataExpense",
                 SourceNo = $"TD-EXP-{today:yyyyMMdd}",
                 Description = "Chi phi training",

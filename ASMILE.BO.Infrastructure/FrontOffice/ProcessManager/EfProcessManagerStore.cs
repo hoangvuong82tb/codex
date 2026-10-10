@@ -2,6 +2,7 @@ using ASMILE.BO.Application.FrontOffice.ProcessManager;
 using ASMILE.BO.Core.FrontOffice.ProcessManager;
 using ASMILE.BO.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -33,7 +34,7 @@ public sealed class EfProcessManagerStore(AppDbContext dbContext) : IProcessRepo
 ;WITH due AS
 (
     SELECT TOP ({0}) *
-    FROM [fo_process].[HenGioQuyTrinh] WITH (UPDLOCK, READPAST, ROWLOCK)
+    FROM [fo_process].[HenGioQuyTrinh] WITH (UPDLOCK, READPAST, READCOMMITTEDLOCK, ROWLOCK)
     WHERE ([Status] = N'Pending' AND [DueAtUtc] <= {1})
        OR ([Status] = N'Claimed' AND [LeaseExpiresAtUtc] <= {1})
     ORDER BY [DueAtUtc], [TimeoutId]
@@ -42,7 +43,16 @@ UPDATE due
 SET [Status] = N'Claimed', [ClaimedBy] = {2}, [LeaseExpiresAtUtc] = {3}, [AttemptCount] = [AttemptCount] + 1
 OUTPUT INSERTED.*;
 """;
-        return await dbContext.FrontOfficeProcessTimeouts.FromSqlRaw(sql, batchSize, nowUtc, workerId, leaseUntil).AsNoTracking().ToListAsync(cancellationToken);
+        // READPAST is only valid under READ COMMITTED or REPEATABLE READ.  The
+        // worker can run under an ambient snapshot/read-uncommitted scope, so
+        // make the isolation level explicit for this atomic claim operation.
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        var claimed = await dbContext.FrontOfficeProcessTimeouts
+            .FromSqlRaw(sql, batchSize, nowUtc, workerId, leaseUntil)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return claimed;
     }
     public async Task<bool> MarkTimeoutFiredAsync(Guid timeoutId, string workerId, DateTime nowUtc, CancellationToken cancellationToken = default)
     {

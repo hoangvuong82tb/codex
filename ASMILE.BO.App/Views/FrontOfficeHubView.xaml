@@ -36,11 +36,12 @@
         </Style>
 
         <DataTemplate DataType="{x:Type models:FrontOfficeHubCard}">
-            <Border Style="{StaticResource CardBorderStyle}" Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}"
-                    Tag="{Binding Id}">
-                <Border.InputBindings>
-                    <MouseBinding MouseAction="LeftClick" Command="{Binding Command}"/>
-                </Border.InputBindings>
+            <Button Style="{StaticResource FO.MainHubCardButton}"
+                    Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}"
+                    IsEnabled="{Binding IsEnabled}"
+                    Command="{Binding Command}"
+                    Tag="{Binding Id}"
+                    AutomationProperties.Name="{Binding AutomationName}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="54"/>
@@ -57,11 +58,14 @@
                                Foreground="#16325C" VerticalAlignment="Center" Margin="16,0,0,0"
                                TextTrimming="CharacterEllipsis"/>
                 </Grid>
-            </Border>
+            </Button>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding Id}" Value="reservation"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4A8EFF" Offset="0"/><GradientStop Color="#1765F2" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
                 <DataTrigger Binding="{Binding Id}" Value="reception"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#31C9B8" Offset="0"/><GradientStop Color="#00A58F" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
                 <DataTrigger Binding="{Binding Id}" Value="cashier"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFAD39" Offset="0"/><GradientStop Color="#ED7900" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="folio"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#B158FF" Offset="0"/><GradientStop Color="#7D2BE1" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="key-management"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4A8EFF" Offset="0"/><GradientStop Color="#1765F2" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
+                <DataTrigger Binding="{Binding Id}" Value="fo-log"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#2CC7D8" Offset="0"/><GradientStop Color="#00A7BA" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
                 <DataTrigger Binding="{Binding Id}" Value="group"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#B158FF" Offset="0"/><GradientStop Color="#7D2BE1" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
                 <DataTrigger Binding="{Binding Id}" Value="housekeeping"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4ED86E" Offset="0"/><GradientStop Color="#18B33F" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
                 <DataTrigger Binding="{Binding Id}" Value="telephone"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4A91FF" Offset="0"/><GradientStop Color="#1E6CF1" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
@@ -121,7 +125,7 @@
 
         <Grid Visibility="{Binding IsComingSoonDialogOpen, Converter={StaticResource BoolVis}}">
             <Border Background="#40000000"/>
-            <Border Background="White" CornerRadius="16" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <Border Style="{StaticResource FO.ComingSoonModalShell}" HorizontalAlignment="Center" VerticalAlignment="Center"
                     Width="360" BorderBrush="#E2E8F0" BorderThickness="1">
                 <StackPanel>
                     <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="36"

@@ -77,6 +77,8 @@ public sealed partial class ModuleSettingItemViewModel : ObservableObject
         this.value = value;
         originalValue = value;
         boolValue = ToBoolean(value);
+        isEnabled = string.IsNullOrWhiteSpace(definition.DisabledDescription);
+        disabledReason = definition.DisabledDescription ?? string.Empty;
         foreach (var option in definition.Options ?? Array.Empty<string>()) Options.Add(option);
     }
 

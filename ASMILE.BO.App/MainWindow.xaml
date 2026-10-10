@@ -11,14 +11,39 @@
         Width="1540"
         MinHeight="760"
         MinWidth="1280"
-        Icon="file:///D:/ASMILE-BO/Windows_Icon/Icons/logo/u2.png"
+        Icon="pack://siteoforigin:,,,/Windows_Icon/Icons/logo/u2.png"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource SurfaceBrush}">
     <Grid>
-        <views:DesktopShellView />
+        <views:DesktopShellView x:Name="DesktopShell" />
 
         <Border x:Name="LoginOverlay" Background="#66000000" Visibility="Collapsed">
             <authViews:LoginPanelView x:Name="LoginPanel" />
+        </Border>
+
+        <Border x:Name="SessionValidationOverlay"
+                Background="#CCF6F8FC"
+                Visibility="Collapsed"
+                Panel.ZIndex="10">
+            <Border Background="White"
+                    BorderBrush="#D7E2F1"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="28"
+                    Width="440"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Text="Đang tạm dừng để xác minh phiên"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="#14233F" />
+                    <TextBlock Margin="0,10,0,0"
+                               Text="Không thể kết nối cơ sở dữ liệu để xác nhận quyền truy cập. Dữ liệu và màn hình hiện tại được giữ nguyên; ứng dụng sẽ tự kiểm tra lại khi kết nối phục hồi."
+                               TextWrapping="Wrap"
+                               Foreground="#536985" />
+                </StackPanel>
+            </Border>
         </Border>
     </Grid>
 </Window>

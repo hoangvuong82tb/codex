@@ -78,6 +78,10 @@ public sealed partial class InHouseWorkspaceViewModel : ViewModelBase
     [ObservableProperty] private int _totalVip;
     [ObservableProperty] private int _totalDnd;
 
+    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
+
     public InHouseWorkspaceViewModel(IReceptionUiService service)
     {
         _service = service;
@@ -93,15 +97,38 @@ public sealed partial class InHouseWorkspaceViewModel : ViewModelBase
             if (stays.IsSuccess && stays.Value is not null)
             {
                 Stays = new ObservableCollection<InHouseStayCard>(stays.Value.Select(InHouseStayCard.FromDto));
-                TotalInHouse = Stays.Count(s => s.Status == HotelStayStatus.InHouse);
+                TotalInHouse = Stays.Count(s => s.Status is HotelStayStatus.CheckedIn
+                    or HotelStayStatus.InHouse
+                    or HotelStayStatus.RoomMoved
+                    or HotelStayStatus.Extended);
                 TotalDueOut = Stays.Count(s => s.Status == HotelStayStatus.ExpectedDeparture);
                 TotalVip = Stays.Count(s => s.IsVip);
                 TotalDnd = Stays.Count(s => s.IsDoNotDisturb);
                 HasData = Stays.Count > 0;
             }
+            else
+            {
+                ClearStayResults();
+                ErrorMessage = stays.Error?.Message ?? "Không tải được danh sách khách đang lưu trú.";
+            }
         }
-        catch (Exception ex) { ErrorMessage = $"Không thể tải danh sách: {ex.Message}"; }
+        catch (Exception ex)
+        {
+            ClearStayResults();
+            ErrorMessage = $"Không thể tải danh sách: {ex.Message}";
+        }
         finally { IsLoading = false; }
+    }
+
+    private void ClearStayResults()
+    {
+        Stays.Clear();
+        SelectedStay = null;
+        TotalInHouse = 0;
+        TotalDueOut = 0;
+        TotalVip = 0;
+        TotalDnd = 0;
+        HasData = false;
     }
 
     partial void OnSelectedStayChanged(InHouseStayCard? value)

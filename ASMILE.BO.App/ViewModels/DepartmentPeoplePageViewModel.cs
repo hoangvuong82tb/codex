@@ -1,5 +1,6 @@
 ﻿using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Services;
 using ASMILE.BO.App.Models;
 using ASMILE.BO.App.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -20,11 +21,14 @@ public partial class DepartmentPeoplePageViewModel : ViewModelBase
     private readonly IDepartmentPeopleImportExportService _importExportService;
     private readonly IDialogService _dialogService;
     private readonly INotificationService _notificationService;
+    private readonly IModuleSettingsService _moduleSettingsService;
 
     private readonly TimeSpan _searchDebounce = TimeSpan.FromMilliseconds(260);
     private CancellationTokenSource? _searchDebounceCts;
     private readonly SemaphoreSlim _loadSemaphore = new(1, 1);
     private bool _suppressSelectedDepartmentChanged;
+    private bool _autoEmployeeCode;
+    private string _employeeCodePattern = "NV-{00000}";
 
     public ObservableCollection<DepartmentTreeItemViewModel> Departments { get; } = [];
     public ObservableCollection<PersonDto> People { get; } = [];
@@ -85,13 +89,15 @@ public partial class DepartmentPeoplePageViewModel : ViewModelBase
         IPersonAppService personService,
         IDepartmentPeopleImportExportService importExportService,
         IDialogService dialogService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IModuleSettingsService moduleSettingsService)
     {
         _departmentService = departmentService;
         _personService = personService;
         _importExportService = importExportService;
         _dialogService = dialogService;
         _notificationService = notificationService;
+        _moduleSettingsService = moduleSettingsService;
 
         People.CollectionChanged += OnPeopleCollectionChanged;
         _ = LoadAsync();
@@ -357,12 +363,69 @@ public partial class DepartmentPeoplePageViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void OpenNewPerson()
+    private async Task OpenNewPerson()
     {
-        var defaultDept = SelectedDepartment?.Id ?? Departments.FirstOrDefault()?.Id ?? 0;
-        EditingPerson = new PersonDto { IsActive = true, DepartmentId = defaultDept };
-        IsPersonFormOpen = true;
-        IsPeopleSectionFocused = true;
+        try
+        {
+            var settings = await _moduleSettingsService.LoadAsync("departments");
+            var configuredDepartment = settings.Values.GetValueOrDefault("defaultDepartment", string.Empty).Trim();
+            var configuredPosition = settings.Values.GetValueOrDefault("defaultPosition", string.Empty).Trim();
+            _autoEmployeeCode = bool.TryParse(settings.Values.GetValueOrDefault("autoEmployeeCode"), out var autoCode)
+                && autoCode;
+            var configuredPattern = settings.Values.GetValueOrDefault("employeeCodePattern", "NV-{00000}");
+            _employeeCodePattern = SequenceCodePattern.IsValid(configuredPattern)
+                ? configuredPattern
+                : "NV-{00000}";
+            var activeDepartments = await _departmentService.GetLookupAsync();
+
+            var departmentId = ResolveNewPersonDepartmentId(
+                SelectedDepartment?.Id,
+                configuredDepartment,
+                activeDepartments);
+
+            var generatedCode = string.Empty;
+            if (_autoEmployeeCode)
+            {
+                var people = await _personService.SearchAsync(null, string.Empty, null);
+                var today = DateTime.Now;
+                var nextSequence = SequenceCodePattern.GetNextSequence(
+                    _employeeCodePattern,
+                    today,
+                    people.Select(x => x.PersonCode));
+                generatedCode = SequenceCodePattern.Render(_employeeCodePattern, today, nextSequence);
+            }
+
+            EditingPerson = new PersonDto
+            {
+                PersonCode = generatedCode,
+                IsActive = true,
+                DepartmentId = departmentId,
+                Position = configuredPosition
+            };
+            IsPersonFormOpen = true;
+            IsPeopleSectionFocused = true;
+        }
+        catch (Exception ex)
+        {
+            _dialogService.Error($"Không tải được cấu hình nhân sự: {ex.Message}");
+        }
+    }
+
+    private static int ResolveNewPersonDepartmentId(
+        int? selectedDepartmentId,
+        string configuredDepartment,
+        IReadOnlyList<LookupItemDto> activeDepartments)
+    {
+        if (selectedDepartmentId.HasValue
+            && activeDepartments.Any(x => x.Id == selectedDepartmentId.Value))
+        {
+            return selectedDepartmentId.Value;
+        }
+
+        var configured = activeDepartments.FirstOrDefault(x =>
+            string.Equals(x.Code.Trim(), configuredDepartment, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(x.Name.Trim(), configuredDepartment, StringComparison.OrdinalIgnoreCase));
+        return configured?.Id ?? activeDepartments.FirstOrDefault()?.Id ?? 0;
     }
 
     [RelayCommand]
@@ -755,7 +818,7 @@ public partial class DepartmentPeoplePageViewModel : ViewModelBase
         PersonNameError = string.Empty;
         PersonPhoneError = string.Empty;
 
-        if (string.IsNullOrWhiteSpace(EditingPerson.PersonCode))
+        if (string.IsNullOrWhiteSpace(EditingPerson.PersonCode) && !_autoEmployeeCode)
         {
             PersonCodeError = "Mã nhân sự là bắt buộc.";
         }

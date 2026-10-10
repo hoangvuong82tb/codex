@@ -25,13 +25,27 @@ public partial class SearchReservationView : UserControl
         // Detail panel updates via SelectedReservation binding
     }
 
-    private void OnViewDetailClick(object sender, RoutedEventArgs e)
+    private async void OnEditClick(object sender, RoutedEventArgs e)
     {
-        // Placeholder for future detail view
+        if (DataContext is not ReservationWorkspaceViewModel workspace)
+        {
+            MessageBox.Show(Window.GetWindow(this), "Không tải được dữ liệu đặt phòng để sửa. Vui lòng làm mới danh sách rồi thử lại.", "Không thể sửa đặt phòng", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (workspace.SelectedReservation is not { } reservation)
+        {
+            MessageBox.Show(Window.GetWindow(this), "Vui lòng chọn một đặt phòng trước khi sửa.", "Chưa chọn đặt phòng", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (Window.GetWindow(this) is not SearchReservationWindow window)
+        {
+            MessageBox.Show(Window.GetWindow(this), "Không xác định được cửa sổ tra cứu đặt phòng để mở màn hình sửa.", "Không thể sửa đặt phòng", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        await window.RequestEditAsync(reservation);
     }
 
-    private void OnSelectClick(object sender, RoutedEventArgs e)
-    {
-        // Placeholder — returns selected reservation context
-    }
 }

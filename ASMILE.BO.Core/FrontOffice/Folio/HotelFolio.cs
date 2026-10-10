@@ -122,33 +122,42 @@ public sealed class HotelFolio
     // CHARGE POSTINGS
     // =============================================================================
     public HotelFolioEntry AddRoomCharge(decimal amount, string description, DateOnly businessDate, Guid? ratePlanId, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.RoomCharge, amount, description, "RatePlan", ratePlanId, businessDate, nowUtc, actorId); }
-    public HotelFolioEntry AddRestaurantCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Restaurant, amount, description, "RestaurantOrder", referenceId, null, nowUtc, actorId); }
-    public HotelFolioEntry AddLaundryCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Laundry, amount, description, "LaundryOrder", referenceId, null, nowUtc, actorId); }
-    public HotelFolioEntry AddMiniBarCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.MiniBar, amount, description, "MiniBarConsumption", referenceId, null, nowUtc, actorId); }
-    public HotelFolioEntry AddSpaCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Spa, amount, description, "SpaBooking", referenceId, null, nowUtc, actorId); }
-    public HotelFolioEntry AddTelephoneCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Telephone, amount, description, "CallRecord", referenceId, null, nowUtc, actorId); }
+    public HotelFolioEntry AddRestaurantCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Restaurant, amount, description, "RestaurantOrder", referenceId, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddLaundryCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Laundry, amount, description, "LaundryOrder", referenceId, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddMiniBarCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.MiniBar, amount, description, "MiniBarConsumption", referenceId, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddSpaCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Spa, amount, description, "SpaBooking", referenceId, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddTelephoneCharge(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Telephone, amount, description, "CallRecord", referenceId, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddGroupServiceCharge(decimal amount, string description, Guid referenceId, HotelFolioEntryType entryType, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null)
+    {
+        RequireMutable();
+        RequirePositive(amount);
+        if (entryType is not (HotelFolioEntryType.Restaurant or HotelFolioEntryType.Laundry or HotelFolioEntryType.Spa or HotelFolioEntryType.OtherCharge or HotelFolioEntryType.ManualCharge))
+            throw new ArgumentException("FOLIO_GROUP_SERVICE_ENTRY_TYPE_INVALID");
+        return AddEntry(entryType, amount, description, "GroupServiceOrder", referenceId, businessDate, nowUtc, actorId);
+    }
 
     // === Tax & Fees ===
-    public HotelFolioEntry AddTax(decimal amount, string description, DateTime nowUtc, ActorId? actorId) { RequireMutable(); if (amount <= 0) throw new ArgumentException("FOLIO_AMOUNT_POSITIVE"); return AddEntry(HotelFolioEntryType.Tax, amount, description, null, null, null, nowUtc, actorId); }
-    public HotelFolioEntry AddServiceCharge(decimal amount, string description, DateTime nowUtc, ActorId? actorId) { RequireMutable(); if (amount <= 0) throw new ArgumentException("FOLIO_AMOUNT_POSITIVE"); return AddEntry(HotelFolioEntryType.ServiceCharge, amount, description, null, null, null, nowUtc, actorId); }
+    public HotelFolioEntry AddTax(decimal amount, string description, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); if (amount <= 0) throw new ArgumentException("FOLIO_AMOUNT_POSITIVE"); return AddEntry(HotelFolioEntryType.Tax, amount, description, null, null, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddServiceCharge(decimal amount, string description, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); if (amount <= 0) throw new ArgumentException("FOLIO_AMOUNT_POSITIVE"); return AddEntry(HotelFolioEntryType.ServiceCharge, amount, description, null, null, businessDate, nowUtc, actorId); }
 
     // === Adjustments ===
-    public HotelFolioEntry AddDiscount(decimal amount, string description, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Discount, -amount, description, null, null, null, nowUtc, actorId); }
-    public HotelFolioEntry AddPackage(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Package, -amount, description, "Package", referenceId, null, nowUtc, actorId); }
-    public HotelFolioEntry AddAdjustment(decimal amount, string description, DateTime nowUtc, ActorId? actorId) { RequireMutable(); if (amount == 0) throw new ArgumentException("FOLIO_AMOUNT_NONZERO"); return AddEntry(HotelFolioEntryType.Adjustment, amount, description, null, null, null, nowUtc, actorId); }
-    public HotelFolioEntry AddCorrection(decimal amount, string description, Guid? originalEntryId, DateTime nowUtc, ActorId? actorId) { RequireMutable(); if (amount == 0) throw new ArgumentException("FOLIO_AMOUNT_NONZERO"); var entry = AddEntry(HotelFolioEntryType.Correction, amount, description, null, null, null, nowUtc, actorId); if (originalEntryId.HasValue) { entry.MarkAsReversal(originalEntryId.Value); var orig = _entries.FirstOrDefault(e => e.HotelFolioEntryId == originalEntryId.Value); orig?.MarkReversedBy(entry.HotelFolioEntryId); } return entry; }
+    public HotelFolioEntry AddDiscount(decimal amount, string description, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Discount, -amount, description, null, null, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddPackage(decimal amount, string description, Guid? referenceId, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Package, -amount, description, "Package", referenceId, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddAdjustment(decimal amount, string description, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); if (amount == 0) throw new ArgumentException("FOLIO_AMOUNT_NONZERO"); return AddEntry(HotelFolioEntryType.Adjustment, amount, description, null, null, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddTransfer(decimal amount, string description, Guid? sourceEntryId, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); if (amount == 0) throw new ArgumentException("FOLIO_AMOUNT_NONZERO"); return AddEntry(HotelFolioEntryType.Transfer, amount, description, "HotelFolioEntry", sourceEntryId, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddCorrection(decimal amount, string description, Guid? originalEntryId, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); if (amount == 0) throw new ArgumentException("FOLIO_AMOUNT_NONZERO"); var entry = AddEntry(HotelFolioEntryType.Correction, amount, description, null, null, businessDate, nowUtc, actorId); if (originalEntryId.HasValue) { entry.MarkAsReversal(originalEntryId.Value); var orig = _entries.FirstOrDefault(e => e.HotelFolioEntryId == originalEntryId.Value); orig?.MarkReversedBy(entry.HotelFolioEntryId); } return entry; }
 
     // === Payments ===
-    public HotelFolioEntry AddPayment(decimal amount, string description, HotelPaymentMethod? method, string? externalRef, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); var refType = method.HasValue ? $"Payment:{method}" : "Payment"; return AddEntry(HotelFolioEntryType.Payment, -amount, description, refType, null, null, nowUtc, actorId); }
-    public HotelFolioEntry AddDeposit(decimal amount, string description, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Deposit, -amount, description, "Deposit", null, null, nowUtc, actorId); }
-    public HotelFolioEntry AddRefund(decimal amount, string description, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Refund, amount, description, "Refund", null, null, nowUtc, actorId); }
+    public HotelFolioEntry AddPayment(decimal amount, string description, HotelPaymentMethod? method, string? externalRef, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); var refType = method.HasValue ? $"Payment:{method}" : "Payment"; return AddEntry(HotelFolioEntryType.Payment, -amount, description, refType, null, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddDeposit(decimal amount, string description, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Deposit, -amount, description, "Deposit", null, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddRefund(decimal amount, string description, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.Refund, amount, description, "Refund", null, businessDate, nowUtc, actorId); }
 
     // === Manual ===
-    public HotelFolioEntry AddManualCharge(decimal amount, string description, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.ManualCharge, amount, description, null, null, null, nowUtc, actorId); }
-    public HotelFolioEntry AddManualCredit(decimal amount, string description, DateTime nowUtc, ActorId? actorId) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.ManualCredit, -amount, description, null, null, null, nowUtc, actorId); }
+    public HotelFolioEntry AddManualCharge(decimal amount, string description, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.ManualCharge, amount, description, null, null, businessDate, nowUtc, actorId); }
+    public HotelFolioEntry AddManualCredit(decimal amount, string description, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); RequirePositive(amount); return AddEntry(HotelFolioEntryType.ManualCredit, -amount, description, null, null, businessDate, nowUtc, actorId); }
 
     // === Balance ===
-    public HotelFolioEntry AddOpeningBalance(decimal amount, DateTime nowUtc, ActorId? actorId) { RequireMutable(); return AddEntry(HotelFolioEntryType.OpeningBalance, amount, "Opening balance", null, null, null, nowUtc, actorId); }
+    public HotelFolioEntry AddOpeningBalance(decimal amount, DateTime nowUtc, ActorId? actorId, DateOnly? businessDate = null) { RequireMutable(); return AddEntry(HotelFolioEntryType.OpeningBalance, amount, "Opening balance", null, null, businessDate, nowUtc, actorId); }
 
     // =============================================================================
     // HELPERS
@@ -173,6 +182,7 @@ public sealed class HotelFolioEntry
     private HotelFolioEntry() { }
     public Guid HotelFolioEntryId { get; private set; }
     public Guid HotelFolioId { get; private set; }
+    public HotelFolio? HotelFolio { get; private set; }
     public Guid PropertyId { get; private set; }
     public int SequenceNumber { get; private set; }
     public HotelFolioEntryType EntryType { get; private set; }
@@ -185,11 +195,25 @@ public sealed class HotelFolioEntry
     public Guid? ReversedByEntryId { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public Guid? CreatedBy { get; private set; }
+    public byte[]? RowVersion { get; private set; }
+    public string? IdempotencyKey { get; private set; }
 
     public static HotelFolioEntry Create(Guid folioId, Guid propertyId, int sequence, HotelFolioEntryType type, decimal amount, string description, string? referenceType, Guid? referenceId, DateOnly? businessDate, DateTime nowUtc, ActorId? actorId)
     {
         if (string.IsNullOrWhiteSpace(description)) throw new ArgumentException("FOLIO_DESCRIPTION_REQUIRED");
         return new HotelFolioEntry { HotelFolioEntryId = Uuid7.NewGuid(), HotelFolioId = folioId, PropertyId = propertyId, SequenceNumber = sequence, EntryType = type, Amount = amount, Description = description.Trim(), ReferenceType = referenceType, ReferenceId = referenceId, BusinessDate = businessDate, CreatedAtUtc = nowUtc, CreatedBy = actorId?.Value };
+    }
+
+    /// <summary>
+    /// Assigns the accounting/business date to a legacy entry that was created
+    /// before the field was mandatory. Existing dates are immutable so a
+    /// backfill cannot silently rewrite posted history.
+    /// </summary>
+    public void BackfillBusinessDate(DateOnly businessDate)
+    {
+        if (businessDate == default) throw new ArgumentException("FOLIO_BUSINESS_DATE_REQUIRED");
+        if (BusinessDate.HasValue) throw new InvalidOperationException("FOLIO_BUSINESS_DATE_ALREADY_SET");
+        BusinessDate = businessDate;
     }
 
     internal void MarkReversedBy(Guid reversalEntryId) => ReversedByEntryId = reversalEntryId;

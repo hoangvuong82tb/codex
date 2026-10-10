@@ -1,5 +1,6 @@
 using ASMILE.BO.Application.FrontOffice.Availability;
 using ASMILE.BO.Core.FrontOffice.Availability;
+using ASMILE.BO.Core.FrontOffice.Group;
 using ASMILE.BO.Core.FrontOffice.HotelMasterData;
 using ASMILE.BO.Core.FrontOffice.Housekeeping;
 using ASMILE.BO.Core.FrontOffice.Stay;
@@ -36,9 +37,23 @@ public sealed class AvailabilityEngine(AppDbContext db) : IAvailabilityEngine
 
         var unavailableIds = conflictingStays.Concat(conflictingReservations).ToHashSet();
         var available = rooms.Where(x => !unavailableIds.Contains(x.HotelRoomId)).ToList();
+        var blockedByGroups = r.RoomTypeId.HasValue
+            ? await db.FrontOfficeGroupRoomBlocks.AsNoTracking()
+                .Where(block => block.PropertyId == r.PropertyId
+                    && block.HotelRoomTypeId == r.RoomTypeId.Value
+                    && block.GroupReservationId != r.ExcludedGroupReservationId
+                    && (block.Status == GroupRoomBlockStatus.Tentative || block.Status == GroupRoomBlockStatus.Confirmed)
+                    && block.ArrivalDate < r.DepartureDate
+                    && block.DepartureDate > r.ArrivalDate)
+                .Select(block => block.BlockedRooms - block.PickedUpRooms)
+                .SumAsync(ct)
+            : 0;
+        var availableRoomCount = Math.Max(0, available.Count - blockedByGroups);
 
-        if (available.Count < r.RoomCount)
-            return new AvailabilityResult(false, available.Count, available.Count == 0 ? "RESERVATION_NO_AVAILABILITY" : $"RESERVATION_INSUFFICIENT_ROOMS: need {r.RoomCount}, have {available.Count}", []);
+        if (availableRoomCount < r.RoomCount)
+            return new AvailabilityResult(false, availableRoomCount, availableRoomCount == 0 ? "RESERVATION_NO_AVAILABILITY" : $"RESERVATION_INSUFFICIENT_ROOMS: need {r.RoomCount}, have {availableRoomCount}", []);
+
+        available = available.Take(availableRoomCount).ToList();
 
         var hkStates = await db.Set<RoomHousekeepingState>().AsNoTracking()
             .Where(x => x.PropertyId == r.PropertyId && available.Select(a => a.HotelRoomId).Contains(x.HotelRoomId))

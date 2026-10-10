@@ -571,7 +571,7 @@
                                FontSize="20"
                                FontWeight="SemiBold"
                                Foreground="#102E5A"/>
-                    <TextBlock Text="Wizard điều chỉnh phòng đang lưu trú · dữ liệu minh họa, không ghi hệ thống"
+                    <TextBlock Text="Wizard điều chỉnh phòng đang lưu trú · dữ liệu thật, xác nhận sẽ ghi vào hệ thống"
                                Margin="0,2,0,0"
                                FontFamily="Segoe UI"
                                FontSize="12"
@@ -1205,7 +1205,7 @@
                                Foreground="#52657D"/>
                     <TextBlock x:Name="FooterStatusText"
                                Margin="0,2,0,0"
-                               Text="Dữ liệu minh họa · chưa kết nối backend"
+                               Text="Dữ liệu phòng và lưu trú được tải từ hệ thống thật"
                                FontFamily="Segoe UI"
                                FontSize="10"
                                Foreground="#94A3B8"/>

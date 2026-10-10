@@ -6,147 +6,103 @@
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
         Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True">
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolVis"/>
         <Style x:Key="ModTextBox" TargetType="TextBox"><Setter Property="Height" Value="40"/><Setter Property="Padding" Value="12,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
         <Style x:Key="ModCombo" TargetType="ComboBox"><Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions><ContentPresenter Grid.Column="0" Margin="12,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}"/><Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7B8DA6" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="6" Stretch="Uniform"/></Grid></Border><Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"><Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="9" Margin="0,2"><ScrollViewer MaxHeight="220"><ItemsPresenter/></ScrollViewer></Border></Popup></Grid></ControlTemplate></Setter.Value></Setter></Style>
         <Style x:Key="ModDatePicker" TargetType="DatePicker"><Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="CalendarStyle" Value="{StaticResource FoModernCalendarStyle}"/><Setter Property="FirstDayOfWeek" Value="Monday"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DatePicker"><Grid><Border x:Name="Root" Background="White" BorderBrush="#D7E2F0" BorderThickness="1" CornerRadius="9" SnapsToDevicePixels="True"/><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions><Grid Grid.Column="0"><DatePickerTextBox x:Name="PART_TextBox" BorderThickness="0" Background="Transparent" Padding="12,0" VerticalContentAlignment="Center" FontSize="13" FontFamily="Segoe UI" Foreground="#17365D"/><TextBlock x:Name="Watermark" Text="Chọn ngày" IsHitTestVisible="False" Background="White" FontSize="13" FontFamily="Segoe UI" Foreground="#94A3B8" Padding="12,0" VerticalAlignment="Center" Visibility="Collapsed"/></Grid><ToggleButton x:Name="PART_Button" Grid.Column="1" Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Focusable="False" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"><Border Width="28" Height="28" CornerRadius="7" Background="#F2F6FD"><TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#2F6BFF" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ToggleButton></Grid><Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" StaysOpen="False" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"><Calendar x:Name="PART_Calendar" Style="{StaticResource FoModernCalendarStyle}" Language="vi-VN" BorderThickness="0" Background="White" SelectedDate="{Binding SelectedDate, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" DisplayDate="{Binding DisplayDate, RelativeSource={RelativeSource TemplatedParent}}"/></Popup></Grid><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#AFCBF7"/></Trigger><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#2F6BFF"/></Trigger><DataTrigger Binding="{Binding SelectedDate, RelativeSource={RelativeSource Self}}" Value="{x:Null}"><Setter TargetName="Watermark" Property="Visibility" Value="Visible"/></DataTrigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
         <Style x:Key="BlueBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="Background" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="18,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
         <Style x:Key="GrayBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="14"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
         <Style x:Key="OutlineBtn" TargetType="Button"><Setter Property="Height" Value="36"/><Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#D8E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="12,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
-        <Style x:Key="TabBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="MinWidth" Value="70"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#64748B"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="0,0,0,2"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="10,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
         <Style x:Key="ModDataGrid" TargetType="DataGrid"><Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/><Setter Property="Background" Value="Transparent"/><Setter Property="RowBackground" Value="Transparent"/><Setter Property="AlternatingRowBackground" Value="#FAFBFD"/><Setter Property="BorderThickness" Value="0"/><Setter Property="ColumnHeaderHeight" Value="42"/><Setter Property="RowHeight" Value="42"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/><Setter Property="ColumnHeaderStyle"><Setter.Value><Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="#F2F6FC"/><Setter Property="Foreground" Value="#475569"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="12"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/><Setter Property="Padding" Value="10,0"/></Style></Setter.Value></Setter></Style>
-        <Style x:Key="MetricCard" TargetType="Border"><Setter Property="Background" Value="#FAFBFD"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="12,10"/></Style>
-        <Style x:Key="QuickRpt" TargetType="Border"><Setter Property="Background" Value="White"/><Setter Property="CornerRadius" Value="10"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="12,10"/><Setter Property="Cursor" Value="Hand"/></Style>
-        <Style x:Key="CatCard" TargetType="Border"><Setter Property="Background" Value="White"/><Setter Property="CornerRadius" Value="12"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="16"/></Style>
     </Window.Resources>
 
     <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-        <!-- HEADER -->
-        <Border Padding="24,18" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <Border Width="46" Height="46" CornerRadius="12"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#7C3AED" Offset="0"/><GradientStop Color="#6D28D9" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0"><TextBlock Text="Báo cáo Front Office" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Tổng hợp và truy cập các báo cáo nghiệp vụ Lễ tân." FontSize="13" Foreground="#64748B" Margin="0,3,0,0"/></StackPanel>
-                <StackPanel Grid.Column="2" Orientation="Horizontal"><Button Content="Làm mới" Click="OnRefresh" Style="{StaticResource GrayBtn}"/><Button Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}" Margin="8,0,0,0"/></StackPanel>
+        <Border Padding="22,16" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="44" Height="44" CornerRadius="12">
+                    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#7C3AED" Offset="0"/><GradientStop Color="#6D28D9" Offset="1"/></LinearGradientBrush></Border.Background>
+                    <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="21" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <TextBlock Text="Báo cáo Front Office" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/>
+                    <TextBlock Text="Báo cáo vận hành, công suất phòng và doanh thu từ dữ liệu cơ sở đang chọn." FontSize="13" Foreground="#64748B" Margin="0,3,0,0"/>
+                </StackPanel>
+                <Button Grid.Column="2" Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}"/>
             </Grid>
         </Border>
 
-        <!-- DASHBOARD METRICS -->
-        <Border Grid.Row="1" Margin="14,10,14,0" Padding="14,10" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
-            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                <Border Style="{StaticResource MetricCard}" Margin="0,0,4,0"><StackPanel><TextBlock Text="Đang ở" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="MInHouse" FontSize="20" FontWeight="Bold" Foreground="#2563EB" Text="58"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="2,0,2,0"><StackPanel><TextBlock Text="Đến HN" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="MArrivals" FontSize="20" FontWeight="Bold" Foreground="#16A34A" Text="48"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="2,0,2,0"><StackPanel><TextBlock Text="Đi HN" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="MDepartures" FontSize="20" FontWeight="Bold" Foreground="#DC2626" Text="34"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="2,0,2,0"><StackPanel><TextBlock Text="Lấp phòng" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="MOccupancy" FontSize="20" FontWeight="Bold" Foreground="#17365D" Text="72%"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="2,0,2,0"><StackPanel><TextBlock Text="Check-in" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="MCheckins" FontSize="20" FontWeight="Bold" Foreground="#059669" Text="17"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="2,0,2,0"><StackPanel><TextBlock Text="Check-out" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="MCheckouts" FontSize="20" FontWeight="Bold" Foreground="#EA580C" Text="9"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="2,0,2,0"><StackPanel><TextBlock Text="Doanh thu" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="MRevenue" FontSize="20" FontWeight="Bold" Foreground="#7C3AED" Text="142M"/></StackPanel></Border>
-                <Border Style="{StaticResource MetricCard}" Margin="4,0,0,0"><StackPanel><TextBlock Text="Folio mở" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="MFolio" FontSize="20" FontWeight="Bold" Foreground="#F59E0B" Text="89"/></StackPanel></Border>
+        <Border Grid.Row="1" Margin="16,12" Padding="14" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/><ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="1.2*"/><ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0"><TextBlock Text="Tìm báo cáo" FontSize="11" Foreground="#64748B" Margin="2,0,0,5"/><TextBox x:Name="SearchBox" Style="{StaticResource ModTextBox}" TextChanged="OnSearchTextChanged" ToolTip="Tên hoặc mô tả báo cáo"/></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="Danh mục" FontSize="11" Foreground="#64748B" Margin="2,0,0,5"/><ComboBox x:Name="ReportCategoryCombo" Style="{StaticResource ModCombo}" SelectionChanged="OnCategoryChanged"/></StackPanel>
+                <StackPanel x:Name="FromDatePanel" Grid.Column="4"><TextBlock Text="Từ ngày" FontSize="11" Foreground="#64748B" Margin="2,0,0,5"/><DatePicker x:Name="FromDatePicker" Style="{StaticResource ModDatePicker}"/></StackPanel>
+                <StackPanel Grid.Column="6"><TextBlock x:Name="ToDateLabel" Text="Đến ngày" FontSize="11" Foreground="#64748B" Margin="2,0,0,5"/><DatePicker x:Name="ToDatePicker" Style="{StaticResource ModDatePicker}"/></StackPanel>
+                <Button Grid.Column="8" Content="Lọc" Click="OnApplyFilters" Style="{StaticResource BlueBtn}" VerticalAlignment="Bottom"/>
+                <Button Grid.Column="10" Content="Làm mới" Click="OnRefresh" Style="{StaticResource GrayBtn}" VerticalAlignment="Bottom"/>
             </Grid>
         </Border>
 
-        <!-- QUICK REPORT + FILTER -->
-        <Border Grid.Row="2" Margin="14,8,14,6" Padding="14,12" Background="White" CornerRadius="12" BorderBrush="#D8E2F0" BorderThickness="1">
-            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <TextBlock Text="In nhanh" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,8"/>
-                <WrapPanel Grid.Row="1">
-                    <Border Style="{StaticResource QuickRpt}" Width="150" Margin="0,0,8,6" MouseLeftButtonDown="OnQuickReport"><TextBlock Text="Danh sách khách đến" FontSize="12" FontWeight="SemiBold" Foreground="#2563EB"/></Border>
-                    <Border Style="{StaticResource QuickRpt}" Width="150" Margin="0,0,8,6" MouseLeftButtonDown="OnQuickReport"><TextBlock Text="Danh sách khách đi" FontSize="12" FontWeight="SemiBold" Foreground="#DC2626"/></Border>
-                    <Border Style="{StaticResource QuickRpt}" Width="150" Margin="0,0,8,6" MouseLeftButtonDown="OnQuickReport"><TextBlock Text="Danh sách VIP" FontSize="12" FontWeight="SemiBold" Foreground="#F59E0B"/></Border>
-                    <Border Style="{StaticResource QuickRpt}" Width="150" Margin="0,0,8,6" MouseLeftButtonDown="OnQuickReport"><TextBlock Text="Khách đang lưu trú" FontSize="12" FontWeight="SemiBold" Foreground="#16A34A"/></Border>
-                    <Border Style="{StaticResource QuickRpt}" Width="150" Margin="0,0,8,6" MouseLeftButtonDown="OnQuickReport"><TextBlock Text="Khách dự kiến đến" FontSize="12" FontWeight="SemiBold" Foreground="#059669"/></Border>
-                    <Border Style="{StaticResource QuickRpt}" Width="150" Margin="0,0,8,6" MouseLeftButtonDown="OnQuickReport"><TextBlock Text="Khách dự kiến đi" FontSize="12" FontWeight="SemiBold" Foreground="#EA580C"/></Border>
-                    <Border Style="{StaticResource QuickRpt}" Width="150" Margin="0,0,8,6" MouseLeftButtonDown="OnQuickReport"><TextBlock Text="Tình trạng phòng" FontSize="12" FontWeight="SemiBold" Foreground="#8B5CF6"/></Border>
-                    <Border Style="{StaticResource QuickRpt}" Width="150" Margin="0,0,8,6" MouseLeftButtonDown="OnQuickReport"><TextBlock Text="Phòng trống" FontSize="12" FontWeight="SemiBold" Foreground="#0EA5E9"/></Border>
-                    <Border Style="{StaticResource QuickRpt}" Width="150" Margin="0,0,0,6" MouseLeftButtonDown="OnQuickReport"><TextBlock Text="Phòng bẩn" FontSize="12" FontWeight="SemiBold" Foreground="#DC2626"/></Border>
-                </WrapPanel>
-            </Grid>
-        </Border>
-
-        <!-- CATEGORIES + REPORT LIST -->
-        <Border Grid.Row="3" Margin="14,0,14,6" Padding="14,12" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
-            <WrapPanel>
-                <Border Style="{StaticResource CatCard}" Width="220" Margin="0,0,10,0"><StackPanel>
-                    <TextBlock Text="Báo cáo khách" FontSize="14" FontWeight="SemiBold" Foreground="#2563EB" Margin="0,0,0,6"/>
-                    <TextBlock Text="Khách đang lưu trú · Khách đến · Khách đi · VIP · Quốc tịch · Lịch sử khách" FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap"/></StackPanel></Border>
-                <Border Style="{StaticResource CatCard}" Width="220" Margin="0,0,10,0"><StackPanel>
-                    <TextBlock Text="Báo cáo phòng" FontSize="14" FontWeight="SemiBold" Foreground="#16A34A" Margin="0,0,0,6"/>
-                    <TextBlock Text="Tình trạng · Phòng trống · Có khách · Ngừng SD · Bẩn · Sạch · Đã kiểm tra" FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap"/></StackPanel></Border>
-                <Border Style="{StaticResource CatCard}" Width="220" Margin="0,0,10,0"><StackPanel>
-                    <TextBlock Text="Doanh thu" FontSize="14" FontWeight="SemiBold" Foreground="#7C3AED" Margin="0,0,0,6"/>
-                    <TextBlock Text="Doanh thu phòng · Dự báo · Doanh thu ngày · Đặt cọc · Số dư" FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap"/></StackPanel></Border>
-                <Border Style="{StaticResource CatCard}" Width="220" Margin="0,0,10,0"><StackPanel>
-                    <TextBlock Text="Thu ngân" FontSize="14" FontWeight="SemiBold" Foreground="#F59E0B" Margin="0,0,0,6"/>
-                    <TextBlock Text="Folio mở · Folio đóng · Công nợ · Đặt cọc trước · Hoàn tiền" FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap"/></StackPanel></Border>
-                <Border Style="{StaticResource CatCard}" Width="220"><StackPanel>
-                    <TextBlock Text="Vận hành" FontSize="14" FontWeight="SemiBold" Foreground="#EA580C" Margin="0,0,0,6"/>
-                    <TextBlock Text="Nhắn NB · Đổi phòng · Gia hạn · Khách không đến · Hủy đặt phòng" FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap"/></StackPanel></Border>
-            </WrapPanel>
-        </Border>
-
-        <!-- MAIN: Report List + Preview -->
-        <Grid Grid.Row="4" Margin="14,0,14,0">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="6.5*" MinWidth="500"/><ColumnDefinition Width="16"/><ColumnDefinition Width="3.5*" MinWidth="320"/></Grid.ColumnDefinitions>
-
-            <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="0">
-                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <Border Padding="16,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-                        <Grid><TextBlock Text="Danh mục báo cáo" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock HorizontalAlignment="Right" FontSize="12" Foreground="#94A3B8" x:Name="ResultCount" Text="40 báo cáo"/></Grid>
+        <Grid Grid.Row="2" Margin="16,0,16,12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="0.9*" MinWidth="300"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.7*" MinWidth="540"/></Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Padding="16,13" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                        <Grid><TextBlock Text="Danh mục báo cáo khả dụng" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock x:Name="ResultCount" HorizontalAlignment="Right" FontSize="12" Foreground="#64748B"/></Grid>
                     </Border>
-                    <DataGrid Grid.Row="1" x:Name="ReportGrid" Style="{StaticResource ModDataGrid}" SelectionChanged="OnReportSelected">
+                    <DataGrid Grid.Row="1" x:Name="ReportGrid" Style="{StaticResource ModDataGrid}" SelectionChanged="OnReportSelected" AutoGenerateColumns="False">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="★" Width="35"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-                                <TextBlock Text="{Binding Favorite}" FontSize="14" Foreground="#F59E0B" HorizontalAlignment="Center" VerticalAlignment="Center"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Tên báo cáo" Binding="{Binding ReportName}" Width="190"/>
-                            <DataGridTextColumn Header="Danh mục" Binding="{Binding Category}" Width="100"/>
-                            <DataGridTextColumn Header="Định dạng" Binding="{Binding Format}" Width="70"/>
-                            <DataGridTextColumn Header="Chạy gần nhất" Binding="{Binding LastRun}" Width="100"/>
+                            <DataGridTextColumn Header="Báo cáo" Binding="{Binding ReportName}" Width="*" MinWidth="150"/>
+                            <DataGridTextColumn Header="Danh mục" Binding="{Binding Category}" Width="105"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </Border>
 
-            <!-- PREVIEW PANEL -->
-            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="20">
-                        <StackPanel x:Name="PreviewContent">
-                            <TextBlock Text="Chọn một báo cáo để xem trước." FontSize="13" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,20"/>
+            <Border Grid.Column="2" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock x:Name="ReportTitle" Text="Chọn một báo cáo" FontSize="17" FontWeight="SemiBold" Foreground="#102E5A"/>
+                            <TextBlock x:Name="ReportDescription" FontSize="12" Foreground="#64748B" TextWrapping="Wrap" Margin="0,3,0,0"/>
                         </StackPanel>
+                        <Button Grid.Column="1" Content="Chạy lại" Click="OnRefreshSelected" Style="{StaticResource GrayBtn}"/>
+                        <Button x:Name="PrintReportButton" Grid.Column="3" Content="In" Click="OnPrint" Style="{StaticResource OutlineBtn}"/>
+                        <Button x:Name="ExportPdfButton" Grid.Column="5" Content="PDF" Click="OnExportPdf" Style="{StaticResource OutlineBtn}"/>
+                        <Button x:Name="ExportExcelButton" Grid.Column="7" Content="Excel" Click="OnExportExcel" Style="{StaticResource OutlineBtn}"/>
+                        <Button x:Name="ExportCsvButton" Grid.Column="9" Content="CSV" Click="OnExportCsv" Style="{StaticResource OutlineBtn}"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,12,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ReportSummary" Text="Chọn báo cáo để truy vấn dữ liệu." FontSize="12" Foreground="#166534" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                            <Button x:Name="FolioBackfillButton" Grid.Column="1" Content="Mở quy trình backfill" Click="OnFolioBackfill" Style="{StaticResource OutlineBtn}" Visibility="Collapsed" Margin="12,0,0,0"/>
+                        </Grid>
                     </Border>
-                    <!-- Quick Actions + Recent -->
-                    <Border Margin="0,10,0,0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16">
-                        <StackPanel>
-                            <TextBlock Text="Thao tác" FontSize="13" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,10"/>
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Content="Xem trước" Click="OnPreview" Style="{StaticResource BlueBtn}" Height="36" FontSize="13" Padding="0,0"/>
-                                <Button Grid.Column="2" Content="In" Click="OnPrint" Style="{StaticResource OutlineBtn}" Height="36" FontSize="13" Padding="0,0"/>
-                            </Grid>
-                            <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Content="Xuất PDF" Click="OnExportPdf" Style="{StaticResource OutlineBtn}" Height="36" FontSize="13" Padding="0,0"/>
-                                <Button Grid.Column="2" Content="Xuất Excel" Click="OnExportExcel" Style="{StaticResource OutlineBtn}" Height="36" FontSize="13" Padding="0,0"/>
-                            </Grid>
-                            <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Content="Yêu thích" Click="OnFavorite" Style="{StaticResource OutlineBtn}" Height="36" FontSize="13" Padding="0,0"/>
-                                <Button Grid.Column="2" Content="Đặt lịch" Click="OnSchedule" Style="{StaticResource GrayBtn}" Height="36" FontSize="13" Padding="0,0"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollViewer>
+                    <DataGrid Grid.Row="2" x:Name="ResultGrid" Style="{StaticResource ModDataGrid}" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False"/>
+                    <TextBlock Grid.Row="3" x:Name="ReportStatus" FontSize="11" Foreground="#64748B" Margin="0,9,0,0" TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
         </Grid>
 
-        <!-- FOOTER -->
-        <Border Grid.Row="5" Padding="14,10" Margin="14,10,14,12" Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
-            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#64748B" Text="Tổng: 40 báo cáo · 5 danh mục"/>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="← Trước" Style="{StaticResource GrayBtn}" Click="OnPrevPage"/>
-                    <Button Content="Sau →" Style="{StaticResource GrayBtn}" Margin="8,0,0,0" Click="OnNextPage"/>
-                    <Button Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}" Margin="16,0,0,0"/>
-                </StackPanel>
-            </Grid>
+        <Border Grid.Row="3" Padding="16,10" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <TextBlock x:Name="FooterStatus" VerticalAlignment="Center" FontSize="12" Foreground="#64748B"/>
         </Border>
     </Grid>
 </Window>

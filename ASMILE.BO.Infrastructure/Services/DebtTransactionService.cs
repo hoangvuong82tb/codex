@@ -135,6 +135,52 @@ public sealed class DebtTransactionService : IDebtTransactionService
             throw new InvalidOperationException("Số tiền phân bổ phải lớn hơn 0.");
         }
 
+        if (string.Equals(paymentSourceType, ReceivableTarget, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!paymentSourceId.HasValue)
+            {
+                throw new InvalidOperationException("Phân bổ phải có giao dịch thu nguồn.");
+            }
+
+            var source = await _dbContext.ReceivableTransactions.FirstOrDefaultAsync(x => x.Id == paymentSourceId.Value, cancellationToken)
+                ?? throw new InvalidOperationException("Không tìm thấy giao dịch thu nguồn.");
+
+            if (source.CreditAmount <= 0)
+            {
+                throw new InvalidOperationException("Giao dịch nguồn không phải khoản thu có thể phân bổ.");
+            }
+
+            if (source.Id == targetTransactionId)
+            {
+                throw new InvalidOperationException("Không thể phân bổ giao dịch thu vào chính nó.");
+            }
+
+            var allocatedFromSource = await _dbContext.PaymentAllocations
+                .Where(x => x.PaymentSourceType == ReceivableTarget && x.PaymentSourceId == source.Id)
+                .SumAsync(x => (decimal?)x.AllocatedAmount, cancellationToken) ?? 0m;
+            var availableFromSource = Math.Max(0, source.CreditAmount - allocatedFromSource);
+            if (allocatedAmount > availableFromSource)
+            {
+                throw new InvalidOperationException($"Số tiền phân bổ vượt số dư chưa phân bổ của khoản thu ({availableFromSource:N2}).");
+            }
+
+            if (string.Equals(targetType, ReceivableTarget, StringComparison.OrdinalIgnoreCase))
+            {
+                var target = await _dbContext.ReceivableTransactions.FirstOrDefaultAsync(x => x.Id == targetTransactionId, cancellationToken)
+                    ?? throw new InvalidOperationException("Không tìm thấy giao dịch phải thu cần phân bổ.");
+                if (target.CustomerId != source.CustomerId)
+                {
+                    throw new InvalidOperationException("Khoản thu và khoản công nợ phải cùng khách hàng.");
+                }
+
+                var targetBalance = Math.Max(0, target.BalanceAmount);
+                if (allocatedAmount > targetBalance)
+                {
+                    throw new InvalidOperationException($"Số tiền phân bổ vượt số dư công nợ còn lại ({targetBalance:N2}).");
+                }
+            }
+        }
+
         var now = DateTime.UtcNow;
         var allocation = new PaymentAllocation
         {
@@ -175,6 +221,95 @@ public sealed class DebtTransactionService : IDebtTransactionService
         await _dbContext.SaveChangesAsync(cancellationToken);
         await LogAsync("Debt.AllocatePayment", $"Allocated {allocatedAmount:N2} to {targetType} transaction {targetTransactionId}.", createdBy ?? "system", cancellationToken);
         return allocation;
+    }
+
+    public async Task<int> AutoAllocatePaymentAsync(Guid paymentSourceId, string? createdBy = null, CancellationToken cancellationToken = default)
+    {
+        var source = await _dbContext.ReceivableTransactions
+            .FirstOrDefaultAsync(x => x.Id == paymentSourceId, cancellationToken)
+            ?? throw new InvalidOperationException("Không tìm thấy giao dịch thu nguồn.");
+        if (source.CreditAmount <= 0 || string.Equals(source.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Giao dịch nguồn không còn khả dụng để tự động phân bổ.");
+
+        var allocated = await _dbContext.PaymentAllocations
+            .Where(x => x.PaymentSourceType == ReceivableTarget && x.PaymentSourceId == paymentSourceId)
+            .SumAsync(x => (decimal?)x.AllocatedAmount, cancellationToken) ?? 0m;
+        var remaining = Math.Max(0, source.CreditAmount - allocated);
+        if (remaining <= 0) return 0;
+
+        var targets = await _dbContext.ReceivableTransactions
+            .Where(x => x.CustomerId == source.CustomerId && x.DebitAmount > 0 && x.BalanceAmount > 0)
+            .OrderBy(x => x.DocumentDate)
+            .ThenBy(x => x.DocumentNo)
+            .ToListAsync(cancellationToken);
+
+        var created = new List<PaymentAllocation>();
+        foreach (var target in targets)
+        {
+            if (remaining <= 0) break;
+            if (target.Id == source.Id) continue;
+
+            var amount = Math.Min(remaining, target.BalanceAmount);
+            if (amount <= 0) continue;
+
+            created.Add(new PaymentAllocation
+            {
+                Id = Guid.NewGuid(),
+                PaymentSourceType = ReceivableTarget,
+                PaymentSourceId = paymentSourceId,
+                TargetType = ReceivableTarget,
+                TargetTransactionId = target.Id,
+                AllocatedAmount = amount,
+                AllocationDate = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = createdBy
+            });
+            target.BalanceAmount = Math.Max(0, target.BalanceAmount - amount);
+            target.Status = ResolveDebtStatus(target.BalanceAmount, target.DebitAmount, target.CreditAmount);
+            target.UpdatedAt = DateTime.UtcNow;
+            remaining -= amount;
+        }
+
+        if (created.Count == 0) return 0;
+        _dbContext.PaymentAllocations.AddRange(created);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await LogAsync("Debt.AutoAllocatePayment", $"Created {created.Count} allocations for payment {paymentSourceId}.", createdBy ?? "system", cancellationToken);
+        return created.Count;
+    }
+
+    public async Task<int> UndoPaymentAllocationsAsync(Guid paymentSourceId, string? createdBy = null, CancellationToken cancellationToken = default)
+    {
+        var allocations = await _dbContext.PaymentAllocations
+            .Where(x => x.PaymentSourceType == ReceivableTarget && x.PaymentSourceId == paymentSourceId)
+            .ToListAsync(cancellationToken);
+        if (allocations.Count == 0) return 0;
+
+        var targetIds = allocations
+            .Where(x => x.TargetType == ReceivableTarget)
+            .Select(x => x.TargetTransactionId)
+            .Distinct()
+            .ToList();
+        var targets = await _dbContext.ReceivableTransactions
+            .Where(x => targetIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+        var missingTarget = targetIds.FirstOrDefault(x => !targets.ContainsKey(x));
+        if (missingTarget != Guid.Empty)
+        {
+            throw new InvalidOperationException($"Không tìm thấy công nợ đích của allocation {missingTarget}.");
+        }
+
+        foreach (var group in allocations.Where(x => x.TargetType == ReceivableTarget).GroupBy(x => x.TargetTransactionId))
+        {
+            var target = targets[group.Key];
+            target.BalanceAmount += group.Sum(x => x.AllocatedAmount);
+            target.Status = ResolveDebtStatus(target.BalanceAmount, target.DebitAmount, target.CreditAmount);
+            target.UpdatedAt = DateTime.UtcNow;
+        }
+
+        _dbContext.PaymentAllocations.RemoveRange(allocations);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await LogAsync("Debt.UndoPaymentAllocations", $"Removed {allocations.Count} allocations for payment {paymentSourceId}.", createdBy ?? "system", cancellationToken);
+        return allocations.Count;
     }
 
     public async Task RecalculateBalancesAsync(string targetType, Guid? partnerId = null, CancellationToken cancellationToken = default)

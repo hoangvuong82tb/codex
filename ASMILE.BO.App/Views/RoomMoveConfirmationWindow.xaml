@@ -79,7 +79,7 @@
                     </Border>
                     <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="Xác nhận đổi phòng" FontSize="18" FontWeight="SemiBold" Foreground="#102E5A"/>
-                        <TextBlock Margin="0,2,0,0" Text="Kiểm tra lần cuối trước khi xác nhận bản mockup" FontSize="12" Foreground="#64748B"/>
+                        <TextBlock Margin="0,2,0,0" Text="Kiểm tra lần cuối trước khi xác nhận điều chuyển phòng" FontSize="12" Foreground="#64748B"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -147,7 +147,7 @@
 
             <Border Grid.Row="2" Padding="18,14" Background="#FBFCFE" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
                 <Grid>
-                    <TextBlock Text="Mockup UI · không gọi service, không ghi database"
+                    <TextBlock Text="Xác nhận chuyển phòng · thao tác sẽ ghi dữ liệu thật"
                                VerticalAlignment="Center"
                                FontSize="10"
                                Foreground="#94A3B8"/>
@@ -158,7 +158,7 @@
                                 Foreground="#475569"
                                 Style="{StaticResource DialogButton}"/>
                         <Button Margin="8,0,0,0"
-                                Content="Xác nhận mockup"
+                                Content="Xác nhận chuyển phòng"
                                 Click="OnConfirm"
                                 Background="#2F6BFF"
                                 Foreground="White"

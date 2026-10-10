@@ -19,8 +19,11 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <Border Style="{StaticResource TaskbarPanelStyle}" Margin="0,2,0,2">
                     <StackPanel Orientation="Horizontal">
-                        <Button Style="{StaticResource TaskbarItemButtonStyle}" Command="{Binding ToggleStartMenuCommand}">
-                            <Image Source="file:///D:/ASMILE-BO/Windows_Icon/Icons/logo/u2.png"
+                        <Button Style="{StaticResource TaskbarItemButtonStyle}"
+                                Command="{Binding ToggleStartMenuCommand}"
+                                AutomationProperties.Name="Mở menu Bắt đầu"
+                                AutomationProperties.AutomationId="StartMenuButton">
+                            <Image Source="pack://siteoforigin:,,,/Windows_Icon/Icons/logo/u2.png"
                                    Width="18"
                                    Height="18"
                                    Stretch="Uniform"

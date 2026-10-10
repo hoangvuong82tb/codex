@@ -1,0 +1,1375 @@
+<UserControl x:Class="ASMILE.BO.App.Views.ArCustomerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             xmlns:vm="clr-namespace:ASMILE.BO.App.ViewModels"
+             xmlns:converters="clr-namespace:ASMILE.BO.App.Converters"
+             UseLayoutRounding="True" Loaded="OnLoaded"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:InverseBooleanConverter x:Key="InvBoolToVis"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVis"/>
+        <converters:StringToBrushConverter x:Key="StringToBrush"/>
+
+        <Style x:Key="PanelCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="PrimaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="64"/>
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#2563EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.5"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SuccessBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+            <Setter Property="Background" Value="#16A34A"/>
+            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#15803D"/></Trigger></Style.Triggers>
+        </Style>
+
+        <Style x:Key="DangerBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+            <Setter Property="Background" Value="#DC2626"/>
+            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#B91C1C"/></Trigger></Style.Triggers>
+        </Style>
+
+        <Style x:Key="WarningBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+            <Setter Property="Background" Value="#D97706"/>
+            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#B45309"/></Trigger></Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="56"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToolbarBtn" TargetType="Button" BasedOn="{StaticResource SecondaryBtn}">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="0,0,5,3"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
+
+        <!-- ToggleButton cannot use ToolbarBtn because WPF styles are type-safe.
+             Keep the same visual treatment for the right-panel toggle. -->
+        <Style x:Key="ToolbarToggleBtn" TargetType="ToggleButton">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="64"/>
+            <Setter Property="Margin" Value="0,0,5,3"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="Bd" Property="Background" Value="#DBEAFE"/><Setter TargetName="Bd" Property="BorderBrush" Value="#2563EB"/><Setter Property="Foreground" Value="#1D4ED8"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.5"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ViewModeBtn" TargetType="Button" BasedOn="{StaticResource ToolbarBtn}">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Width" Value="50"/>
+            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="FontSize" Value="10"/>
+        </Style>
+
+        <Style x:Key="FilterTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D7E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FilterCombo" TargetType="ComboBox" BasedOn="{StaticResource FluentComboBox}">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="Padding" Value="8,0,28,0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Margin" Value="0,0,5,3"/>
+        </Style>
+
+        <Style x:Key="ModDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="RowBackground" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="ColumnHeaderHeight" Value="38"/>
+            <Setter Property="RowHeight" Value="38"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#EFF6FF"/>
+                        <Setter Property="Foreground" Value="#1E40AF"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="10"/>
+                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="Padding" Value="5,0"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DetailTabBtn" TargetType="Button">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="Margin" Value="0,0,1,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="5" Padding="{TemplateBinding Padding}" BorderThickness="0,0,0,2" BorderBrush="Transparent">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F1F5F9"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PagerBtn" TargetType="Button" BasedOn="{StaticResource FluentPaginationButton}">
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Margin" Value="1,0"/>
+        </Style>
+
+        <Style x:Key="PagerPageBtn" TargetType="Button" BasedOn="{StaticResource FluentPaginationButton}">
+            <Setter Property="Content" Value="{Binding Label}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                    <Setter Property="Background" Value="#2563EB"/><Setter Property="BorderBrush" Value="#2563EB"/><Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsEllipsis}" Value="True">
+                    <Setter Property="Width" Value="22"/><Setter Property="MinWidth" Value="22"/><Setter Property="MaxWidth" Value="22"/>
+                    <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="IsEnabled" Value="False"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ═══ KPI CARD TEMPLATE ═══ -->
+        <DataTemplate x:Key="KpiCardTemplate" DataType="{x:Type vm:ArCustomerKpi}">
+            <Border Background="{Binding BgColor, Converter={StaticResource StringToBrush}}" CornerRadius="6" BorderBrush="#E2E8F0" BorderThickness="1" Padding="6,4" Width="100" Margin="0,0,4,3" Cursor="Hand" MouseLeftButtonDown="OnKpiClick" Tag="{Binding}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Value}" FontSize="14" FontWeight="Bold" Foreground="{Binding Color, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                    <TextBlock Text="{Binding Label}" FontSize="9" Foreground="#64748B" Margin="0,1,0,0" FontFamily="Segoe UI" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- ═══ CUSTOMER LIST ITEM ═══ -->
+        <DataTemplate x:Key="CustomerListItemTemplate" DataType="{x:Type vm:ArCustomerDto}">
+            <Border x:Name="ItemBorder" Padding="10,7" Margin="4,1" CornerRadius="8" Cursor="Hand" MouseLeftButtonDown="OnCustomerClick" Tag="{Binding}">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding TypeIcon}" FontSize="12" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <StackPanel>
+                                <TextBlock Text="{Binding CustomerName}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding CustomerCode}" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <Border Grid.Column="1" CornerRadius="8" Padding="5,1" Background="{Binding StatusBg, Converter={StaticResource StringToBrush}}">
+                            <TextBlock Text="{Binding StatusLabel}" FontSize="9" FontWeight="SemiBold" Foreground="{Binding StatusColor, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                        </Border>
+                    </Grid>
+                    <Grid Grid.Row="1" Margin="16,2,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <Border CornerRadius="5" Padding="4,1" Background="{Binding TypeBg, Converter={StaticResource StringToBrush}}">
+                                <TextBlock Text="{Binding TypeLabel}" FontSize="9" Foreground="{Binding TypeColor, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                            </Border>
+                            <TextBlock Text="{Binding Outstanding, StringFormat='Nợ: {0:N0} ₫'}" FontSize="9" Foreground="#DC2626" Margin="6,0,0,0" FontWeight="SemiBold" FontFamily="Segoe UI"/>
+                        </StackPanel>
+                        <Border Grid.Column="1" CornerRadius="8" Padding="5,1" Background="#FEF2F2" Visibility="{Binding HasWarning, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding WarningCount, StringFormat='{}{0} ⚠'}" FontSize="9" Foreground="#DC2626" FontFamily="Segoe UI"/>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter TargetName="ItemBorder" Property="Background" Value="#EFF6FF"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- ═══ CARD VIEW ═══ -->
+        <DataTemplate x:Key="CardViewTemplate" DataType="{x:Type vm:ArCustomerDto}">
+            <Border Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12" Margin="0,0,6,6" Width="220" Cursor="Hand" MouseLeftButtonDown="OnCardClick" Tag="{Binding}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding TypeIcon}" FontSize="14"/>
+                            <TextBlock Text="{Binding CustomerName}" FontSize="12" FontWeight="Bold" Foreground="#0F172A" FontFamily="Segoe UI" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding CustomerCode}" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI"/>
+                        </StackPanel>
+                        <Border Grid.Column="1" CornerRadius="8" Padding="5,1" Background="{Binding StatusBg, Converter={StaticResource StringToBrush}}">
+                            <TextBlock Text="{Binding StatusLabel}" FontSize="9" FontWeight="SemiBold" Foreground="{Binding StatusColor, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                        </Border>
+                    </Grid>
+                    <Separator Margin="0,8" Background="#F1F5F9"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Còn nợ" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                            <TextBlock Text="{Binding Outstanding, StringFormat='{}{0:N0} ₫'}" FontSize="13" FontWeight="Bold" Foreground="#DC2626" FontFamily="Segoe UI"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Credit" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                            <TextBlock Text="{Binding CreditLimit, StringFormat='{}{0:N0} ₫'}" FontSize="13" FontWeight="Bold" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <Border CornerRadius="5" Padding="4,1" Background="{Binding TypeBg, Converter={StaticResource StringToBrush}}">
+                            <TextBlock Text="{Binding TypeLabel}" FontSize="8" Foreground="{Binding TypeColor, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                        </Border>
+                        <TextBlock Text="{Binding City, TargetNullValue='—'}" FontSize="9" Foreground="#94A3B8" Margin="4,0,0,0" FontFamily="Segoe UI"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <!-- ═══════════════════════════════════════════ MAIN LAYOUT ═══════════════════════════════════════ -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ ROW 0: HEADER ═══ -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="16,10">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="38" Height="38" CornerRadius="10" Background="#31C9B8" Margin="0,0,12,0">
+                        <TextBlock Text="KH" FontFamily="Segoe UI" FontSize="12" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="Khách hàng — AR Customer Master" FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI"/>
+                        <TextBlock Text="Quản lý toàn bộ đối tượng phát sinh công nợ: doanh nghiệp, đại lý, OTA, Travel Agent, Government, Corporate, VIP, Walk-in" FontSize="11" Foreground="#64748B" Margin="0,1,0,0" FontFamily="Segoe UI"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Export Excel" Style="{StaticResource ToolbarBtn}" Command="{Binding ExportExcelCommand}"/>
+                    <Button Content="Export PDF" Style="{StaticResource ToolbarBtn}" Command="{Binding ExportPdfCommand}"/>
+                    <Button Content="Làm mới" Style="{StaticResource SecondaryBtn}" Command="{Binding RefreshCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ ROW 1: KPI DASHBOARD ═══ -->
+        <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="12,8">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding DashboardKpis}" ItemTemplate="{StaticResource KpiCardTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ═══ ROW 2: TOOLBAR + FILTER ═══ -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="12,6">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <!-- Toolbar -->
+                <WrapPanel Grid.Row="0">
+                    <Button Content="Thêm KH" Style="{StaticResource PrimaryBtn}" Margin="0,0,5,3"/>
+                    <Button Content="Sửa" Style="{StaticResource ToolbarBtn}" Command="{Binding OpenEditFormCommand}"/>
+                    <Button Content="{Binding SelectedItem.Status, StringFormat='Khóa/Mở'}" Style="{StaticResource ToolbarBtn}" Command="{Binding ToggleLockCommand}"/>
+                    <Button Content="Merge" Style="{StaticResource ToolbarBtn}"/>
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="3,0"/>
+                    <Button Content="Thu tiền" Style="{StaticResource SuccessBtn}" Margin="0,0,5,3" Command="{Binding OpenPaymentFormCommand}"/>
+                    <Button Content="Gửi Email" Style="{StaticResource ToolbarBtn}" Command="{Binding OpenEmailFormCommand}"/>
+                    <Button Content="In Statement" Style="{StaticResource ToolbarBtn}" Command="{Binding PrintStatementCommand}"/>
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="3,0"/>
+                    <ToggleButton Content="Panel Phải" IsChecked="{Binding IsRightPanelOpen}" Style="{StaticResource ToolbarToggleBtn}" Height="32" Width="80" Padding="8,0"/>
+                </WrapPanel>
+                <!-- Filter -->
+                <WrapPanel Grid.Row="1" Margin="0,4,0,0">
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="140" ToolTip="Tìm: Mã, Tên, MST, Phone, Email"/>
+                    <ComboBox ItemsSource="{Binding TypeFilters}" SelectedItem="{Binding FilterType}" Style="{StaticResource FilterCombo}" Width="100"/>
+                    <ComboBox ItemsSource="{Binding MarketFilters}" SelectedItem="{Binding FilterMarket}" Style="{StaticResource FilterCombo}" Width="90"/>
+                    <ComboBox ItemsSource="{Binding SourceFilters}" SelectedItem="{Binding FilterSource}" Style="{StaticResource FilterCombo}" Width="90"/>
+                    <ComboBox ItemsSource="{Binding CountryFilters}" SelectedItem="{Binding FilterCountry}" Style="{StaticResource FilterCombo}" Width="90"/>
+                    <ComboBox ItemsSource="{Binding SalesFilters}" SelectedItem="{Binding FilterSales}" Style="{StaticResource FilterCombo}" Width="110"/>
+                    <ComboBox ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding FilterStatus}" Style="{StaticResource FilterCombo}" Width="100"/>
+                    <CheckBox IsChecked="{Binding FilterHasDebt}" Content="Có nợ" FontSize="11" VerticalAlignment="Center" Margin="4,0,6,0" FontFamily="Segoe UI"/>
+                    <CheckBox IsChecked="{Binding FilterOverdue}" Content="Quá hạn" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0" FontFamily="Segoe UI"/>
+                    <CheckBox IsChecked="{Binding FilterOverCredit}" Content="Vượt Credit" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0" FontFamily="Segoe UI"/>
+                    <CheckBox IsChecked="{Binding FilterBlocked}" Content="Bị khóa" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0" FontFamily="Segoe UI"/>
+                    <Button Content="Xóa lọc" Style="{StaticResource SecondaryBtn}" Command="{Binding ClearFiltersCommand}" Height="30" FontSize="10"/>
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ ROW 3: MAIN 3-COLUMN CONTENT ═══ -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <!-- Keep the customer list/detail workspace at a 6:4 ratio; the dashboard remains a fixed side panel. -->
+                <ColumnDefinition Width="6*" MinWidth="420"/>
+                <ColumnDefinition Width="4*" MinWidth="420"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: Customer List -->
+            <Border Grid.Column="0" Margin="8,6,4,6" Style="{StaticResource PanelCard}" Padding="0">
+                <Grid>
+                    <!-- Reserve dedicated rows for banners, view toggle and content; the shared pager is in the module footer. -->
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- INFO BANNER -->
+                    <Border Grid.Row="0" Background="#EFF6FF" CornerRadius="6" Padding="8,4" Margin="8,6,8,0" Visibility="{Binding InfoMessage, Converter={StaticResource StringToVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding InfoMessage}" FontSize="10" Foreground="#1E40AF" VerticalAlignment="Center" FontFamily="Segoe UI"/>
+                            <Button Grid.Column="1" Content="×" Background="Transparent" BorderThickness="0" Foreground="#1E40AF" FontSize="14" FontFamily="Segoe UI" Cursor="Hand" Width="22" Height="22" Padding="0" Click="OnDismissInfo"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- ERROR BANNER -->
+                    <Border Grid.Row="1" Background="#FEF2F2" CornerRadius="6" Padding="8,4" Margin="8,6,8,0" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}">
+                        <TextBlock Text="{Binding ErrorMessage}" FontSize="10" Foreground="#DC2626" FontFamily="Segoe UI"/>
+                    </Border>
+
+                    <!-- Grid/Card toggle -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="8,8,8,4">
+                        <Button Content="Bảng" Command="{Binding SetGridViewCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource ViewModeBtn}">
+                                    <Setter Property="Background" Value="White"/>
+                                    <Setter Property="Foreground" Value="#64748B"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsGridView}" Value="True"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#2563EB"/><Setter Property="BorderBrush" Value="#93C5FD"/></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="Thẻ" Command="{Binding SetCardViewCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource ViewModeBtn}">
+                                    <Setter Property="Background" Value="White"/>
+                                    <Setter Property="Foreground" Value="#64748B"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCardView}" Value="True"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#2563EB"/><Setter Property="BorderBrush" Value="#93C5FD"/></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- DATA GRID -->
+                    <ScrollViewer Grid.Row="3" Margin="6,0,6,4" VerticalScrollBarVisibility="Auto" Visibility="{Binding IsGridView, Converter={StaticResource BoolToVis}}">
+                        <DataGrid ItemsSource="{Binding FilteredItems}" SelectedItem="{Binding SelectedItem}" Style="{StaticResource ModDataGrid}" MouseDoubleClick="OnDataGridDoubleClick">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Xem chi tiết" Command="{Binding SelectItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+                                    <MenuItem Header="Thu tiền" Command="{Binding OpenPaymentFormCommand}"/>
+                                    <MenuItem Header="Gửi Email" Command="{Binding OpenEmailFormCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="In Statement" Command="{Binding PrintStatementCommand}"/>
+                                    <MenuItem Header="Khóa/Mở khóa" Command="{Binding ToggleLockCommand}"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Mã KH" Binding="{Binding CustomerCode}" Width="75"/>
+                                <DataGridTemplateColumn Header="Tên KH" Width="160">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding TypeIcon}" FontSize="10" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                                                <TextBlock Text="{Binding CustomerName}" FontSize="11" VerticalAlignment="Center" FontFamily="Segoe UI" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Loại" Width="85">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="5" Padding="4,1" Background="{Binding TypeBg, Converter={StaticResource StringToBrush}}">
+                                                <TextBlock Text="{Binding TypeLabel}" FontSize="9" Foreground="{Binding TypeColor, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Còn nợ" Width="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Outstanding, StringFormat='{}{0:N0} ₫'}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="#DC2626"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Outstanding}" Value="0"><Setter Property="Foreground" Value="#16A34A"/></DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Credit" Binding="{Binding CreditLimit, StringFormat='{}{0:N0} ₫'}" Width="85"/>
+                                <DataGridTextColumn Header="Sales" Binding="{Binding SalesPerson, TargetNullValue='—'}" Width="90"/>
+                                <DataGridTextColumn Header="Last Pmt" Binding="{Binding LastPaymentDate, StringFormat='{}{0:dd/MM/yyyy}'}" Width="85"/>
+                                <DataGridTemplateColumn Header="TT" Width="65">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="6" Padding="4,1" Background="{Binding StatusBg, Converter={StaticResource StringToBrush}}">
+                                                <TextBlock Text="{Binding StatusLabel}" FontSize="8" FontWeight="SemiBold" Foreground="{Binding StatusColor, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </ScrollViewer>
+
+                    <!-- CARD VIEW -->
+                    <ScrollViewer Grid.Row="3" Margin="6,0,6,4" VerticalScrollBarVisibility="Auto" Visibility="{Binding IsCardView, Converter={StaticResource BoolToVis}}">
+                        <ItemsControl ItemsSource="{Binding FilteredItems}" ItemTemplate="{StaticResource CardViewTemplate}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Pagination -->
+                    <!-- Kept collapsed for compatibility; the shared pager is rendered in the module footer below. -->
+                    <Border Grid.Row="3" Visibility="Collapsed" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="6,4">
+                        <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Button Content="«" Style="{StaticResource PagerBtn}" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPrevPage}" Width="24" Height="24" FontSize="10" FontFamily="Segoe UI"/>
+                            <Button Content="‹" Style="{StaticResource PagerBtn}" Command="{Binding PrevPageCommand}" IsEnabled="{Binding HasPrevPage}" Width="24" Height="24" FontSize="14" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding PageButtons}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArCustomerPaginationButton}">
+                                    <Button Style="{StaticResource PagerPageBtn}" Width="26" Height="24" FontSize="10" Command="{Binding DataContext.SetPageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PageNumber}"/>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Content="›" Style="{StaticResource PagerBtn}" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Width="24" Height="24" FontSize="14" FontFamily="Segoe UI"/>
+                            <Button Content="»" Style="{StaticResource PagerBtn}" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Width="24" Height="24" FontSize="10" FontFamily="Segoe UI"/>
+                        </WrapPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- CENTER: Detail Panel -->
+            <Border Grid.Column="1" Margin="4,6,4,6" Style="{StaticResource PanelCard}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+
+                    <!-- Detail Header -->
+                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="14,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding SelectedItem.TypeIcon}" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="{Binding SelectedItem.CustomerName}" FontSize="15" FontWeight="Bold" Foreground="#0F172A" FontFamily="Segoe UI" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <Border CornerRadius="6" Padding="5,1" Background="{Binding SelectedItem.TypeBg, Converter={StaticResource StringToBrush}}">
+                                        <TextBlock Text="{Binding SelectedItem.TypeLabel}" FontSize="9" Foreground="{Binding SelectedItem.TypeColor, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding SelectedItem.CustomerCode, StringFormat=' • {0}'}" FontSize="10" Foreground="#94A3B8" Margin="4,0,0,0" FontFamily="Segoe UI"/>
+                                    <TextBlock Text="{Binding SelectedItem.City, StringFormat=' • {0}'}" FontSize="10" Foreground="#94A3B8" Margin="2,0,0,0" FontFamily="Segoe UI"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="×" Style="{StaticResource SecondaryBtn}" Width="28" Height="28" Padding="0" FontSize="14" FontWeight="SemiBold" Command="{Binding CloseDetailCommand}"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Tab Row -->
+                    <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="8,4">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Tổng quan" Click="OnDetailTabClick" Tag="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="0"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Contacts" Click="OnDetailTabClick" Tag="1">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="1"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Thanh toán" Click="OnDetailTabClick" Tag="2">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="2"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Kế toán" Click="OnDetailTabClick" Tag="3">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="3"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Hợp đồng" Click="OnDetailTabClick" Tag="4">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="4"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Giá" Click="OnDetailTabClick" Tag="5">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="5"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Hóa đơn" Click="OnDetailTabClick" Tag="6">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="6"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Thanh toán" Click="OnDetailTabClick" Tag="7">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="7"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Lịch sử" Click="OnDetailTabClick" Tag="8">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="8"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Folio" Click="OnDetailTabClick" Tag="9">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="9"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Hồ sơ" Click="OnDetailTabClick" Tag="10">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="10"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="Ghi chú" Click="OnDetailTabClick" Tag="11">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource DetailTabBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedDetailTab}" Value="11"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="BorderBrush" Value="#2563EB"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- Tab Content -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0">
+                        <Grid Margin="16,12">
+
+                        <!-- TAB 0: OVERVIEW -->
+                        <StackPanel Visibility="{Binding IsOverviewTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="THÔNG TIN CHUNG" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Mã KH" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedItem.CustomerCode}" FontSize="11" FontWeight="SemiBold" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="1" Text="Tên" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedItem.CustomerName}" FontSize="11" FontFamily="Segoe UI" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Row="2" Text="Tên tắt" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedItem.ShortName, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="3" Text="Tên TA" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedItem.EnglishName, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="4" Text="Loại" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><Border Grid.Row="4" Grid.Column="1" CornerRadius="4" Padding="4,1" HorizontalAlignment="Left" Background="{Binding SelectedItem.TypeBg, Converter={StaticResource StringToBrush}}">
+                                    <TextBlock Text="{Binding SelectedItem.TypeLabel}" FontSize="9" FontWeight="SemiBold" Foreground="{Binding SelectedItem.TypeColor, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                                </Border>
+                                <TextBlock Grid.Row="5" Text="MST" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedItem.TaxCode, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="6" Text="GPKD" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedItem.BusinessLicense, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="7" Text="Địa chỉ" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SelectedItem.Address, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="8" Text="Phone" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding SelectedItem.Phone, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="9" Text="Email" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding SelectedItem.Email, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="10" Text="Website" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding SelectedItem.Website, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="11" Text="Sales" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="11" Grid.Column="1" Text="{Binding SelectedItem.SalesPerson, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="12" Text="Tạo ngày" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/><TextBlock Grid.Row="12" Grid.Column="1" Text="{Binding SelectedItem.CreatedDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="11" FontFamily="Segoe UI"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- TAB 1: CONTACTS -->
+                        <StackPanel Visibility="{Binding IsContactsTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="NGƯỜI LIÊN HỆ" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Contacts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ArCustomerContactDto}">
+                                        <Border Padding="10,7" Margin="0,0,0,5" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI"/>
+                                                        <Border CornerRadius="4" Padding="3,0" Margin="4,0,0,0" Background="#DBEAFE" Visibility="{Binding IsPrimary, Converter={StaticResource BoolToVis}}">
+                                                            <TextBlock Text="Primary" FontSize="8" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Position, TargetNullValue='—'}" FontSize="10" Foreground="#475569" FontFamily="Segoe UI"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                        <TextBlock Text="{Binding Phone, TargetNullValue='—'}" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                                        <TextBlock Text="{Binding Email, StringFormat=' • {0}', TargetNullValue=''}" FontSize="10" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border CornerRadius="4" Padding="3,0" Margin="2,0" Background="#F0FDF4" Visibility="{Binding IsDecisionMaker, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="DM" FontSize="8" Foreground="#16A34A" FontFamily="Segoe UI"/>
+                                                    </Border>
+                                                    <Border CornerRadius="4" Padding="3,0" Margin="2,0" Background="#FFF7ED" Visibility="{Binding IsAccounting, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="ACCT" FontSize="8" Foreground="#D97706" FontFamily="Segoe UI"/>
+                                                    </Border>
+                                                    <Border CornerRadius="4" Padding="3,0" Margin="2,0" Background="#ECFEFF" Visibility="{Binding IsBooking, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="BKG" FontSize="8" Foreground="#0891B2" FontFamily="Segoe UI"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- TAB 2: PAYMENT TERMS -->
+                        <StackPanel Visibility="{Binding IsPaymentTermsTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="ĐIỀU KHOẢN THANH TOÁN" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Credit Limit" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedItem.CreditLimit, StringFormat='{}{0:N0} ₫'}" FontSize="11" FontWeight="SemiBold" Foreground="#2563EB"/>
+                                <TextBlock Grid.Row="1" Text="Credit Days" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedItem.CreditDays, StringFormat='{}{0} ngày'}" FontSize="11"/>
+                                <TextBlock Grid.Row="2" Text="Điều khoản TT" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedItem.PaymentTerms, TargetNullValue='—'}" FontSize="11"/>
+                                <TextBlock Grid.Row="3" Text="Tiền tệ" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedItem.Currency}" FontSize="11"/>
+                                <TextBlock Grid.Row="4" Text="VAT" FontSize="10" Foreground="#94A3B8"/><StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                                    <TextBlock Text="{Binding SelectedItem.VatRequired, StringFormat='Xuất VAT: {0}'}" FontSize="11"/>
+                                    <TextBlock Text="{Binding SelectedItem.VatType, StringFormat=' ({0})'}" FontSize="11" Foreground="#2563EB"/>
+                                </StackPanel>
+                                <TextBlock Grid.Row="5" Text="Đặt cọc" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedItem.DepositRequired, StringFormat='Yêu cầu: {0}'}" FontSize="11"/>
+                                <TextBlock Grid.Row="6" Text="Yêu cầu PO" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedItem.RequirePo}" FontSize="11"/>
+                                <TextBlock Grid.Row="7" Text="Yêu cầu HĐ" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SelectedItem.RequireContract}" FontSize="11"/>
+                                <TextBlock Grid.Row="8" Text="Auto Approve" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding SelectedItem.AutoApprove}" FontSize="11"/>
+                                <TextBlock Grid.Row="9" Text="Credit Approval" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding SelectedItem.NeedCreditApproval}" FontSize="11"/>
+                                <TextBlock Grid.Row="10" Text="Market" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding SelectedItem.Market, TargetNullValue='—'}" FontSize="11"/>
+                                <TextBlock Grid.Row="11" Text="Source" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="11" Grid.Column="1" Text="{Binding SelectedItem.Source, TargetNullValue='—'}" FontSize="11"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- TAB 3: ACCOUNTING -->
+                        <StackPanel Visibility="{Binding IsAccountingTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="THÔNG TIN KẾ TOÁN" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/><RowDefinition Height="26"/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="AR Account" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedItem.ArAccount, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="1" Text="Revenue Account" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedItem.RevenueAccount, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="2" Text="Tax Group" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedItem.TaxGroup, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="3" Text="Commission" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedItem.CommissionGroup, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="4" Text="Price Level" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedItem.PriceLevel, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="5" Text="Discount" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedItem.DiscountLevel, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Row="6" Text="VAT Type" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedItem.VatType, TargetNullValue='—'}" FontSize="11" FontFamily="Segoe UI"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- TAB 4: CONTRACTS -->
+                        <StackPanel Visibility="{Binding IsContractsTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="HỢP ĐỒNG" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Contracts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ArCustomerContractDto}">
+                                        <Border Padding="10,7" Margin="0,0,0,5" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding ContractNo}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                        <TextBlock FontSize="10" FontFamily="Segoe UI" Foreground="#94A3B8"><Run Text="Hiệu lực: "/><Run Text="{Binding EffectiveDate, StringFormat='{}{0:dd/MM/yyyy}'}" Foreground="#475569"/></TextBlock>
+                                                        <TextBlock FontSize="10" FontFamily="Segoe UI" Foreground="#94A3B8" Margin="8,0,0,0"><Run Text="Hết hạn: "/><Run Text="{Binding ExpiryDate, StringFormat='{}{0:dd/MM/yyyy}'}" Foreground="#475569"/></TextBlock>
+                                                    </StackPanel>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                        <TextBlock Text="{Binding RoomRate, StringFormat='Giá: {0:N0} ₫'}" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                                        <TextBlock Text="{Binding Discount, StringFormat=' • CK: {0}%'}" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI" Margin="4,0,0,0"/>
+                                                        <TextBlock Text="{Binding Commission, StringFormat=' • HH: {0}%'}" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI" Margin="4,0,0,0"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                <Border Grid.Column="1" CornerRadius="6" Padding="5,1">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#F1F5F9"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Active"><Setter Property="Background" Value="#DCFCE7"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Expired"><Setter Property="Background" Value="#FEE2E2"/></DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding StatusLabel}" FontSize="9" FontWeight="SemiBold" Foreground="{Binding StatusColor, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- TAB 5: RATES -->
+                        <StackPanel Visibility="{Binding IsRatesTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="BẢNG GIÁ" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Rates}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ArCustomerRateDto}">
+                                        <Border Padding="10,7" Margin="0,0,0,5" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding RateCode}" FontSize="11" FontWeight="SemiBold" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                                                        <TextBlock Text="{Binding RoomType, StringFormat=' — {0}'}" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                                    </StackPanel>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                        <TextBlock Text="{Binding Season, TargetNullValue='—'}" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                                                        <TextBlock Text="{Binding MealPlan, StringFormat=' • {0}'}" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="{Binding Rate, StringFormat='{}{0:N0} ₫'}" FontSize="13" FontWeight="Bold" Foreground="#16A34A" FontFamily="Segoe UI" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- TAB 6: INVOICES -->
+                        <StackPanel Visibility="{Binding IsInvoicesTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="DANH SÁCH HÓA ĐƠN" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Invoices}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ArCustomerInvoiceDto}">
+                                        <Border Padding="10,7" Margin="0,0,0,5" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding InvoiceNo}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                        <TextBlock Text="{Binding IssueDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                                        <TextBlock Text="{Binding DueDate, StringFormat=' → {0:dd/MM/yyyy}'}" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                                                    </StackPanel>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                        <TextBlock Text="{Binding Amount, StringFormat='Tiền: {0:N0} ₫'}" FontSize="10" Foreground="#475569" FontFamily="Segoe UI"/>
+                                                        <TextBlock Text="{Binding Vat, StringFormat=' • VAT: {0:N0} ₫'}" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI" Margin="4,0,0,0"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <Border CornerRadius="6" Padding="5,1" Background="{Binding StatusColor, Converter={StaticResource StringToBrush}}">
+                                                        <TextBlock Text="{Binding StatusLabel}" FontSize="8" FontWeight="SemiBold" Foreground="White" FontFamily="Segoe UI"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Balance, StringFormat='Còn: {0:N0} ₫'}" FontSize="9" Foreground="#DC2626" FontFamily="Segoe UI" Margin="0,2,0,0" TextAlignment="Right"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- TAB 7: PAYMENTS -->
+                        <StackPanel Visibility="{Binding IsPaymentsTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="LỊCH SỬ THANH TOÁN" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Payments}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ArCustomerPaymentDto}">
+                                        <Border Padding="10,7" Margin="0,0,0,4" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding ReceiptNo}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI"/>
+                                                        <TextBlock Text="{Binding Method, StringFormat=' ({0})'}" FontSize="10" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                                                    </StackPanel>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                        <TextBlock Text="{Binding PaymentDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                                        <TextBlock Text="{Binding Collector, StringFormat=' • {0}'}" FontSize="10" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="{Binding Amount, StringFormat='{}{0:N0} ₫'}" FontSize="13" FontWeight="Bold" Foreground="#16A34A" FontFamily="Segoe UI" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- TAB 8: HISTORY -->
+                        <StackPanel Visibility="{Binding IsHistoryTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="LỊCH SỬ GIAO DỊCH" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.History}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ArCustomerHistoryDto}">
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Grid>
+                                                <Border Width="8" Height="8" CornerRadius="4" Background="#2563EB" Margin="0,2,0,0"/>
+                                                <Border Width="2" HorizontalAlignment="Center" Background="#E2E8F0" Margin="3,10,3,0" VerticalAlignment="Stretch"/>
+                                            </Grid>
+                                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border CornerRadius="4" Padding="3,0" Background="#EFF6FF">
+                                                        <TextBlock Text="{Binding TypeLabel}" FontSize="9" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Reference, StringFormat=' • {0}'}" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI" Margin="3,0,0,0"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Detail}" FontSize="10" Foreground="#475569" FontFamily="Segoe UI" Margin="0,1,0,0"/>
+                                                <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM HH:mm}'}" FontSize="8" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- TAB 9: FOLIOS -->
+                        <StackPanel Visibility="{Binding IsFoliosTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="DANH SÁCH FOLIO" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Folios}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ArCustomerFolioDto}">
+                                        <Border Padding="10,6" Margin="0,0,0,3" Background="#F8FAFC" CornerRadius="6" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding FolioNo}" FontSize="10" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI"/>
+                                                        <TextBlock Text="{Binding ReservationNo, StringFormat=' • RES {0}'}" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI" Margin="4,0,0,0"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding StayDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="9" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Balance, StringFormat='{}{0:N0} ₫'}" FontSize="10" FontWeight="SemiBold" Foreground="#DC2626" FontFamily="Segoe UI" TextAlignment="Right"/>
+                                                    <Border CornerRadius="4" Padding="3,0" HorizontalAlignment="Right" Margin="0,2,0,0">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#F1F5F9"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Open"><Setter Property="Background" Value="#DCFCE7"/></DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="{Binding Status}" FontSize="8" FontFamily="Segoe UI"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- TAB 10: DOCUMENTS -->
+                        <StackPanel Visibility="{Binding IsDocumentsTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="HỒ SƠ ĐÍNH KÈM" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Documents}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ArCustomerDocumentDto}">
+                                        <Border Margin="0,0,0,6" Background="#F8FAFC" CornerRadius="8" Padding="10" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <Border Width="32" Height="32" CornerRadius="6" Background="#DBEAFE" Margin="0,0,8,0">
+                                                    <TextBlock Text="PDF" FontSize="8" FontWeight="Bold" Foreground="#2563EB" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Segoe UI"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                                        <Border CornerRadius="4" Padding="3,0" Background="#EFF6FF">
+                                                            <TextBlock Text="{Binding TypeLabel}" FontSize="8" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding UploadDate, StringFormat=' • {0:dd/MM/yyyy}'}" FontSize="9" Foreground="#94A3B8" Margin="3,0,0,0" FontFamily="Segoe UI"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Border Background="#F8FAFC" CornerRadius="8" Padding="12" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand" Margin="0,3,0,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="+" FontFamily="Segoe UI" FontSize="20" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Upload hồ sơ" FontSize="10" Foreground="#64748B" HorizontalAlignment="Center" FontFamily="Segoe UI"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- TAB 11: NOTES -->
+                        <StackPanel Visibility="{Binding IsNotesTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="GHI CHÚ" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Notes}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ArCustomerNoteDto}">
+                                        <Border Padding="8,5" Margin="0,0,0,4" Background="#F8FAFC" CornerRadius="6" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border CornerRadius="4" Padding="3,0" Background="#EFF6FF">
+                                                        <TextBlock Text="{Binding TypeLabel}" FontSize="8" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Author, StringFormat=' • {0}'}" FontSize="9" Foreground="#94A3B8" Margin="3,0,0,0" FontFamily="Segoe UI"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Content}" FontSize="10" Foreground="#475569" Margin="0,3,0,0" TextWrapping="Wrap" FontFamily="Segoe UI"/>
+                                                <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM HH:mm}'}" FontSize="8" Foreground="#94A3B8" Margin="0,1,0,0" FontFamily="Segoe UI"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                        </Grid>
+                    </ScrollViewer>
+
+                    <!-- Empty state -->
+                    <Border Grid.Row="2" Background="White" Panel.ZIndex="2">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasSelection}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="—" FontFamily="Segoe UI" FontSize="24" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Chọn một khách hàng" FontSize="14" FontWeight="SemiBold" Foreground="#52657D" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                            <TextBlock Text="để xem thông tin chi tiết, công nợ, hợp đồng và lịch sử giao dịch." FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- RIGHT: AR Stats Panel -->
+            <Border Grid.Column="2" Margin="4,6,8,6" Width="280" Style="{StaticResource PanelCard}" Padding="0"
+                    Visibility="{Binding IsRightPanelOpen, Converter={StaticResource BoolToVis}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
+                    <StackPanel Margin="14,10">
+                        <TextBlock Text="CÔNG NỢ — DASHBOARD" FontSize="11" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8" FontFamily="Segoe UI"/>
+
+                        <!-- Aging KPI -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#FEF2F2" CornerRadius="6" Padding="8,5" Margin="0,0,0,4">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Tổng dư nợ" FontSize="10" Foreground="#DC2626" FontFamily="Segoe UI"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedItem.Outstanding, StringFormat='{}{0:N0} ₫'}" FontSize="13" FontWeight="Bold" Foreground="#DC2626" FontFamily="Segoe UI"/>
+                                </Grid>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="0" Background="#FFF7ED" CornerRadius="6" Padding="6,5" Margin="0,0,2,4">
+                                <StackPanel>
+                                    <TextBlock Text="Hiện tại" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                                    <TextBlock Text="{Binding SelectedItem.CurrentDebt, StringFormat='{}{0:N0} ₫'}" FontSize="11" FontWeight="SemiBold" Foreground="#F59E0B" FontFamily="Segoe UI"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" Background="#FFF7ED" CornerRadius="6" Padding="6,5" Margin="2,0,0,4">
+                                <StackPanel>
+                                    <TextBlock Text="1-30 ngày" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                                    <TextBlock Text="{Binding SelectedItem.Debt1To30, StringFormat='{}{0:N0} ₫'}" FontSize="11" FontWeight="SemiBold" Foreground="#D97706" FontFamily="Segoe UI"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="0" Background="#FEE2E2" CornerRadius="6" Padding="6,5" Margin="0,0,2,0">
+                                <StackPanel>
+                                    <TextBlock Text="31-60 ngày" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                                    <TextBlock Text="{Binding SelectedItem.Debt31To60, StringFormat='{}{0:N0} ₫'}" FontSize="11" FontWeight="SemiBold" Foreground="#EF4444" FontFamily="Segoe UI"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="1" Background="#FEE2E2" CornerRadius="6" Padding="6,5" Margin="2,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="60-90+ ngày" FontSize="9" Foreground="#94A3B8" FontFamily="Segoe UI"/>
+                                    <TextBlock Text="{Binding SelectedItem.Debt61To90, StringFormat='{}{0:N0} ₫'}" FontSize="11" FontWeight="SemiBold" Foreground="#DC2626" FontFamily="Segoe UI"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Credit Status -->
+                        <Border Background="#EFF6FF" CornerRadius="8" Padding="10,7" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Grid Grid.Row="0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Credit Limit" FontSize="10" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedItem.CreditLimit, StringFormat='{}{0:N0} ₫'}" FontSize="12" FontWeight="Bold" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                                </Grid>
+                                <Grid Grid.Row="1" Margin="0,4,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Available Credit" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedItem.AvailableCredit, StringFormat='{}{0:N0} ₫'}" FontSize="12" FontWeight="Bold" FontFamily="Segoe UI">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#16A34A"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedItem.IsOverCreditLimit}" Value="True"><Setter Property="Foreground" Value="#DC2626"/></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                                <!-- Credit Limit Warning -->
+                                <Border Grid.Row="2" Background="#FEF2F2" CornerRadius="4" Padding="6,3" Margin="0,6,0,0" Visibility="{Binding SelectedItem.IsOverCreditLimit, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="⚠ CREDIT LIMIT EXCEEDED" FontSize="9" FontWeight="Bold" Foreground="#DC2626" FontFamily="Segoe UI"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Quick Stats -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Background="#F8FAFC" Margin="0,0,0,3">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Hóa đơn mở" FontSize="10" Foreground="#475569" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SelectedItem.OpenInvoiceCount}" FontSize="11" FontWeight="SemiBold" Foreground="#F59E0B" FontFamily="Segoe UI"/>
+                            </Grid>
+                            <Grid Grid.Row="1" Background="#F8FAFC" Margin="0,0,0,3">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Thanh toán chờ" FontSize="10" Foreground="#475569" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SelectedItem.PendingPayment, StringFormat='{}{0:N0} ₫'}" FontSize="10" Foreground="#D97706" FontFamily="Segoe UI"/>
+                            </Grid>
+                            <Grid Grid.Row="2" Background="#F8FAFC" Margin="0,0,0,3">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Đặt cọc" FontSize="10" Foreground="#475569" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SelectedItem.TotalDeposit, StringFormat='{}{0:N0} ₫'}" FontSize="10" Foreground="#2563EB" FontFamily="Segoe UI"/>
+                            </Grid>
+                            <Grid Grid.Row="3" Background="#F8FAFC" Margin="0,0,0,3">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Đã hoàn" FontSize="10" Foreground="#475569" FontFamily="Segoe UI"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SelectedItem.TotalRefund, StringFormat='{}{0:N0} ₫'}" FontSize="10" Foreground="#64748B" FontFamily="Segoe UI"/>
+                            </Grid>
+                        </Grid>
+
+                        <!-- Last Activity -->
+                        <Border Background="#F8FAFC" CornerRadius="8" Padding="10,7" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="HOẠT ĐỘNG GẦN ĐÂY" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                                <Grid Grid.Row="1" Margin="0,0,0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Last Stay" FontSize="9" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedItem.LastStayDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="9" Foreground="#475569" FontFamily="Segoe UI"/>
+                                </Grid>
+                                <Grid Grid.Row="2" Margin="0,0,0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Last Reservation" FontSize="9" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedItem.LastReservationDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="9" Foreground="#475569" FontFamily="Segoe UI"/>
+                                </Grid>
+                                <Grid Grid.Row="3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Last Payment" FontSize="9" Foreground="#64748B" FontFamily="Segoe UI"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedItem.LastPaymentDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="9" Foreground="#475569" FontFamily="Segoe UI"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Warnings -->
+                        <Border CornerRadius="8" Padding="10,7" Visibility="{Binding SelectedItem.HasWarning, Converter={StaticResource BoolToVis}}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#FEF2F2"/>
+                                    <Setter Property="BorderBrush" Value="#FECACA"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="⚠ CẢNH BÁO" FontSize="10" FontWeight="Bold" Foreground="#DC2626" Margin="0,0,0,6" FontFamily="Segoe UI"/>
+                                <ItemsControl ItemsSource="{Binding SelectedItem.Warnings}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type system:String}">
+                                            <TextBlock Text="{Binding}" FontSize="9" Foreground="#DC2626" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- ═══ ROW 4: FOOTER ═══ -->
+        <Border Grid.Row="4" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,1,0,0" Padding="12,6">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding PageDisplay}" FontSize="10" Foreground="#64748B" VerticalAlignment="Center" FontFamily="Segoe UI"/>
+                    <Border CornerRadius="5" Padding="5,1" Margin="8,0,0,0" Background="#EFF6FF">
+                        <TextBlock Text="AR Customer Master" FontSize="10" Foreground="#2563EB" FontWeight="SemiBold"/>
+                    </Border>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="&#x00AB;" Style="{StaticResource PagerBtn}" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPrevPage}" ToolTip="Trang đầu"/>
+                    <Button Content="&#x2039;" Style="{StaticResource PagerBtn}" Command="{Binding PrevPageCommand}" IsEnabled="{Binding HasPrevPage}" ToolTip="Trang trước"/>
+                    <ItemsControl ItemsSource="{Binding PageButtons}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArCustomerPaginationButton}">
+                            <Button Style="{StaticResource PagerPageBtn}" Command="{Binding DataContext.SetPageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PageNumber}"/>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="&#x203A;" Style="{StaticResource PagerBtn}" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" ToolTip="Trang sau"/>
+                    <Button Content="&#x00BB;" Style="{StaticResource PagerBtn}" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" ToolTip="Trang cuối"/>
+                    <ComboBox ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding PageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemStringFormat="{}{0} / trang" Style="{StaticResource FluentComboBox}" Width="122" Height="32" MinWidth="0" Margin="8,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════ FORM OVERLAY ═══════════════════════════════════════ -->
+        <Border Grid.RowSpan="5" Background="#80000000" Visibility="{Binding IsFormOpen, Converter={StaticResource BoolToVis}}">
+            <Grid>
+                <Border Background="White" CornerRadius="12" MaxWidth="520" MaxHeight="620" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="12,12,0,0" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="16,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding FormTitle}" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI"/>
+                                <Button Grid.Column="1" Content="Đóng" Style="{StaticResource SecondaryBtn}" Width="52" Height="28" Padding="6,0" Command="{Binding CloseFormCommand}"/>
+                            </Grid>
+                        </Border>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,10">
+                            <StackPanel>
+                                <Border Background="#FEF2F2" CornerRadius="6" Padding="8,5" Margin="0,0,0,8" Visibility="{Binding FormErrorMessage, Converter={StaticResource StringToVis}}">
+                                    <TextBlock Text="{Binding FormErrorMessage}" FontSize="10" Foreground="#DC2626" FontFamily="Segoe UI"/>
+                                </Border>
+
+                                <!-- EDIT FORM -->
+                                <StackPanel Visibility="{Binding IsEditForm, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Tên khách hàng *" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <TextBox Text="{Binding EditCustomerName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,8"/>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                            <TextBlock Text="Tên tắt" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                            <TextBox Text="{Binding EditShortName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                            <TextBlock Text="Loại KH" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                            <ComboBox SelectedItem="{Binding EditCustomerType}" Style="{StaticResource FilterCombo}" Width="Auto" Margin="0">
+                                                <ComboBoxItem Content="Corporate"/><ComboBoxItem Content="TravelAgent"/><ComboBoxItem Content="Company"/>
+                                                <ComboBoxItem Content="Government"/><ComboBoxItem Content="VIP"/><ComboBoxItem Content="Individual"/><ComboBoxItem Content="OTA"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="MST" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <TextBox Text="{Binding EditTaxCode, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Địa chỉ" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <TextBox Text="{Binding EditAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,8"/>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                            <TextBlock Text="Phone" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                            <TextBox Text="{Binding EditPhone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                            <TextBlock Text="Email" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                            <TextBox Text="{Binding EditEmail, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                            <TextBlock Text="Credit Limit" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                            <TextBox Text="{Binding EditCreditLimit, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                            <TextBlock Text="Credit Days" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                            <TextBox Text="{Binding EditCreditDays, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="Sales" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <TextBox Text="{Binding EditSalesPerson, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,8"/>
+                                </StackPanel>
+
+                                <!-- PAYMENT FORM -->
+                                <StackPanel Visibility="{Binding IsPaymentForm, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Số tiền thu *" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <TextBox Text="{Binding PaymentAmount, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Phương thức" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <ComboBox SelectedItem="{Binding PaymentMethod}" Style="{StaticResource FilterCombo}" Width="Auto" Margin="0,0,0,8">
+                                        <ComboBoxItem Content="Tiền mặt"/><ComboBoxItem Content="Chuyển khoản"/>
+                                        <ComboBoxItem Content="Thẻ tín dụng"/><ComboBoxItem Content="Ví điện tử"/><ComboBoxItem Content="Séc"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Số tham chiếu" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <TextBox Text="{Binding PaymentReference, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,8"/>
+                                </StackPanel>
+
+                                <!-- EMAIL FORM -->
+                                <StackPanel Visibility="{Binding IsEmailForm, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Loại Email" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <ComboBox SelectedItem="{Binding EmailType}" Style="{StaticResource FilterCombo}" Width="Auto" Margin="0,0,0,8">
+                                        <ComboBoxItem Content="Statement"/><ComboBoxItem Content="Invoice"/><ComboBoxItem Content="Reminder"/><ComboBoxItem Content="BalanceConfirmation"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Email *" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <TextBox Text="{Binding EmailTo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Nội dung" FontSize="10" Foreground="#64748B" Margin="0,0,0,3" FontFamily="Segoe UI"/>
+                                    <TextBox Text="{Binding EmailBody, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,8"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="0,0,12,12" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="14,10">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="Hủy" Style="{StaticResource SecondaryBtn}" Width="70" Command="{Binding CloseFormCommand}" Margin="0,0,6,0"/>
+                                <Button Content="Lưu" Width="70">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditForm}" Value="True"><Setter Property="Command" Value="{Binding SubmitEditFormCommand}"/></DataTrigger>
+                                                <DataTrigger Binding="{Binding IsPaymentForm}" Value="True"><Setter Property="Command" Value="{Binding SubmitPaymentFormCommand}"/></DataTrigger>
+                                                <DataTrigger Binding="{Binding IsEmailForm}" Value="True"><Setter Property="Command" Value="{Binding SubmitEmailFormCommand}"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Loading overlay -->
+        <Border Grid.RowSpan="5" Background="#80FFFFFF" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Đang tải..." FontSize="14" Foreground="#64748B" FontFamily="Segoe UI"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

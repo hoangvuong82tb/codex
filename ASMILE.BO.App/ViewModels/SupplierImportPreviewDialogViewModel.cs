@@ -58,6 +58,8 @@ public partial class SupplierImportPreviewDialogViewModel : ObservableObject
                 BankAccountNo = row.BankAccountNo,
                 Address = row.Address,
                 Note = row.Note,
+                Email = row.Email,
+                TaxCode = row.TaxCode,
                 IsActive = row.IsActive
             };
 
@@ -83,6 +85,8 @@ public partial class SupplierImportPreviewDialogViewModel : ObservableObject
                 BankAccountNo = x.BankAccountNo.Trim(),
                 Address = x.Address.Trim(),
                 Note = x.Note.Trim(),
+                Email = x.Email.Trim(),
+                TaxCode = x.TaxCode.Trim(),
                 IsActive = x.IsActive
             })
             .ToList();
@@ -171,6 +175,8 @@ public partial class SupplierImportPreviewDialogViewModel : ObservableObject
             row.BankAccountNo = model.BankAccountNo;
             row.Address = model.Address;
             row.Note = model.Note;
+            row.Email = model.Email;
+            row.TaxCode = model.TaxCode;
             row.IsActive = model.IsActive;
 
             row.Issues.Clear();

@@ -51,6 +51,23 @@ internal static class TestDbContextFactory
             });
         }
 
+        var today = DateTime.Today;
+        var currentPeriodCode = $"{today:yyyy-MM}";
+        if (!context.AccountingPeriods.Any(x => x.PeriodCode == currentPeriodCode))
+        {
+            var periodStart = new DateTime(today.Year, today.Month, 1);
+            context.AccountingPeriods.Add(new AccountingPeriod
+            {
+                Id = Guid.NewGuid(),
+                PeriodCode = currentPeriodCode,
+                FromDate = periodStart,
+                ToDate = periodStart.AddMonths(1).AddDays(-1),
+                Status = AccountingPeriodStatus.Open,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
         AddAccount(context, "1111", "Tiền mặt", "Asset", "Debit");
         AddAccount(context, "1121", "Tiền gửi ngân hàng", "Asset", "Debit");
         AddAccount(context, "1311", "Phải thu khách hàng", "Asset", "Debit");

@@ -79,14 +79,25 @@
                             <TextBlock Grid.Column="1" Text="Gia hạn lưu trú" Style="{StaticResource HubCardTitleStyle}"/>
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnMoveAndExtend">
+                    <Button x:Name="RoomMoveExtendCardButton" Click="OnMoveAndExtend" Style="{StaticResource StayAdjustmentActionCardStyle}">
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#FFAD39" Offset="0"/><GradientStop Color="#ED7900" Offset="1"/></LinearGradientBrush></Border.Background>
-                                <TextBlock Text="&#xE8D2;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Grid Width="30" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Path Data="M2,7 H19 M15,3 L19,7 L15,11 M22,18 H5 M9,14 L5,18 L9,22"
+                                          Fill="Transparent" Stroke="White" StrokeThickness="2"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"/>
+                                    <Ellipse Width="10" Height="10" Margin="18,0,0,18"
+                                             HorizontalAlignment="Left" VerticalAlignment="Top"
+                                             Fill="#ED7900" Stroke="White" StrokeThickness="1.5"/>
+                                    <Path Data="M23,3.5 V6.5 L25,7.5"
+                                          Fill="Transparent" Stroke="White" StrokeThickness="1.2"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                </Grid>
                             </Border>
                             <TextBlock Grid.Column="1" Text="Đổi phòng + Gia hạn" Style="{StaticResource HubCardTitleStyle}"/>
                         </Grid>
-                    </Border>
+                    </Button>
                     <Border Style="{StaticResource HubCardStyle}" MouseLeftButtonDown="OnModifyInfo">
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Border Style="{StaticResource HubIconBoxStyle}"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#B158FF" Offset="0"/><GradientStop Color="#7D2BE1" Offset="1"/></LinearGradientBrush></Border.Background>

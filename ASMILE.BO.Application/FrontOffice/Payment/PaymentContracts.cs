@@ -4,7 +4,7 @@ using ASMILE.BO.Core.FrontOffice.Payment;
 namespace ASMILE.BO.Application.FrontOffice.Payment;
 
 // === DTOs ===
-public sealed record HotelPaymentDto(Guid HotelPaymentId, string PaymentNumber, Guid HotelFolioId, HotelPaymentMethod PaymentMethod, decimal Amount, decimal RefundedAmount, decimal AllocatedAmount, HotelPaymentStatus Status, PaymentCurrency Currency, string? AuthorizationCode, string? ExternalReference, string? Notes, DateTime CreatedAtUtc, DateTime? VoidedAtUtc, string? VoidReason, DateTime? RefundedAtUtc, string? RefundReason, byte[]? RowVersion);
+public sealed record HotelPaymentDto(Guid HotelPaymentId, string PaymentNumber, Guid HotelFolioId, HotelPaymentMethod PaymentMethod, decimal Amount, decimal RefundedAmount, decimal AllocatedAmount, HotelPaymentStatus Status, PaymentCurrency Currency, string? AuthorizationCode, string? ExternalReference, string? Notes, DateTime CreatedAtUtc, DateTime? VoidedAtUtc, string? VoidReason, DateTime? RefundedAtUtc, string? RefundReason, byte[]? RowVersion, Guid? FolioEntryId = null);
 public sealed record PaymentAllocationDto(Guid HotelPaymentAllocationId, Guid HotelPaymentId, Guid ChargeFolioEntryId, string ChargeDescription, decimal Amount, DateTime CreatedAtUtc);
 public sealed record PaymentHistoryDto(DateTime OccurredAtUtc, string Action, string? Detail);
 public sealed record OutstandingBalanceDto(decimal TotalCharges, decimal TotalPayments, decimal TotalDepositApplied, decimal Outstanding);
@@ -18,6 +18,8 @@ public sealed record CapturePaymentCommand(Guid HotelPaymentId, byte[] ExpectedR
 public sealed record CompletePaymentCommand(Guid HotelPaymentId, byte[] ExpectedRowVersion) : ICommand<HotelPaymentDto>;
 public sealed record SplitTenderCommand(Guid HotelFolioId, byte[] FolioExpectedRowVersion, IReadOnlyList<SplitTenderLine> Lines) : ICommand<IReadOnlyList<HotelPaymentDto>>;
 public sealed record AllocatePaymentCommand(Guid HotelPaymentId, byte[] ExpectedRowVersion, Guid ChargeFolioEntryId, string ChargeDescription, decimal Amount) : ICommand<PaymentAllocationDto>;
+public sealed record PaymentAllocationLine(Guid ChargeFolioEntryId, string ChargeDescription, decimal Amount);
+public sealed record AllocatePaymentBatchCommand(Guid HotelPaymentId, byte[] ExpectedRowVersion, IReadOnlyList<PaymentAllocationLine> Lines) : ICommand<IReadOnlyList<PaymentAllocationDto>>;
 public sealed record RefundPaymentCommand(Guid HotelPaymentId, byte[] ExpectedRowVersion, decimal? Amount, string Reason) : ICommand<HotelPaymentDto>;
 public sealed record VoidPaymentCommand(Guid HotelPaymentId, byte[] ExpectedRowVersion, string Reason) : ICommand<HotelPaymentDto>;
 public sealed record CancelPaymentCommand(Guid HotelPaymentId, byte[] ExpectedRowVersion, string Reason) : ICommand<HotelPaymentDto>;

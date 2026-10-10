@@ -72,7 +72,7 @@ public partial class PaymentVoucherDetailModuleViewModel : ObservableObject
             "#3B6EF5",
             isPinned: false,
             showOnDesktop: false,
-            iconPath: @"D:\ASMILE-BO\Windows_Icon\Icons\applications\payment-voucher.ico");
+            iconPath: ApplicationAssetPaths.Icon(@"Icons\applications\payment-voucher.ico"));
 
         var previewVm = new StockReceiptPrintPreviewModuleViewModel(
             previewModuleKey,

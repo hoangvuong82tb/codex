@@ -108,6 +108,24 @@
                             </Grid>
                         </Border>
 
+                        <!-- The complete value area is clickable.  Previously only the
+                             34px chevron toggle opened the popup, making filter fields
+                             look like inert boxes unless the user scrolled the mouse. -->
+                        <ToggleButton x:Name="ContentToggle"
+                                      Margin="1,1,35,1"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Stretch"
+                                      Background="Transparent"
+                                      BorderThickness="0"
+                                      Focusable="False"
+                                      IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border Background="Transparent" />
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+
                         <ToggleButton x:Name="DropDownToggle"
                                       Width="34"
                                       HorizontalAlignment="Right"
@@ -152,6 +170,7 @@
                         <Trigger Property="IsEditable" Value="True">
                             <Setter TargetName="ContentSite" Property="Visibility" Value="Collapsed" />
                             <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="ContentToggle" Property="Visibility" Value="Collapsed" />
                             <Setter TargetName="PART_EditableTextBox" Property="IsReadOnly"
                                     Value="{Binding IsReadOnly, RelativeSource={RelativeSource TemplatedParent}}" />
                         </Trigger>

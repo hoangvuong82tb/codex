@@ -13,11 +13,12 @@
         <BooleanToVisibilityConverter x:Key="BoolVis" />
 
         <DataTemplate DataType="{x:Type models:ReservationHubCard}">
-            <Border Style="{StaticResource HubCardStyle}" Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}"
-                    Tag="{Binding Id}">
-                <Border.InputBindings>
-                    <MouseBinding MouseAction="LeftClick" Command="{Binding Command}"/>
-                </Border.InputBindings>
+            <Button Style="{StaticResource FO.HubCardButton}"
+                    Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}"
+                    IsEnabled="{Binding IsEnabled}"
+                    Command="{Binding Command}"
+                    Tag="{Binding Id}"
+                    AutomationProperties.Name="{Binding AutomationName}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="54"/>
@@ -27,9 +28,9 @@
                         <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="28"
                                    Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
-                    <TextBlock Grid.Column="1" Text="{Binding Title}" Style="{StaticResource HubCardTitleStyle}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" Style="{StaticResource HubCardTitleStyle}" VerticalAlignment="Center"/>
                 </Grid>
-            </Border>
+            </Button>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding Id}" Value="create"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#4A8EFF" Offset="0"/><GradientStop Color="#1765F2" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
                 <DataTrigger Binding="{Binding Id}" Value="search"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#31C9B8" Offset="0"/><GradientStop Color="#00A58F" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
@@ -41,7 +42,6 @@
                 <DataTrigger Binding="{Binding Id}" Value="web"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#2CC7D8" Offset="0"/><GradientStop Color="#00A7BA" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
                 <DataTrigger Binding="{Binding Id}" Value="denials"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#3E83F3" Offset="0"/><GradientStop Color="#195FCE" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
                 <DataTrigger Binding="{Binding Id}" Value="availability"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#9853F0" Offset="0"/><GradientStop Color="#6F28D8" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
-                <DataTrigger Binding="{Binding Id}" Value="reports"><Setter TargetName="IconBox" Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#2661D9" Offset="0"/><GradientStop Color="#1046B7" Offset="1"/></LinearGradientBrush></Setter.Value></Setter></DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
     </UserControl.Resources>
@@ -84,7 +84,9 @@
             </Grid>
         </ScrollViewer>
 
-        <ContentControl Content="{Binding ModalService.ActiveModal}"
-                        Visibility="{Binding ModalService.IsOpen, Converter={StaticResource BoolVis}, FallbackValue=Collapsed}"/>
+        <Border Style="{StaticResource FO.LargeModalShell}"
+                Visibility="{Binding ModalService.IsOpen, Converter={StaticResource BoolVis}, FallbackValue=Collapsed}">
+            <ContentControl Content="{Binding ModalService.ActiveModal}"/>
+        </Border>
     </Grid>
 </UserControl>

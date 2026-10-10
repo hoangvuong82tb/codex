@@ -280,7 +280,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Row="0" Grid.Column="1" Width="460" Height="36" HorizontalAlignment="Center" Background="#FFFFFF" BorderBrush="#D6DEE8" BorderThickness="1" CornerRadius="18" Margin="0,4,0,0">
+        <Border Grid.Row="0" Grid.Column="1" MaxWidth="460" Height="36" HorizontalAlignment="Stretch" Background="#FFFFFF" BorderBrush="#D6DEE8" BorderThickness="1" CornerRadius="18" Margin="16,4,16,0">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="*"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#6B7280" VerticalAlignment="Center" HorizontalAlignment="Center"/>
@@ -308,7 +308,7 @@
                     </Grid>
                 </Border>
 
-                <ListBox ItemsSource="{Binding FilteredCategories}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}" SelectionChanged="OnCategorySelectionChanged" MouseLeftButtonUp="OnCategoryMouseLeftButtonUp" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource SettingsNavItemStyle}">
+                <ListBox ItemsSource="{Binding FilteredCategories}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource SettingsNavItemStyle}">
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type models:SettingsCategoryItem}">
                             <Grid>
@@ -324,15 +324,19 @@
 
         <Grid Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" Margin="12,0,0,0">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,18,0,18">
-            <Grid MinWidth="900">
+            <Grid MinWidth="0">
                 <Grid.Style>
-                    <Style TargetType="Grid">
-                        <Setter Property="HorizontalAlignment" Value="Center"/>
-                        <Setter Property="MaxWidth" Value="1000"/>
+                        <Style TargetType="Grid">
+                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                            <Setter Property="MaxWidth" Value="1000"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsLedgerAccountSettingsVisible}" Value="True">
                                 <Setter Property="HorizontalAlignment" Value="Stretch"/>
                                 <Setter Property="MaxWidth" Value="2000"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsEmbeddedModuleMode}" Value="True">
+                                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                <Setter Property="MaxWidth" Value="1400"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -340,24 +344,28 @@
                 <StackPanel>
                     <StackPanel.Style>
                         <Style TargetType="StackPanel">
-                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
                             <Setter Property="MaxWidth" Value="1000"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsLedgerAccountSettingsVisible}" Value="True">
                                     <Setter Property="HorizontalAlignment" Value="Stretch"/>
                                     <Setter Property="MaxWidth" Value="2000"/>
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding IsEmbeddedModuleMode}" Value="True">
+                                    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                    <Setter Property="MaxWidth" Value="1400"/>
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <StackPanel HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Stretch">
                         <StackPanel.Style>
                             <Style TargetType="StackPanel">
-                                <Setter Property="Width" Value="840"/>
+                                <Setter Property="MaxWidth" Value="1000"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsHomePage}" Value="True">
-                                        <Setter Property="Width" Value="1000"/>
-                                    </DataTrigger>
+                                <DataTrigger Binding="{Binding IsHomePage}" Value="True">
+                                    <Setter Property="MaxWidth" Value="1000"/>
+                                </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </StackPanel.Style>
@@ -406,6 +414,7 @@
                                     <Setter Property="FontSize" Value="30"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsDetailMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                        <DataTrigger Binding="{Binding IsEmbeddedModuleMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                                         <DataTrigger Binding="{Binding IsHomePage}" Value="False"><Setter Property="FontSize" Value="20"/></DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -417,6 +426,7 @@
                                     <Setter Property="Visibility" Value="Visible"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsDetailMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                        <DataTrigger Binding="{Binding IsEmbeddedModuleMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </TextBlock.Style>
@@ -455,9 +465,11 @@
                                             </TextBlock.Style>
                                         </TextBlock>
                                         <TextBlock Text="ASMILE BO Enterprise Shell" Foreground="{StaticResource SettingsTextSecondaryBrush}"/>
-                                        <TextBlock Text="Server mode: Central Server" Foreground="{StaticResource SettingsTextSecondaryBrush}"/>
+                                        <TextBlock Foreground="{StaticResource SettingsTextSecondaryBrush}">
+                                            <Run Text="Database: "/><Run Text="{Binding DatabaseName}"/>
+                                        </TextBlock>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Content="Rename" Style="{StaticResource SettingsSecondaryButton}" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="Thông tin máy chủ" Style="{StaticResource SettingsSecondaryButton}" VerticalAlignment="Center" Command="{Binding OpenMachineInfoCommand}"/>
                                 </Grid>
                             </Border>
 
@@ -470,7 +482,8 @@
                                                 <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="20" VerticalAlignment="Center"/>
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Title}" FontWeight="SemiBold"/><TextBlock Text="{Binding Description}" FontSize="12" Foreground="{StaticResource SettingsTextSecondaryBrush}"/></StackPanel>
                                                 <TextBlock Grid.Column="2" Text="{Binding Value}" HorizontalAlignment="Right" Foreground="{StaticResource SettingsTextSecondaryBrush}" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="3" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="3" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" Foreground="#94A3B8" VerticalAlignment="Center"
+                                                                               Visibility="{Binding IsClickable, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                             </Grid>
                                         </Button>
                                     </DataTemplate>
@@ -485,36 +498,50 @@
                                     <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" Command="{Binding NavigateToSettingsDetailCommand}" CommandParameter="{Binding HomeDatabaseRow}"><TextBlock Text="Cơ sở dữ liệu"/></Button>
                                     <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" Command="{Binding NavigateToSettingsDetailCommand}" CommandParameter="{Binding HomeBackupRow}"><TextBlock Text="Sao lưu &amp; phục hồi"/></Button>
                                     <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" Command="{Binding NavigateToSettingsDetailCommand}" CommandParameter="{Binding HomeSecurityRow}"><TextBlock Text="Nhật ký &amp; bảo mật"/></Button>
-                                    <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" IsEnabled="False"><TextBlock Text="Cấu hình máy trạm"/></Button>
+                                    <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" Command="{Binding OpenWorkstationSettingsCommand}"><TextBlock Text="Danh sách máy trạm đang hoạt động"/></Button>
                                 </StackPanel>
                             </Border>
                             <Border Style="{StaticResource SettingsCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="System health" FontSize="16" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{Binding ConnectionStatus, StringFormat=• SQL Server {0}}" Foreground="#15803D" Margin="0,6,0,0"/>
-                                    <TextBlock Text="• API Server Running" Foreground="#15803D"/>
-                                    <TextBlock Text="• Backup OK" Foreground="#15803D"/>
-                                    <TextBlock Text="• Update Checked" Foreground="{StaticResource SettingsTextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding SystemHealthDatabase}" Foreground="{StaticResource SettingsTextSecondaryBrush}" Margin="0,6,0,0"/>
+                                    <TextBlock Text="{Binding SystemHealthApi}" Foreground="{StaticResource SettingsTextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding SystemHealthBackup}" Foreground="{StaticResource SettingsTextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding SystemHealthFileBackup}" Foreground="{StaticResource SettingsTextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding SystemHealthAudit}" Foreground="{StaticResource SettingsTextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding SystemHealthMigrations}" Foreground="{StaticResource SettingsTextSecondaryBrush}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding SystemHealthEInvoice}" Foreground="{StaticResource SettingsTextSecondaryBrush}" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
                             <Border Style="{StaticResource SettingsCardStyle}">
                                 <StackPanel>
-                                    <TextBlock Text="Recent activity" FontSize="16" FontWeight="SemiBold"/>
-                                    <TextBlock Text="09:31  Test SQL Connection" Margin="0,6,0,0"/>
-                                    <TextBlock Text="09:29  Backup completed"/>
-                                    <TextBlock Text="09:22  Index rebuild check"/>
+                                    <TextBlock Text="Recent settings changes" FontSize="16" FontWeight="SemiBold"/>
+                                    <ItemsControl ItemsSource="{Binding RecentActivities}" Margin="0,6,0,0"/>
+                                    <TextBlock Text="Chưa có thay đổi cài đặt." Foreground="{StaticResource SettingsTextSecondaryBrush}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasRecentActivities}" Value="False">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
                     </Grid>
 
-                    <StackPanel Width="840" HorizontalAlignment="Center">
+                    <StackPanel MaxWidth="1000" HorizontalAlignment="Stretch">
                         <StackPanel.Style>
                             <Style TargetType="StackPanel">
                                 <Setter Property="Visibility" Value="Visible"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsHomePage}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                                     <DataTrigger Binding="{Binding IsDetailMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding IsEmbeddedModuleMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </StackPanel.Style>
@@ -538,9 +565,9 @@
                         <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,8">
                             <StackPanel>
                                 <TextBlock Text="Recommended settings" FontSize="16" FontWeight="SemiBold"/>
-                                <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" IsEnabled="False"><TextBlock Text="Kiểm tra kết nối và phân quyền"/></Button>
-                                <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" IsEnabled="False"><TextBlock Text="Cập nhật cấu hình backup"/></Button>
-                                <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" IsEnabled="False"><TextBlock Text="Theo dõi service status"/></Button>
+                                <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" Command="{Binding OpenInfrastructureHealthCommand}"><TextBlock Text="Kiểm tra kết nối &amp; tình trạng hệ thống"/></Button>
+                                <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" Command="{Binding OpenBackupConfigurationCommand}"><TextBlock Text="Cập nhật cấu hình backup"/></Button>
+                                <Button Style="{StaticResource SettingsSecondaryButton}" Height="34" Margin="0,6,0,0" HorizontalContentAlignment="Left" Command="{Binding OpenServiceStatusCommand}"><TextBlock Text="Theo dõi trạng thái dịch vụ"/></Button>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -644,9 +671,11 @@
                                                 <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
                                                 <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{StaticResource SettingsTextSecondaryBrush}"/>
                                                 <TextBlock Text="Requires restart" FontSize="11" Foreground="#B45309" Visibility="{Binding RequiresRestart, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <TextBlock Text="Chỉ đọc — chưa có provider runtime" FontSize="11" Foreground="#B45309" Visibility="{Binding IsReadOnly, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <TextBlock Text="{Binding ValueSourceText}" FontSize="11" Foreground="{StaticResource SettingsTextSecondaryBrush}"/>
                                                 <TextBlock Text="{Binding ErrorMessage}" Foreground="#DC2626" FontSize="11" Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                             </StackPanel>
-                                            <Grid Grid.Column="1">
+                                            <Grid Grid.Column="1" IsEnabled="{Binding CanEdit}">
                                                 <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsText, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                 <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsNumber, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                 <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Value}" Visibility="{Binding IsEnum, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -821,10 +850,10 @@
                                                 </StackPanel>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0"><TextBlock Text="Nguồn dữ liệu" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerDataSource, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
-                                                    <StackPanel Grid.Column="2"><TextBlock Text="Tên database" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding DatabaseName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
+                                                    <StackPanel Grid.Column="0"><TextBlock Text="Nguồn dữ liệu" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerDataSource}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
+                                                    <StackPanel Grid.Column="2"><TextBlock Text="Tên database" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding DatabaseName}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
                                                 </Grid>
-                                                <StackPanel Margin="0,12,0,0"><TextBlock Text="Tiền tệ mặc định" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerDefaultCurrency, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
+                                                <StackPanel Margin="0,12,0,0"><TextBlock Text="Tiền tệ mặc định" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerDefaultCurrency}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
                                             </StackPanel>
                                         </Border>
                                         <Border Style="{StaticResource SettingsSectionCardStyle}">
@@ -832,22 +861,22 @@
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14"><TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#F97316" Margin="0,0,10,0"/><TextBlock Text="Kỳ &amp; phương pháp ghi sổ" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0"><TextBlock Text="Kỳ kế toán hiện tại" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerCurrentPeriod, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
-                                                    <StackPanel Grid.Column="2"><TextBlock Text="Phương pháp ghi sổ" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerPostingMethod, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
+                                                    <StackPanel Grid.Column="0"><TextBlock Text="Kỳ kế toán hiện tại" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerCurrentPeriod}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
+                                                    <StackPanel Grid.Column="2"><TextBlock Text="Phương pháp ghi sổ" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerPostingMethod}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
                                                 </Grid>
-                                                <StackPanel Margin="0,12,0,0"><TextBlock Text="Chế độ làm tròn tiền" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerRoundingMode, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
+                                                <StackPanel Margin="0,12,0,0"><TextBlock Text="Chế độ làm tròn tiền" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerRoundingMode}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel>
                                             </StackPanel>
                                         </Border>
                                         <Border Style="{StaticResource SettingsSectionCardStyle}">
                                             <StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#16A34A" Margin="0,0,10,0"/><TextBlock Text="Quy tắc ghi sổ" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Cho phép ghi âm" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Cho phép lưu ghi âm kèm nghiệp vụ." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowVoiceRecording}" VerticalAlignment="Center"/></Grid>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Cho phép sửa bút toán đã ghi sổ" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Người dùng được chỉnh sửa sau khi ghi sổ." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowEditPostedEntries}" VerticalAlignment="Center"/></Grid>
-                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Cho phép xóa bút toán" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Cho phép xóa bút toán trong kỳ đang mở." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowDeleteEntries}" VerticalAlignment="Center"/></Grid>
-                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Bắt buộc cân đối Nợ/Có trước khi lưu" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Không cho lưu nếu tổng Nợ khác tổng Có." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerRequireBalancedBeforeSave}" VerticalAlignment="Center"/></Grid>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Cho phép ghi âm" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Cho phép lưu ghi âm kèm nghiệp vụ." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" IsEnabled="False" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowVoiceRecording}" VerticalAlignment="Center"/></Grid>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Cho phép sửa bút toán đã ghi sổ" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Người dùng được chỉnh sửa sau khi ghi sổ." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" IsEnabled="False" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowEditPostedEntries}" VerticalAlignment="Center"/></Grid>
+                                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Cho phép xóa bút toán" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Cho phép xóa bút toán trong kỳ đang mở." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" IsEnabled="False" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowDeleteEntries}" VerticalAlignment="Center"/></Grid>
+                                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Bắt buộc cân đối Nợ/Có trước khi lưu" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Không cho lưu nếu tổng Nợ khác tổng Có." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" IsEnabled="False" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerRequireBalancedBeforeSave}" VerticalAlignment="Center"/></Grid>
                                             </StackPanel>
                                         </Border>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0"><Button Tag="&#xE711;" Content="Hủy" Style="{StaticResource SettingsActionSecondaryButton}" Margin="0,0,10,0" Command="{Binding CancelGeneralLedgerPanelCommand}"/><Button Tag="&#xE74E;" Content="Lưu cài đặt" Style="{StaticResource SettingsActionOrangeButton}" Command="{Binding SaveGeneralLedgerCoreCommand}"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0"><TextBlock Text="Tham số lõi do runtime quản lý · chỉ đọc" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,16,0"/><Button Tag="&#xE711;" Content="Đóng" Style="{StaticResource SettingsActionSecondaryButton}" Command="{Binding CancelGeneralLedgerPanelCommand}"/></StackPanel>
                                     </StackPanel>
 
                                     <StackPanel Visibility="{Binding IsLedgerPostingPanel, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -868,16 +897,16 @@
 
                                     <StackPanel Visibility="{Binding IsLedgerPeriodPanel, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <UniformGrid Columns="3" Margin="0,0,0,14"><Border Style="{StaticResource SettingsSectionCardStyle}" Margin="0,0,10,0"><StackPanel><TextBlock Text="Trạng thái kỳ" Foreground="#64748B" FontSize="12"/><TextBlock Text="{Binding LedgerCurrentPeriod}" FontSize="24" FontWeight="SemiBold" Foreground="#10213F" Margin="0,6,0,2"/><Border Background="#DCFCE7" CornerRadius="10" Padding="8,3" HorizontalAlignment="Left"><TextBlock Text="{Binding LedgerPeriodStatus}" Foreground="#16A34A" FontWeight="SemiBold" FontSize="12"/></Border></StackPanel></Border><Border Style="{StaticResource SettingsSectionCardStyle}" Margin="0,0,10,0"><StackPanel><TextBlock Text="Thời gian" Foreground="#64748B" FontSize="12"/><TextBlock Text="{Binding LedgerPeriodFromDate}" FontSize="18" FontWeight="SemiBold" Foreground="#10213F" Margin="0,8,0,2"/><TextBlock Text="{Binding LedgerPeriodToDate, StringFormat=đến {0}}" Foreground="#64748B"/></StackPanel></Border><Border Style="{StaticResource SettingsSectionCardStyle}" Margin="0"><StackPanel><TextBlock Text="Khóa sổ" Foreground="#64748B" FontSize="12"/><TextBlock Text="{Binding LedgerLastLockedDate}" FontSize="18" FontWeight="SemiBold" Foreground="#10213F" Margin="0,8,0,2"/><TextBlock Text="{Binding LedgerLockedBy, StringFormat=Người khóa: {0}}" Foreground="#64748B"/></StackPanel></Border></UniformGrid>
-                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,14"><TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#F97316" Margin="0,0,10,0"/><TextBlock Text="Chỉnh kỳ kế toán" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Grid.Column="0"><TextBlock Text="Kỳ hiện tại" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerCurrentPeriod, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Trạng thái" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerPeriodStatus, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel></Grid><Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Grid.Column="0"><TextBlock Text="Từ ngày" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerPeriodFromDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Đến ngày" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerPeriodToDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel></Grid><Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Grid.Column="0"><TextBlock Text="Ngày khóa sổ gần nhất" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerLastLockedDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Người khóa sổ" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerLockedBy, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel></Grid></StackPanel></Border>
+                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,14"><TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#F97316" Margin="0,0,10,0"/><TextBlock Text="Chỉnh kỳ kế toán" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Grid.Column="0"><TextBlock Text="Kỳ hiện tại" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerCurrentPeriod, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Trạng thái" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerPeriodStatus}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel></Grid><Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Grid.Column="0"><TextBlock Text="Từ ngày" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerPeriodFromDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Đến ngày" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerPeriodToDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel></Grid><Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Grid.Column="0"><TextBlock Text="Ngày khóa sổ gần nhất" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerLastLockedDate}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Người khóa sổ" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerLockedBy}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel></Grid></StackPanel></Border>
                                         <WrapPanel HorizontalAlignment="Right" Margin="0,6,0,0"><Button Tag="&#xE72E;" Content="Khóa kỳ" Style="{StaticResource SettingsActionOrangeButton}" Margin="0,0,10,8" Command="{Binding LockGeneralLedgerPeriodCommand}"/><Button Tag="&#xE785;" Content="Mở khóa kỳ" Style="{StaticResource SettingsActionSecondaryButton}" Margin="0,0,10,8" Command="{Binding UnlockGeneralLedgerPeriodCommand}"/><Button Tag="&#xE710;" Content="Tạo kỳ mới" Style="{StaticResource SettingsActionSecondaryButton}" Margin="0,0,10,8" Command="{Binding CreateGeneralLedgerPeriodCommand}"/><Button Tag="&#xE76C;" Content="Chuyển kỳ sau" Style="{StaticResource SettingsActionPrimaryButton}" Margin="0,0,0,8" Command="{Binding MoveNextGeneralLedgerPeriodCommand}"/></WrapPanel>
                                     </StackPanel>
 
                                     <StackPanel Visibility="{Binding IsLedgerReportsPanel, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,14"><TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#2563EB" Margin="0,0,10,0"/><TextBlock Text="Mẫu báo cáo" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Grid.Column="0"><TextBlock Text="Mẫu sổ cái mặc định" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerDefaultGeneralLedgerReport, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Mẫu cân đối phát sinh" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerDefaultTrialBalanceReport, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel></Grid><StackPanel Margin="0,12,0,0"><TextBlock Text="Định dạng xuất mặc định" Style="{StaticResource SettingsFieldLabelStyle}"/><ComboBox Text="{Binding LedgerDefaultExportFormat, UpdateSourceTrigger=PropertyChanged}" IsEditable="True" Style="{StaticResource SettingsFormComboBoxStyle}"><ComboBoxItem Content="Excel"/><ComboBoxItem Content="PDF"/></ComboBox></StackPanel></StackPanel></Border>
-                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,12"><TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#16A34A" Margin="0,0,10,0"/><TextBlock Text="Quyền xuất/in" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Cho phép in báo cáo" FontWeight="SemiBold" Foreground="#10213F"/><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowPrintReports}"/></Grid><Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Cho phép xuất Excel" FontWeight="SemiBold" Foreground="#10213F"/><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowExportExcel}"/></Grid><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Cho phép xuất PDF" FontWeight="SemiBold" Foreground="#10213F"/><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowExportPdf}"/></Grid></StackPanel></Border>
-                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,12"><TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#F97316" Margin="0,0,10,0"/><TextBlock Text="Chữ ký báo cáo" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Hiển thị chữ ký kế toán" FontWeight="SemiBold" Foreground="#10213F"/><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerShowAccountantSignature}"/></Grid><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Hiển thị chữ ký giám đốc" FontWeight="SemiBold" Foreground="#10213F"/><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerShowDirectorSignature}"/></Grid></StackPanel></Border>
-                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,12"><TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#2563EB" Margin="0,0,10,0"/><TextBlock Text="Ghi chú cuối báo cáo" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><TextBox Text="{Binding LedgerReportFooterNote, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" Height="96" VerticalContentAlignment="Top" Padding="12"/></StackPanel></Border>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0"><Button Tag="&#xE711;" Content="Hủy" Style="{StaticResource SettingsActionSecondaryButton}" Margin="0,0,10,0" Command="{Binding CancelGeneralLedgerPanelCommand}"/><Button Tag="&#xE74E;" Content="Lưu báo cáo" Style="{StaticResource SettingsActionOrangeButton}" Command="{Binding SaveGeneralLedgerReportsCommand}"/></StackPanel>
+                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,14"><TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#2563EB" Margin="0,0,10,0"/><TextBlock Text="Mẫu báo cáo" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel Grid.Column="0"><TextBlock Text="Mẫu sổ cái mặc định" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerDefaultGeneralLedgerReport}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Mẫu cân đối phát sinh" Style="{StaticResource SettingsFieldLabelStyle}"/><TextBox Text="{Binding LedgerDefaultTrialBalanceReport}" IsReadOnly="True" Style="{StaticResource SettingsFormTextBoxStyle}"/></StackPanel></Grid><StackPanel Margin="0,12,0,0"><TextBlock Text="Định dạng xuất mặc định" Style="{StaticResource SettingsFieldLabelStyle}"/><ComboBox SelectedValue="{Binding LedgerDefaultExportFormat, Mode=TwoWay}" SelectedValuePath="Content" IsEditable="False" Style="{StaticResource SettingsFormComboBoxStyle}"><ComboBoxItem Content="Excel"/><ComboBoxItem Content="PDF"/></ComboBox></StackPanel></StackPanel></Border>
+                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,12"><TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#16A34A" Margin="0,0,10,0"/><TextBlock Text="Quyền xuất/in" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Cho phép in báo cáo" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Chưa có luồng in trong Report Center; tùy chọn này chỉ đọc." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" IsEnabled="False" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowPrintReports}"/></Grid><Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Cho phép xuất Excel" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Áp dụng cho báo cáo Sổ cái và Cân đối phát sinh." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowExportExcel, Mode=TwoWay}"/></Grid><Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Cho phép xuất PDF" FontWeight="SemiBold" Foreground="#10213F"/><TextBlock Text="Áp dụng cho báo cáo Sổ cái và Cân đối phát sinh." FontSize="12" Foreground="#64748B"/></StackPanel><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerAllowExportPdf, Mode=TwoWay}"/></Grid><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Tag="&#xE74E;" Content="Lưu cấu hình xuất" Style="{StaticResource SettingsActionOrangeButton}" Command="{Binding SaveGeneralLedgerReportsCommand}"/></StackPanel></StackPanel></Border>
+                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,12"><TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#F97316" Margin="0,0,10,0"/><TextBlock Text="Chữ ký báo cáo PDF" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Hiển thị dòng ký tên kế toán" FontWeight="SemiBold" Foreground="#10213F"/><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerShowAccountantSignature, Mode=TwoWay}"/></Grid><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Hiển thị dòng ký tên giám đốc" FontWeight="SemiBold" Foreground="#10213F"/><CheckBox Grid.Column="1" Style="{StaticResource SettingsToggleSwitchStyle}" IsChecked="{Binding LedgerShowDirectorSignature, Mode=TwoWay}"/></Grid><TextBlock Text="Áp dụng cho PDF Sổ cái và Cân đối phát sinh; đây là dòng ký tên, không phải chữ ký số." TextWrapping="Wrap" FontSize="12" Foreground="#64748B" Margin="0,10,0,0"/></StackPanel></Border>
+                                        <Border Style="{StaticResource SettingsSectionCardStyle}"><StackPanel><StackPanel Orientation="Horizontal" Margin="0,0,0,12"><TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#2563EB" Margin="0,0,10,0"/><TextBlock Text="Ghi chú cuối báo cáo PDF" FontSize="16" FontWeight="SemiBold" Foreground="#10213F"/></StackPanel><TextBox Text="{Binding LedgerReportFooterNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="False" MaxLength="500" Style="{StaticResource SettingsFormTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" Height="96" VerticalContentAlignment="Top" Padding="12"/><TextBlock Text="Tối đa 500 ký tự. Áp dụng cho PDF Sổ cái và Cân đối phát sinh." FontSize="12" Foreground="#64748B" Margin="0,6,0,0"/><Button Tag="&#xE74E;" Content="Lưu cấu hình PDF" Style="{StaticResource SettingsActionOrangeButton}" Command="{Binding SaveGeneralLedgerReportsCommand}" HorizontalAlignment="Right" Margin="0,12,0,0"/></StackPanel></Border>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0"><TextBlock Text="Mẫu, chữ ký và ghi chú đang chỉ đọc đến khi có đầu ra báo cáo tương ứng." Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,16,0"/><Button Tag="&#xE711;" Content="Đóng" Style="{StaticResource SettingsActionSecondaryButton}" Command="{Binding CancelGeneralLedgerPanelCommand}"/></StackPanel>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -1007,8 +1036,55 @@
                             </Grid>
                         </Border>
 
+                        <Border Style="{StaticResource SettingsFormCardStyle}" Visibility="{Binding IsDatabaseConnectionEditorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" IsVisibleChanged="OnDatabaseConnectionEditorVisibilityChanged">
+                            <StackPanel>
+                                <TextBlock Text="Cấu hình SQL Server" FontSize="18" FontWeight="SemiBold" Foreground="#10213F"/>
+                                <TextBlock Text="Nhập thông tin máy chủ và database. Mật khẩu không được hiển thị hoặc ghi dạng rõ." Foreground="#64748B" FontSize="12" Margin="0,4,0,18" TextWrapping="Wrap"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Máy chủ / instance" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                        <TextBox Text="{Binding DatabaseConfigServer, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Tên database" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                        <TextBox Text="{Binding DatabaseConfigName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Phương thức xác thực" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                        <ComboBox SelectedValue="{Binding DatabaseConfigAuthenticationMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Tag" Style="{StaticResource SettingsFormComboBoxStyle}">
+                                            <ComboBoxItem Content="Tài khoản Windows hiện tại" Tag="Windows"/>
+                                            <ComboBoxItem Content="SQL Server username/password" Tag="Sql"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Visibility="{Binding IsSqlAuthenticationSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="Tên đăng nhập SQL" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                        <TextBox Text="{Binding DatabaseConfigUserName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsFormTextBoxStyle}"/>
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Margin="0,14,0,0" Visibility="{Binding IsSqlAuthenticationSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Text="Mật khẩu SQL (để trống nếu giữ mật khẩu hiện tại)" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                    <PasswordBox x:Name="DatabaseConnectionPasswordBox" PasswordChanged="OnDatabaseConnectionPasswordChanged" Height="40" Padding="12,0" VerticalContentAlignment="Center"/>
+                                </StackPanel>
+                                <Border Background="#F8FAFC" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,16,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Kết nối đang chạy" FontWeight="SemiBold" Foreground="#10213F"/>
+                                        <TextBlock Text="{Binding ConnectionStatus, StringFormat=Trạng thái: {0}}" Foreground="#475569" Margin="0,4,0,0"/>
+                                        <TextBlock Text="{Binding DatabaseConfigMessage}" Foreground="#475569" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                                    <Button Content="Kiểm tra kết nối" Style="{StaticResource SettingsSecondaryButton}" Margin="0,0,8,0" Command="{Binding TestDatabaseConfigurationCommand}"/>
+                                    <Button Content="Lưu cấu hình" Style="{StaticResource SettingsPrimaryButton}" Click="OnSaveDatabaseConfigurationClick"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
                         <ItemsControl ItemsSource="{Binding CurrentDetail.Cards}">
-                            <ItemsControl.Style><Style TargetType="ItemsControl"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasEditableForm}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsLedgerAccountSettingsVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsGeneralLedgerSettingsVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsModuleSettingsVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></ItemsControl.Style>
+                            <ItemsControl.Style><Style TargetType="ItemsControl"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding IsDatabaseConnectionEditorVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding HasEditableForm}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding ShowDetailCardsWithEditableForm}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding IsLedgerAccountSettingsVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsGeneralLedgerSettingsVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsModuleSettingsVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></ItemsControl.Style>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:SettingCardViewModel}">
                                     <Border Margin="0,0,0,8">
@@ -1064,7 +1140,8 @@
                                                                         </Style>
                                                                     </CheckBox.Style>
                                                                 </CheckBox>
-                                                                <TextBlock Grid.Column="3" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#94A3B8"/>
+                                                                <TextBlock Grid.Column="3" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#94A3B8"
+                                                                           Visibility="{Binding IsClickable, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                             </Grid>
                                                         </Button>
                                                     </DataTemplate>
@@ -1083,6 +1160,22 @@
                                 <Button Content="Save" Style="{StaticResource SettingsPrimaryButton}" Command="{Binding SaveEditableCommand}"/>
                             </StackPanel>
                         </Border>
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding IsEmbeddedModuleMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                HorizontalAlignment="Stretch"
+                                Margin="0,0,0,24">
+                        <Button Content="←  Khách sạn &amp; Front Office"
+                                Command="{Binding CloseEmbeddedModuleCommand}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                HorizontalAlignment="Left"
+                                Foreground="#2563EB"
+                                FontSize="13"
+                                Cursor="Hand"/>
+                        <ContentControl Content="{Binding EmbeddedModuleContent}"
+                                        HorizontalAlignment="Stretch"/>
                     </StackPanel>
                 </StackPanel>
             </Grid>

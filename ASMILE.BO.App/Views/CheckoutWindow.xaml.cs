@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 
@@ -11,11 +12,19 @@ public partial class CheckoutWindow : Window
         Owner = System.Windows.Application.Current.MainWindow;
     }
 
-    private void OnPrepCheckout(object sender, MouseButtonEventArgs e) => Msg("Chuẩn bị Check-out");
-    private void OnQuickCheckout(object sender, MouseButtonEventArgs e) => Msg("Check-out nhanh");
-    private void OnGroupCheckout(object sender, MouseButtonEventArgs e) => Msg("Check-out đoàn");
-    private void OnExpressCheckout(object sender, MouseButtonEventArgs e) => Msg("Express Check-out");
-    private void OnCheckFolio(object sender, MouseButtonEventArgs e) => Msg("Kiểm tra Folio");
-    private void Msg(string action) => MessageBox.Show($"Mockup: {action}. Chưa kết nối backend.", "Check-out", MessageBoxButton.OK, MessageBoxImage.Information);
+    private void OnPrepCheckout(object sender, MouseButtonEventArgs e) => Open<CheckoutPreparationWindow>(e);
+    private void OnQuickCheckout(object sender, MouseButtonEventArgs e) => Open<QuickCheckoutWindow>(e);
+    private void OnGroupCheckout(object sender, MouseButtonEventArgs e) => Open<GroupCheckoutWindow>(e);
+    private void OnExpressCheckout(object sender, MouseButtonEventArgs e) => Open<ExpressCheckoutWindow>(e);
+    private void OnCheckFolio(object sender, MouseButtonEventArgs e) => Open<FolioReviewWindow>(e);
+
+    private void Open<T>(MouseButtonEventArgs e) where T : Window, new()
+    {
+        e.Handled = true;
+        var existing = System.Windows.Application.Current.Windows.OfType<T>().FirstOrDefault(w => w.IsLoaded);
+        if (existing is not null) { if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal; existing.Activate(); existing.Focus(); return; }
+        new T { Owner = this, WindowStartupLocation = WindowStartupLocation.CenterOwner, ResizeMode = ResizeMode.CanResize, ShowInTaskbar = false }.Show();
+    }
+
     private void OnClose(object sender, RoutedEventArgs e) => Close();
 }

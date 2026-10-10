@@ -18,6 +18,8 @@ public sealed class InventoryStockBalanceDto
     public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
     public string ItemGroup { get; set; } = string.Empty;
+    public string SupplierCode { get; set; } = string.Empty;
+    public string SupplierName { get; set; } = string.Empty;
     public string WarehouseId { get; set; } = string.Empty;
     public string WarehouseCode { get; set; } = string.Empty;
     public string WarehouseName { get; set; } = string.Empty;
@@ -26,6 +28,7 @@ public sealed class InventoryStockBalanceDto
     public decimal TotalOut { get; set; }
     public decimal ClosingQuantity { get; set; }
     public decimal MinStockThreshold { get; set; }
+    public decimal MaxStockThreshold { get; set; }
     public string Unit { get; set; } = string.Empty;
     public decimal AverageCost { get; set; }
     public decimal StockValue { get; set; }
@@ -122,10 +125,12 @@ public sealed class InventoryLowStockAlertDto
     public string ProductId { get; set; } = string.Empty;
     public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
+    public string SupplierCode { get; set; } = string.Empty;
     public string WarehouseId { get; set; } = string.Empty;
     public string WarehouseCode { get; set; } = string.Empty;
     public decimal CurrentStock { get; set; }
     public decimal MinStockThreshold { get; set; }
+    public decimal TargetStockThreshold { get; set; }
     public decimal MissingQuantity { get; set; }
     public string SuggestedSupplier { get; set; } = string.Empty;
     public decimal SuggestedPurchaseQty { get; set; }

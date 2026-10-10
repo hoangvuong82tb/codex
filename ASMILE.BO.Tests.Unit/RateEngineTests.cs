@@ -151,6 +151,136 @@ public sealed class RateEngineTests
         detail.Plan.PlanCode.Should().Be("TEST");
     }
 
+    [Fact]
+    public void RATE_DOM_015_plan_details_and_status_can_be_changed_without_replacing_plan()
+    {
+        var roomTypeId = Guid.NewGuid();
+        var plan = RatePlan.Create(Guid.NewGuid(), "RACK", "Rack", null, 1500000m, RateHierarchyLevel.BAR, DateTime.Today, DateTime.Today.AddYears(1), DateTime.UtcNow, null);
+        var planId = plan.RatePlanId;
+
+        plan.UpdateDetails("DLX", "Deluxe flexible", roomTypeId, 1800000m, RateHierarchyLevel.Negotiated, DateTime.Today.AddDays(1), DateTime.Today.AddYears(2));
+        plan.SetStatus(RatePlanStatus.Inactive);
+
+        plan.RatePlanId.Should().Be(planId);
+        plan.PlanCode.Should().Be("DLX");
+        plan.RoomTypeId.Should().Be(roomTypeId);
+        plan.BaseRate.Should().Be(1800000m);
+        plan.Hierarchy.Should().Be(RateHierarchyLevel.Negotiated);
+        plan.Status.Should().Be(RatePlanStatus.Inactive);
+    }
+
+    [Fact]
+    public void RATE_DOM_016_yield_configuration_can_be_disabled_after_plan_edit()
+    {
+        var plan = CreateRackPlanWithYield();
+
+        plan.ConfigureYieldManagement(false, 1000000m, 5000000m, 85, 15m);
+
+        plan.AllowYieldManagement.Should().BeFalse();
+        plan.YieldMinRate.Should().Be(1000000m);
+        plan.YieldMaxRate.Should().Be(5000000m);
+        plan.YieldThresholdOccupancy.Should().Be(85);
+    }
+
+    [Fact]
+    public void RATE_DOM_017_disabling_yield_does_not_keep_old_floor_or_ceiling()
+    {
+        var plan = CreateRackPlan();
+        plan.ConfigureYieldManagement(false, 2000000m, 2100000m, 80, 10m);
+
+        var (price, log) = plan.CalculatePrice(new DateOnly(2026, 7, 20), 1, 1, 100, 50);
+
+        price.Should().Be(1500000m);
+        log.Should().NotContain(l => l.StartsWith("[YieldBounds]"));
+    }
+
+    [Fact]
+    public void RATE_DOM_018_invalid_rate_components_are_rejected_at_domain_boundary()
+    {
+        var plan = CreateRackPlan();
+
+        FluentActions.Invoking(() => plan.AddCalendarEntry(new DateOnly(2026, 7, 20), 0, DateTime.UtcNow))
+            .Should().Throw<ArgumentOutOfRangeException>();
+        FluentActions.Invoking(() => plan.AddSeason(SeasonType.HighSeason, new DateTime(2026, 8, 2), new DateTime(2026, 8, 1), 1.2m, "Invalid", DateTime.UtcNow))
+            .Should().Throw<ArgumentException>();
+        FluentActions.Invoking(() => plan.AddRule(RateRuleType.GroupPricing, 101, 10, false, true, "Invalid", DateTime.UtcNow))
+            .Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void RATE_DOM_019_season_multiplier_rule_is_applied_as_factor()
+    {
+        var plan = CreateRackPlan();
+        plan.AddRule(RateRuleType.SeasonMultiplier, 1.5m, 1, false, true, "Peak rule", DateTime.UtcNow);
+
+        var (price, log) = plan.CalculatePrice(new DateOnly(2026, 7, 20), 1, 1, 100, 50);
+
+        price.Should().Be(2250000m);
+        log.Should().Contain(l => l.Contains("SeasonMultiplier"));
+    }
+
+    [Fact]
+    public void RATE_DOM_020_blackout_returns_zero_and_skips_pricing_rules()
+    {
+        var plan = CreateRackPlan();
+        plan.AddSeason(SeasonType.Blackout, new DateTime(2026, 7, 20), new DateTime(2026, 7, 20), 0m, "Closed", DateTime.UtcNow);
+
+        var (price, log) = plan.CalculatePrice(new DateOnly(2026, 7, 20), 1, 1, 100, 50);
+
+        price.Should().Be(0m);
+        log.Should().Contain(l => l.Contains("[Blackout]"));
+        log.Should().Contain("[FINAL] 0 VND");
+        log.Should().NotContain(l => l.Contains("WeekendSurcharge"));
+    }
+
+    [Fact]
+    public void RATE_DOM_021_holiday_rule_is_rejected_without_holiday_calendar()
+    {
+        var plan = CreateRackPlan();
+
+        FluentActions.Invoking(() => plan.AddRule(RateRuleType.HolidaySurcharge, 30, 10, false, true, "Holiday", DateTime.UtcNow))
+            .Should().Throw<NotSupportedException>()
+            .WithMessage("*holiday calendar*");
+    }
+
+    [Fact]
+    public void RATE_DOM_022_stay_total_uses_each_nights_calendar_rate()
+    {
+        var plan = RatePlan.Create(
+            Guid.NewGuid(), "DLX", "Deluxe", null, 1500000m,
+            RateHierarchyLevel.BAR, DateTime.Today, DateTime.Today.AddYears(1),
+            DateTime.UtcNow, null);
+        plan.AddCalendarEntry(new DateOnly(2026, 7, 20), 1500000m, DateTime.UtcNow);
+        plan.AddCalendarEntry(new DateOnly(2026, 7, 21), 2000000m, DateTime.UtcNow);
+
+        var (total, log) = plan.CalculateStayPrice(new DateOnly(2026, 7, 20), 2, 2, 20, 5);
+
+        total.Should().Be(3500000m);
+        log.Should().Contain(x => x.Contains("[Night 2026-07-20] 1,500,000"));
+        log.Should().Contain(x => x.Contains("[Night 2026-07-21] 2,000,000"));
+        log.Should().Contain(x => x.Contains("[STAY FINAL] 3,500,000"));
+    }
+
+    [Fact]
+    public void RATE_DOM_023_saved_rule_and_season_can_be_disabled_without_deleting_history()
+    {
+        var plan = CreateRackPlan();
+        plan.AddSeason(SeasonType.HighSeason, new DateTime(2026, 7, 20), new DateTime(2026, 7, 20), 1.5m, "High", DateTime.UtcNow);
+        plan.AddRule(RateRuleType.PctAdjustment, 10, 1, false, true, "Promo", DateTime.UtcNow);
+        var season = plan.Seasons.Single(x => x.Type == SeasonType.HighSeason);
+        var rule = plan.Rules.Single(x => x.Type == RateRuleType.PctAdjustment);
+
+        plan.SetSeasonStatus(season.RateSeasonId, false);
+        plan.SetRuleStatus(rule.RateRuleId, false);
+
+        plan.Seasons.Should().ContainSingle(x => x.RateSeasonId == season.RateSeasonId && !x.IsActive);
+        plan.Rules.Should().ContainSingle(x => x.RateRuleId == rule.RateRuleId && !x.IsActive);
+        var (price, log) = plan.CalculatePrice(new DateOnly(2026, 7, 20), 1, 1, 100, 50);
+        price.Should().Be(1500000m);
+        log.Should().NotContain(x => x.Contains("[Season]"));
+        log.Should().NotContain(x => x.Contains("PctAdjustment"));
+    }
+
     private static RatePlan CreateRackPlan()
     {
         var plan = RatePlan.Create(

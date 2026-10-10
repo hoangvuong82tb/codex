@@ -286,8 +286,7 @@ public sealed class QuoteChangeService : IQuoteChangeService
                 }
                 else
                 {
-                    throw new NotSupportedException(
-                        "Đơn đã gửi bếp một phần. Tính năng điều chỉnh đơn đã gửi bếp sẽ có trong bản cập nhật sau. Vui lòng liên hệ quản lý để xử lý thủ công.");
+                    await ApplyAdjustmentPlanAsync(quote, order, cr, req.AppliedBy, cancellationToken);
                 }
 
                 cr.Status = "Applied";
@@ -328,6 +327,7 @@ public sealed class QuoteChangeService : IQuoteChangeService
 
     private async Task ApplyFullRebuildAsync(RestaurantQuote quote, AlacarteOrder oldOrder, QuoteChangeRequest cr, string appliedBy, CancellationToken ct)
     {
+        var reservationId = oldOrder.ReservationId;
         oldOrder.Status = "Replaced";
         oldOrder.ReservationId = null;
         oldOrder.UpdatedAt = DateTime.UtcNow;
@@ -372,7 +372,7 @@ public sealed class QuoteChangeService : IQuoteChangeService
             RestaurantQuoteId = quote.Id,
             DiningRoomId = quote.DiningRoomId,
             DiningTableId = oldOrder.DiningTableId,
-            ReservationId = oldOrder.ReservationId,
+            ReservationId = reservationId,
             ActualGuestCount = cr.NewGuestCount,
             OrderType = "Advance",
             Status = "Serving",
@@ -489,7 +489,12 @@ public sealed class QuoteChangeService : IQuoteChangeService
         quote.ApprovedOrderId = newOrder.Id;
     }
 
-    private void ApplyAdjustmentPlan(RestaurantQuote quote, AlacarteOrder order, QuoteChangeRequest cr, string appliedBy)
+    private async Task ApplyAdjustmentPlanAsync(
+        RestaurantQuote quote,
+        AlacarteOrder order,
+        QuoteChangeRequest cr,
+        string appliedBy,
+        CancellationToken ct)
     {
         var tableStandard = quote.QuoteTables
             .Where(x => !x.IsVirtual)
@@ -500,6 +505,51 @@ public sealed class QuoteChangeService : IQuoteChangeService
         var allocation = _tableAllocationEngine.Allocate(cr.NewGuestCount, tableStandard);
         var currentRealTables = order.OrderTables.Where(x => !x.IsVirtual).ToList();
         var newRealTables = allocation.Where(x => !x.IsVirtual).ToList();
+        var currentQuoteTables = quote.QuoteTables
+            .OrderBy(x => x.SortOrder)
+            .ThenBy(x => x.Id)
+            .ToList();
+        var synchronizedQuoteTables = new List<RestaurantQuoteTable>(allocation.Count);
+
+        for (var i = 0; i < allocation.Count; i++)
+        {
+            var alloc = allocation[i];
+            if (i < currentQuoteTables.Count)
+            {
+                var quoteTable = currentQuoteTables[i];
+                quoteTable.TableNo = alloc.TableNo;
+                quoteTable.DisplayName = alloc.DisplayName;
+                quoteTable.GuestCount = alloc.GuestCount;
+                quoteTable.IsVirtual = alloc.IsVirtual;
+                quoteTable.Note = alloc.IsVirtual ? "Tổng hợp thanh toán" : null;
+                quoteTable.SortOrder = alloc.TableNo;
+                quoteTable.UpdatedAt = DateTime.UtcNow;
+                synchronizedQuoteTables.Add(quoteTable);
+            }
+            else
+            {
+                var quoteTable = new RestaurantQuoteTable
+                {
+                    RestaurantQuoteId = quote.Id,
+                    TableNo = alloc.TableNo,
+                    DisplayName = alloc.DisplayName,
+                    GuestCount = alloc.GuestCount,
+                    IsVirtual = alloc.IsVirtual,
+                    Note = alloc.IsVirtual ? "Tổng hợp thanh toán" : null,
+                    SortOrder = alloc.TableNo,
+                };
+                quote.QuoteTables.Add(quoteTable);
+                _dbContext.RestaurantQuoteTables.Add(quoteTable);
+                synchronizedQuoteTables.Add(quoteTable);
+            }
+        }
+
+        foreach (var removedQuoteTable in currentQuoteTables.Skip(allocation.Count))
+        {
+            foreach (var orderTable in order.OrderTables.Where(x => x.RestaurantQuoteTableId == removedQuoteTable.Id))
+                orderTable.RestaurantQuoteTableId = null;
+            _dbContext.RestaurantQuoteTables.Remove(removedQuoteTable);
+        }
 
         if (newRealTables.Count > currentRealTables.Count)
         {
@@ -529,6 +579,14 @@ public sealed class QuoteChangeService : IQuoteChangeService
         for (int i = 0; i < Math.Min(currentRealTables.Count, newRealTables.Count); i++)
         {
             currentRealTables[i].GuestCount = newRealTables[i].GuestCount;
+            currentRealTables[i].RestaurantQuoteTableId = synchronizedQuoteTables
+                .FirstOrDefault(x => !x.IsVirtual && x.SortOrder == newRealTables[i].TableNo)?.Id;
+        }
+
+        foreach (var orderTable in order.OrderTables.Where(x => x.IsVirtual))
+        {
+            orderTable.RestaurantQuoteTableId = synchronizedQuoteTables
+                .FirstOrDefault(x => x.IsVirtual)?.Id;
         }
 
         foreach (var quoteLine in quote.Lines)
@@ -554,10 +612,23 @@ public sealed class QuoteChangeService : IQuoteChangeService
                 {
                     if (existingLine.KitchenStatus == "Sent")
                     {
-                        if (newQty > existingLine.Qty)
+                        if (newQty != existingLine.Qty + existingLine.SupplementQuantity)
                         {
-                            existingLine.SupplementQuantity = (existingLine.SupplementQuantity) + (newQty - existingLine.Qty);
-                            existingLine.UpdatedAt = DateTime.UtcNow;
+                            await _alacarteService.AddOrUpdateLineAsync(
+                                new SaveAlacarteOrderLineRequest
+                                {
+                                    OrderId = order.Id,
+                                    OrderLineId = existingLine.Id,
+                                    OrderTableId = existingLine.RestaurantOrderTableId,
+                                    MenuItemId = existingLine.MenuItemId,
+                                    Qty = newQty,
+                                    SupplementQuantity = 0,
+                                    KitchenNote = existingLine.KitchenNote,
+                                    SupplementNote = existingLine.SupplementNote,
+                                    AdjustmentReason = cr.Reason,
+                                    AdjustmentBy = appliedBy,
+                                },
+                                ct);
                         }
                     }
                     else
@@ -579,8 +650,12 @@ public sealed class QuoteChangeService : IQuoteChangeService
                 {
                     if (line.KitchenStatus == "Sent")
                     {
-                        line.LineStatus = "Cancelled";
-                        line.UpdatedAt = DateTime.UtcNow;
+                        await _alacarteService.RemoveLineAsync(
+                            order.Id,
+                            line.Id,
+                            createCancelTicket: true,
+                            cancelledBy: appliedBy,
+                            cancellationToken: ct);
                     }
                     else
                     {
@@ -592,6 +667,16 @@ public sealed class QuoteChangeService : IQuoteChangeService
 
         RecalculateOrder(order);
         quote.GuestCount = cr.NewGuestCount;
+        var realTableCount = allocation.Count(x => !x.IsVirtual);
+        foreach (var quoteLine in quote.Lines)
+        {
+            var pricingRule = NormalizePricingRule(quoteLine.PricingRule, IsServiceLine(quoteLine));
+            quoteLine.CalculatedQuantity = _menuCalculationEngine.Calculate(
+                pricingRule,
+                cr.NewGuestCount,
+                realTableCount,
+                quoteLine.Quantity);
+        }
         quote.TotalAmount = order.TotalAmount;
         quote.UpdatedAt = DateTime.UtcNow;
 

@@ -74,6 +74,7 @@ public interface IKeyCardService
     Task<KeyCardDto> SuspendKeyAsync(Guid keyId, CancellationToken ct);
     Task<KeyCardDto> ReactivateKeyAsync(Guid keyId, CancellationToken ct);
     Task<KeyCardDto> ReportLostAsync(Guid keyId, CancellationToken ct);
+    Task<KeyCardDto> ReturnKeyAsync(Guid keyId, CancellationToken ct);
     Task<IReadOnlyList<KeyCardDto>> GetKeysForStayAsync(Guid stayId, CancellationToken ct);
     Task<KeyInventoryDto> GetInventoryAsync(Guid propertyId, CancellationToken ct);
     Task<IReadOnlyList<KeyCardDto>> AutoRevokeOnCheckoutAsync(Guid stayId, CancellationToken ct);
@@ -111,6 +112,7 @@ public static class DoorLockEvents
     public const string KeyRevoked = "DoorLock.KeyRevoked";
     public const string KeyExpired = "DoorLock.KeyExpired";
     public const string KeyLost = "DoorLock.KeyLost";
+    public const string KeyReturned = "DoorLock.KeyReturned";
     public const string DoorUnlocked = "DoorLock.DoorUnlocked";
     public const string DoorAccessDenied = "DoorLock.DoorAccessDenied";
     public const string DoorOffline = "DoorLock.DoorOffline";

@@ -25,6 +25,7 @@ public sealed class HotelStayDependencyInjectionTests
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
         using var scope = provider.CreateScope();
         scope.ServiceProvider.GetRequiredService<IHotelStayRepository>().Should().NotBeNull();
+        scope.ServiceProvider.GetRequiredService<IHotelStayOccupantRepository>().Should().NotBeNull();
         scope.ServiceProvider.GetRequiredService<IHotelStayOccupancyReader>().Should().NotBeNull();
         scope.ServiceProvider.GetRequiredService<IHotelStayNumberGenerator>().Should().NotBeNull();
         scope.ServiceProvider.GetRequiredService<HotelStayApplicationService>().Should().NotBeNull();
@@ -35,5 +36,10 @@ public sealed class HotelStayDependencyInjectionTests
         scope.ServiceProvider.GetRequiredService<IReceptionUiService>().Should().NotBeNull();
         scope.ServiceProvider.GetRequiredService<CheckInStayModalViewModel>().Should().NotBeNull();
         scope.ServiceProvider.GetRequiredService<ICheckInStayModalService>().Should().NotBeNull();
+        scope.ServiceProvider.GetRequiredService<RateEngineViewModel>().Should().NotBeNull();
+        scope.ServiceProvider.GetRequiredService<ItemsViewModel>().Should().NotBeNull();
+        scope.ServiceProvider.GetRequiredService<MinibarViewModel>().Should().NotBeNull();
+        scope.ServiceProvider.GetRequiredService<ReservationWorkspaceViewModel>().Should().NotBeNull();
+        scope.ServiceProvider.GetRequiredService<TelephoneCenterViewModel>().Should().NotBeNull();
     }
 }

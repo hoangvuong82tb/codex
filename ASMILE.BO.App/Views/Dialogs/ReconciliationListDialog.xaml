@@ -73,7 +73,7 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
                     <DataGridTextColumn Header="Khách hàng" Binding="{Binding CustomerName}" Width="220"/>
-                    <DataGridTextColumn Header="Ngày đối chiếu" Binding="{Binding ReconcileDate, StringFormat=dd/MM/yyyy}" Width="130">
+                    <DataGridTextColumn Header="Ngày giao dịch cuối" Binding="{Binding ReconcileDate, StringFormat=dd/MM/yyyy}" Width="145">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -81,7 +81,7 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Số công nợ (A)" Binding="{Binding DebtA, StringFormat={}{0:N0}}" Width="140">
+                    <DataGridTextColumn Header="Công nợ hệ thống (A)" Binding="{Binding DebtA, StringFormat={}{0:N0}}" Width="150">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -91,7 +91,7 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Số công nợ (B)" Binding="{Binding DebtB, StringFormat={}{0:N0}}" Width="140">
+                    <DataGridTextColumn Header="Xác nhận khách hàng (B)" Binding="{Binding DebtB, StringFormat={}{0:N0}}" Width="170">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Right"/>

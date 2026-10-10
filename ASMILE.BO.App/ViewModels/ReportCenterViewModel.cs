@@ -1,7 +1,9 @@
 ﻿using ASMILE.BO.App.Services;
 using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Interfaces.Settings;
 using ASMILE.BO.Core.Entities;
+using ASMILE.BO.Core.Entities.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -54,13 +56,28 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
         "BANQUET_EVENT_SUMMARY",
         "BANQUET_CONTRACT_SUMMARY",
         "BANQUET_DEPOSIT_SUMMARY",
-        "BANQUET_SERVICE_DETAIL"
+        "BANQUET_SERVICE_DETAIL",
+        "TT99_BALANCE_SHEET",
+        "TT99_INCOME_STATEMENT",
+        "TT99_CASH_FLOW",
+        "TT99_ACCOUNT_MAPPING",
+        "TT99_COMPLIANCE_ISSUES",
+        "TT99_DECLARATION_SUMMARY",
+        "TT200_BALANCE_SHEET",
+        "TT200_INCOME_STATEMENT",
+        "TT200_CASH_FLOW",
+        "TT200_CLOSING_SUMMARY",
+        "TT200_ACCOUNT_MAPPING",
+        "TT200_COMPLIANCE_ISSUES",
+        "TT200_DECLARATION_SUMMARY"
     };
 
     private readonly IReportEngine _reportEngine;
     private readonly INotificationService _notificationService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ISettingsService? _settingsService;
     private readonly SemaphoreSlim _engineGate = new(1, 1);
+    private int _selectedReportLoadVersion;
     private CancellationTokenSource? _executionCts;
     private ReportRequestDto? _lastRequest;
     private List<ReportGridRow> _allResultRows = [];
@@ -94,11 +111,16 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
     public bool HasResult => ResultPager.TotalCount > 0;
     public bool HasFavoriteReports => FavoriteReports.Count > 0;
 
-    public ReportCenterViewModel(IReportEngine reportEngine, INotificationService notificationService, ICurrentUserService currentUserService)
+    public ReportCenterViewModel(
+        IReportEngine reportEngine,
+        INotificationService notificationService,
+        ICurrentUserService currentUserService,
+        ISettingsService? settingsService = null)
     {
         _reportEngine = reportEngine;
         _notificationService = notificationService;
         _currentUserService = currentUserService;
+        _settingsService = settingsService;
         _ = LoadAsync();
     }
 
@@ -108,7 +130,8 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
 
     partial void OnSelectedReportChanged(ReportCatalogItem? value)
     {
-        _ = LoadSelectedReportAsync(value);
+        var loadVersion = Interlocked.Increment(ref _selectedReportLoadVersion);
+        _ = LoadSelectedReportAsync(value, loadVersion);
     }
 
     partial void OnIsExecutingChanged(bool value) => OnPropertyChanged(nameof(CanCancel));
@@ -182,7 +205,8 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
     [RelayCommand]
     private async Task RefreshSelectedReportAsync()
     {
-        await LoadSelectedReportAsync(SelectedReport);
+        var loadVersion = Interlocked.Increment(ref _selectedReportLoadVersion);
+        await LoadSelectedReportAsync(SelectedReport, loadVersion);
     }
 
     [RelayCommand]
@@ -252,6 +276,29 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
     private async Task ExportExcelAsync() => await ExportAsync("excel");
 
     [RelayCommand]
+    private async Task ExportDefaultAsync()
+    {
+        var format = "excel";
+        if (_settingsService is not null && SelectedReport is not null && IsGeneralLedgerReport(SelectedReport.Code))
+        {
+            try
+            {
+                var setting = await _settingsService.GetValueAsync("GeneralLedger.DefaultExportFormat", SettingScope.App, "general-ledger");
+                if (string.Equals(setting?.Value, "PDF", StringComparison.OrdinalIgnoreCase))
+                {
+                    format = "pdf";
+                }
+            }
+            catch
+            {
+                _notificationService.Show("Không thể đọc định dạng xuất mặc định; dùng Excel cho lần xuất này.");
+            }
+        }
+
+        await ExportAsync(format);
+    }
+
+    [RelayCommand]
     private async Task ExportCsvAsync() => await ExportAsync("csv");
 
     [RelayCommand]
@@ -278,8 +325,55 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
             return;
         }
 
+        var exportPermission = await IsLedgerExportAllowedAsync(SelectedReport.Code, format);
+        if (exportPermission is not true)
+        {
+            _notificationService.Show(exportPermission is null
+                ? "Không thể xác minh quyền xuất báo cáo từ cài đặt hệ thống; thao tác xuất đã bị chặn."
+                : format.Equals("excel", StringComparison.OrdinalIgnoreCase)
+                    ? "Xuất Excel đang bị tắt trong Cài đặt > Sổ cái > Báo cáo."
+                    : "Xuất PDF đang bị tắt trong Cài đặt > Sổ cái > Báo cáo.");
+            return;
+        }
+
         await ExecuteInternalAsync(SelectedReport.Code, format);
     }
+
+    private async Task<bool?> IsLedgerExportAllowedAsync(string reportCode, string format)
+    {
+        if (_settingsService is null || !IsGeneralLedgerReport(reportCode))
+        {
+            return true;
+        }
+
+        var key = format.ToLowerInvariant() switch
+        {
+            "excel" => "GeneralLedger.AllowExportExcel",
+            "pdf" => "GeneralLedger.AllowExportPdf",
+            _ => null
+        };
+        if (key is null)
+        {
+            return true;
+        }
+
+        try
+        {
+            var setting = await _settingsService.GetValueAsync(key, SettingScope.App, "general-ledger");
+            return IsSettingEnabled(setting?.Value);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsGeneralLedgerReport(string reportCode)
+        => reportCode.Equals("GENERAL_LEDGER", StringComparison.OrdinalIgnoreCase)
+            || reportCode.Equals("TRIAL_BALANCE", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSettingEnabled(string? value)
+        => !bool.TryParse(value, out var enabled) || enabled;
 
     private async Task ExecuteInternalAsync(string reportCode, string? exportFormat, Dictionary<string, string?>? parameterOverride = null)
     {
@@ -349,8 +443,13 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
         }
     }
 
-    private async Task LoadSelectedReportAsync(ReportCatalogItem? report)
+    private async Task LoadSelectedReportAsync(ReportCatalogItem? report, int loadVersion)
     {
+        if (loadVersion != Volatile.Read(ref _selectedReportLoadVersion))
+        {
+            return;
+        }
+
         Parameters.Clear();
         ResultColumns.Clear();
         _allResultRows.Clear();
@@ -364,7 +463,10 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
         if (report is null)
         {
             SelectedReportDescription = "Chọn một báo cáo để xem tham số và chạy dữ liệu thật.";
-            await RefreshHistoryAsync(null);
+            if (loadVersion == Volatile.Read(ref _selectedReportLoadVersion))
+            {
+                await RefreshHistoryAsync(null);
+            }
             return;
         }
 
@@ -375,25 +477,43 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
         try
         {
             var parameters = await WithEngineLockAsync(token => _reportEngine.GetParametersAsync(report.Code, token));
+            if (loadVersion != Volatile.Read(ref _selectedReportLoadVersion))
+            {
+                return;
+            }
+
             foreach (var parameter in parameters.OrderBy(x => x.SortOrder))
             {
                 Parameters.Add(new ReportParameterInput(parameter));
             }
 
             await RefreshHistoryAsync(report.Code);
+            if (loadVersion != Volatile.Read(ref _selectedReportLoadVersion))
+            {
+                return;
+            }
+
             StatusText = Parameters.Count == 0
                 ? "Báo cáo dùng tham số mặc định từ ReportEngine."
                 : $"Đã tải {Parameters.Count} tham số báo cáo.";
         }
         catch (Exception ex)
         {
+            if (loadVersion != Volatile.Read(ref _selectedReportLoadVersion))
+            {
+                return;
+            }
+
             HasError = true;
             ErrorMessage = ex.Message;
             StatusText = "Không tải được tham số báo cáo.";
         }
         finally
         {
-            IsLoading = false;
+            if (loadVersion == Volatile.Read(ref _selectedReportLoadVersion))
+            {
+                IsLoading = false;
+            }
         }
     }
 
@@ -597,11 +717,26 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
         new("TRIAL_BALANCE", "Cân đối phát sinh", "Kế toán", "Tổng hợp phát sinh Nợ/Có theo tài khoản.", "Journal"),
         new("INVENTORY_SUMMARY", "Tổng hợp tồn kho", "Kho", "Tồn kho theo hàng hóa và kho.", "Inventory"),
         new("INVENTORY_MOVEMENT", "Nhập xuất tồn", "Kho", "Biến động nhập xuất tồn theo chứng từ.", "Inventory"),
+        new("STOCK_CARD", "Thẻ kho", "Kho", "Theo dõi nhập, xuất và tồn theo từng mặt hàng.", "Inventory"),
+        new("LOW_STOCK", "Cảnh báo tồn thấp", "Kho", "Danh sách hàng hóa dưới ngưỡng tồn tối thiểu.", "Inventory"),
+        new("NEGATIVE_STOCK", "Cảnh báo tồn âm", "Kho", "Danh sách hàng hóa có số lượng tồn âm cần xử lý.", "Inventory"),
+        new("COST_ANALYSIS", "Phân tích giá vốn", "Kho", "Phân tích giá vốn và biến động chi phí hàng hóa.", "Inventory"),
         new("AP_AGING", "Tuổi nợ phải trả", "Công nợ phải trả", "Phân tích tuổi nợ nhà cung cấp.", "Payable"),
         new("AR_AGING", "Tuổi nợ phải thu", "Công nợ phải thu", "Phân tích tuổi nợ khách hàng.", "Receivable"),
         new("BALANCE_SHEET", "Bảng cân đối kế toán", "Tài chính", "Báo cáo tài sản, nợ phải trả và vốn chủ sở hữu.", "Financial"),
         new("INCOME_STATEMENT", "Kết quả kinh doanh", "Tài chính", "Báo cáo doanh thu, chi phí và lợi nhuận.", "Financial"),
         new("CASH_FLOW", "Lưu chuyển tiền tệ", "Tài chính", "Báo cáo dòng tiền cơ bản.", "Financial"),
+        new("CASH_BOOK", "Sổ quỹ tiền mặt", "Tiền và ngân hàng", "Theo dõi thu, chi và số dư quỹ tiền mặt.", "Cash"),
+        new("BANK_BOOK", "Sổ tiền gửi ngân hàng", "Tiền và ngân hàng", "Theo dõi thu, chi và số dư từng tài khoản ngân hàng.", "Cash"),
+        new("BANK_RECONCILIATION", "Đối chiếu ngân hàng", "Tiền và ngân hàng", "Đối chiếu giao dịch ngân hàng với sổ kế toán.", "Cash"),
+        new("DAILY_CASHFLOW", "Dòng tiền hằng ngày", "Tiền và ngân hàng", "Tổng hợp dòng tiền theo ngày và phương thức thanh toán.", "Cash"),
+        new("CASH_BALANCE", "Số dư tiền", "Tiền và ngân hàng", "Tổng hợp số dư tiền mặt và tiền gửi.", "Cash"),
+        new("FIXED_ASSET_REGISTER", "Sổ tài sản cố định", "Tài sản", "Danh mục và nguyên giá, giá trị còn lại của tài sản cố định.", "Asset"),
+        new("DEPRECIATION_SCHEDULE", "Bảng khấu hao tài sản", "Tài sản", "Lịch và chi phí khấu hao tài sản theo kỳ.", "Asset"),
+        new("ASSET_INCREASE_DECREASE", "Tăng giảm tài sản", "Tài sản", "Theo dõi phát sinh tăng, giảm và điều chuyển tài sản.", "Asset"),
+        new("TOOL_ASSET_REGISTER", "Sổ công cụ dụng cụ", "Tài sản", "Danh mục công cụ dụng cụ và giá trị phân bổ.", "Asset"),
+        new("TOOL_ASSET_ALLOCATION", "Phân bổ công cụ dụng cụ", "Tài sản", "Chi tiết phân bổ chi phí công cụ dụng cụ theo kỳ.", "Asset"),
+        new("PREPAID_EXPENSE_SCHEDULE", "Lịch phân bổ chi phí trả trước", "Tài sản", "Theo dõi chi phí trả trước và lịch phân bổ.", "Asset"),
         new("VAT_INPUT", "Bảng kê VAT đầu vào", "Thuế", "Giao dịch VAT đầu vào đã ghi nhận.", "VAT"),
         new("VAT_OUTPUT", "Bảng kê VAT đầu ra", "Thuế", "Giao dịch VAT đầu ra đã ghi nhận.", "VAT"),
         new("BREAKFAST_CAFE_DAILY_SALES", "Tổng hợp bán hàng ăn sáng và cà phê", "Ăn sáng và Cà phê", "Theo dõi đơn bán hàng, bàn và doanh thu của module Ăn sáng - Cà phê.", "BreakfastCafe"),
@@ -612,11 +747,23 @@ public sealed partial class ReportCenterViewModel : ViewModelBase
         new("ALACARTE_QUOTE_SUMMARY", "Tổng hợp báo giá À La Carte", "Báo cáo Alacarte", "Theo dõi báo giá, ngày phục vụ, khách và trạng thái xử lý.", "Alacarte"),
         new("ALACARTE_RESERVATION_SCHEDULE", "Lịch đặt bàn À La Carte", "Báo cáo Alacarte", "Theo dõi booking, thời gian đến, phòng/bàn và khách đặt.", "Alacarte"),
         new("ALACARTE_DEPOSIT_SUMMARY", "Tổng hợp đặt cọc À La Carte", "Báo cáo Alacarte", "Theo dõi phiếu đặt cọc theo đơn, booking và hợp đồng.", "Alacarte"),
-        new("BANQUET_EVENT_SUMMARY", "Tổng hợp sự kiện tiệc", "Báo cáo Tiệc", "Theo dõi lịch tiệc, khách hàng, sảnh và tình trạng đặt cọc/hợp đồng.", "Banquet")
-        ,
+        new("BANQUET_EVENT_SUMMARY", "Tổng hợp sự kiện tiệc", "Báo cáo Tiệc", "Theo dõi lịch tiệc, khách hàng, sảnh và tình trạng đặt cọc/hợp đồng.", "Banquet"),
         new("BANQUET_CONTRACT_SUMMARY", "Tổng hợp hợp đồng tiệc", "Báo cáo Tiệc", "Theo dõi giá trị hợp đồng, đặt cọc và công nợ còn lại.", "Banquet"),
         new("BANQUET_DEPOSIT_SUMMARY", "Chi tiết đặt cọc tiệc", "Báo cáo Tiệc", "Theo dõi phiếu thu đặt cọc, phương thức thanh toán và người nhận.", "Banquet"),
-        new("BANQUET_SERVICE_DETAIL", "Chi tiết dịch vụ tiệc", "Báo cáo Tiệc", "Theo dõi dịch vụ phát sinh, nhà cung cấp và giá trị từng sự kiện.", "Banquet")
+        new("BANQUET_SERVICE_DETAIL", "Chi tiết dịch vụ tiệc", "Báo cáo Tiệc", "Theo dõi dịch vụ phát sinh, nhà cung cấp và giá trị từng sự kiện.", "Banquet"),
+        new("TT99_BALANCE_SHEET", "Bảng cân đối kế toán TT99", "Báo cáo TT99", "Bảng cân đối theo bộ báo cáo TT99.", "TT99"),
+        new("TT99_INCOME_STATEMENT", "Kết quả kinh doanh TT99", "Báo cáo TT99", "Báo cáo kết quả kinh doanh theo TT99.", "TT99"),
+        new("TT99_CASH_FLOW", "Lưu chuyển tiền tệ TT99", "Báo cáo TT99", "Báo cáo lưu chuyển tiền tệ theo TT99.", "TT99"),
+        new("TT99_ACCOUNT_MAPPING", "Đối chiếu tài khoản TT99", "Báo cáo TT99", "Kiểm tra ánh xạ tài khoản phục vụ TT99.", "TT99"),
+        new("TT99_COMPLIANCE_ISSUES", "Cảnh báo tuân thủ TT99", "Báo cáo TT99", "Các vấn đề dữ liệu cần xử lý trước khi lập TT99.", "TT99"),
+        new("TT99_DECLARATION_SUMMARY", "Tổng hợp kê khai TT99", "Báo cáo TT99", "Tổng hợp số liệu kê khai theo TT99.", "TT99"),
+        new("TT200_BALANCE_SHEET", "Bảng cân đối kế toán TT200", "Báo cáo TT200", "Bảng cân đối theo bộ báo cáo TT200.", "TT200"),
+        new("TT200_INCOME_STATEMENT", "Kết quả kinh doanh TT200", "Báo cáo TT200", "Báo cáo kết quả kinh doanh theo TT200.", "TT200"),
+        new("TT200_CASH_FLOW", "Lưu chuyển tiền tệ TT200", "Báo cáo TT200", "Báo cáo lưu chuyển tiền tệ theo TT200.", "TT200"),
+        new("TT200_CLOSING_SUMMARY", "Tổng hợp khóa sổ TT200", "Báo cáo TT200", "Tổng hợp kiểm tra trước khi khóa sổ theo TT200.", "TT200"),
+        new("TT200_ACCOUNT_MAPPING", "Đối chiếu tài khoản TT200", "Báo cáo TT200", "Kiểm tra ánh xạ tài khoản phục vụ TT200.", "TT200"),
+        new("TT200_COMPLIANCE_ISSUES", "Cảnh báo tuân thủ TT200", "Báo cáo TT200", "Các vấn đề dữ liệu cần xử lý trước khi lập TT200.", "TT200"),
+        new("TT200_DECLARATION_SUMMARY", "Tổng hợp kê khai TT200", "Báo cáo TT200", "Tổng hợp số liệu kê khai theo TT200.", "TT200")
     ];
 }
 

@@ -11,6 +11,7 @@ namespace ASMILE.BO.App.ViewModels;
 public sealed partial class ReservationModalWorkspaceViewModel : ViewModelBase
 {
     private readonly Action close;
+    private bool isSavingNew;
 
     public ReservationModalWorkspaceViewModel(
         ReservationWorkspaceViewModel workspace,
@@ -66,9 +67,21 @@ public sealed partial class ReservationModalWorkspaceViewModel : ViewModelBase
         _ => "Tra cứu đặt phòng"
     };
     public string? ReservationNumber => Workspace.SelectedReservation?.ReservationNumber;
+    public bool IsSavingNew => isSavingNew;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        // Edit is opened with a reservation that has already been loaded by
+        // ReservationWorkspaceViewModel.OpenForEditAsync. Running the normal
+        // search initialization here clears/replaces that selection and turns
+        // the edit form into an empty search workspace.
+        if (Kind == ReservationModalKind.Edit)
+        {
+            if (Workspace.SelectedReservation is null)
+                Workspace.ErrorMessage = "Không có đặt phòng được chọn để chỉnh sửa.";
+            return;
+        }
+
         Workspace.Mode = Kind switch
         {
             ReservationModalKind.Search => WorkspaceMode.Search,
@@ -103,11 +116,37 @@ public sealed partial class ReservationModalWorkspaceViewModel : ViewModelBase
     [RelayCommand]
     private async Task SaveNewAsync()
     {
-        if (!IsNew) return;
-        await Workspace.SaveAsync();
-        if (!Workspace.HasError && Workspace.SelectedReservation is not null)
+        await CreateNewAsync();
+    }
+
+    public async Task<bool> CreateNewAsync()
+    {
+        if (!IsNew || isSavingNew || Workspace.IsSaving) return false;
+        isSavingNew = true;
+        OnPropertyChanged(nameof(IsSavingNew));
+        try
         {
+            await Workspace.SaveAsync();
+            if (Workspace.HasError || Workspace.SelectedReservation is null) return false;
+            if (Workspace.SelectedReservation.Status != ASMILE.BO.Core.FrontOffice.Reservation.ReservationStatus.Confirmed)
+            {
+                Workspace.ErrorMessage = "Đặt phòng chưa được xác nhận. Vui lòng thử lại trước khi kết thúc.";
+                return false;
+            }
+
+            Workspace.InfoMessage = $"Tạo đặt phòng {Workspace.SelectedReservation.ReservationNumber} hoàn tất.";
             SetKind(ReservationModalKind.Edit);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Workspace.ErrorMessage = $"Không thể tạo đặt phòng: {ex.Message}";
+            return false;
+        }
+        finally
+        {
+            isSavingNew = false;
+            OnPropertyChanged(nameof(IsSavingNew));
         }
     }
 

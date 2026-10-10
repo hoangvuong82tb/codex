@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using ASMILE.BO.App.Models;
 using ASMILE.BO.App.Services;
 using ASMILE.BO.App.ViewModels;
@@ -42,7 +43,7 @@ public sealed class CheckInModalAcceptanceTests
 
         service.CheckInCalls.Should().Be(1);
         viewModel.ErrorMessage.Should().Be("Ho so vua duoc cap nhat boi nguoi dung khac. Vui long tai lai.");
-        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "ASMILE.BO.App", "Views", "CheckInStayModalView.xaml")).Should().Contain("ReloadCommand");
+        File.ReadAllText(Path.Combine(Root(), "ASMILE.BO.App", "Views", "CheckInStayModalView.xaml")).Should().Contain("ReloadCommand");
     }
 
     [Fact]
@@ -66,7 +67,7 @@ public sealed class CheckInModalAcceptanceTests
     public async Task CHECKIN_UI_U_001_to_002_and_021_checkin_card_opens_and_back_closes_checkin_modal()
     {
         var checkIn = new FakeCheckInModalService();
-        using var hub = new ReceptionHubViewModel(new FakePermissions(), new FakePropertyContextHost(), new FakeWorkspaceModalService(), null, checkIn);
+        using var hub = new ReceptionHubViewModel(new FakePermissions(), new FakePropertyContextHost(), new FakeWorkspaceModalService(), null!, null!, null, checkIn);
 
         var card = hub.Cards.Single(x => x.Id == "check-in");
         card.IsComingSoon.Should().BeFalse();
@@ -79,6 +80,21 @@ public sealed class CheckInModalAcceptanceTests
     }
 
     private static HotelStayDto Stay(string number, string reservation, string guest, string room) => new(Guid.NewGuid(), number, Guid.NewGuid(), Guid.NewGuid(), reservation, Guid.NewGuid(), guest, Guid.NewGuid(), room, Guid.NewGuid(), "STD", new DateOnly(2026, 7, 18), new DateOnly(2026, 7, 20), null, null, 1, 0, HotelStayStatus.PendingArrival, "Test", 0, DateTime.UtcNow, DateTime.UtcNow, new byte[8]);
+
+    private static string Root([CallerFilePath] string sourceFile = "")
+    {
+        foreach (var start in new[] { Path.GetDirectoryName(sourceFile) ?? string.Empty, Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+        {
+            if (string.IsNullOrWhiteSpace(start)) continue;
+
+            for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "ASMILE.BO.sln"))) return directory.FullName;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Could not locate ASMILE.BO.sln from the test output or working directory.");
+    }
 
     private sealed class FakeReceptionUiService : IReceptionUiService, IDisposable
     {

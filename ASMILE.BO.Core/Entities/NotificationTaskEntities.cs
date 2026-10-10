@@ -12,11 +12,44 @@ public sealed class UserNotification : ICompanyScoped, IBranchScoped
     public string Message { get; set; } = string.Empty;
     public string? SourceType { get; set; }
     public Guid? SourceId { get; set; }
+    public string? IdempotencyKey { get; set; }
     public string? TargetRoute { get; set; }
     public string? MetadataJson { get; set; }
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReadAt { get; set; }
+    public ICollection<NotificationComment> Comments { get; set; } = new List<NotificationComment>();
+    public ICollection<NotificationUserState> UserStates { get; set; } = new List<NotificationUserState>();
+}
+
+public sealed class NotificationComment : ICompanyScoped, IBranchScoped
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid? CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
+    public Guid NotificationId { get; set; }
+    public Guid? UserId { get; set; }
+    public string Kind { get; set; } = "Comment";
+    public string CommentText { get; set; } = string.Empty;
+    public string CreatedByName { get; set; } = "Administrator";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public UserNotification? Notification { get; set; }
+}
+
+public sealed class NotificationUserState : ICompanyScoped, IBranchScoped
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid? CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
+    public Guid NotificationId { get; set; }
+    public Guid UserId { get; set; }
+    public bool IsAcknowledged { get; set; }
+    public DateTime? AcknowledgedAt { get; set; }
+    public bool IsDismissed { get; set; }
+    public DateTime? DismissedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public UserNotification? Notification { get; set; }
 }
 
 public sealed class TaskInbox : ICompanyScoped, IBranchScoped

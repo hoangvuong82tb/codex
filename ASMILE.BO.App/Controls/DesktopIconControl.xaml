@@ -8,6 +8,8 @@
              d:DesignWidth="104">
     <Button x:Name="IconButton"
             Style="{StaticResource DesktopIconButtonStyle}"
+            AutomationProperties.Name="{Binding Module.Title, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            AutomationProperties.AutomationId="{Binding Module.Key, RelativeSource={RelativeSource AncestorType=UserControl}}"
             PreviewMouseLeftButtonDown="IconButton_PreviewMouseLeftButtonDown"
             PreviewMouseRightButtonDown="IconButton_PreviewMouseRightButtonDown"
             PreviewMouseMove="IconButton_PreviewMouseMove"

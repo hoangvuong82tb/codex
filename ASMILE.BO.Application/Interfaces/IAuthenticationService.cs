@@ -7,5 +7,7 @@ public interface IAuthenticationService
     Task<LoginResultDto> LoginAsync(LoginRequestDto request);
     Task LogoutAsync(Guid sessionId);
     Task<bool> ValidateSessionAsync(Guid sessionId);
+    Task<bool> RenewSessionAsync(Guid sessionId);
+    Task<IReadOnlyList<string>?> GetSessionPermissionCodesAsync(Guid sessionId);
     Task ChangePasswordAsync(ChangePasswordRequestDto request);
 }

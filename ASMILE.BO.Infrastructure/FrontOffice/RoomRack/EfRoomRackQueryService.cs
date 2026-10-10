@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ASMILE.BO.Infrastructure.FrontOffice.RoomRack;
 
-public sealed class EfRoomRackQueryService(AppDbContext db, IFrontOfficeExecutionContextAccessor ctx, IAuthorizationService auth, IAvailabilityEngine availability) : IRoomRackQueryService
+public sealed class EfRoomRackQueryService(IFrontOfficeExecutionContextAccessor ctx, IAuthorizationService auth, IAvailabilityEngine availability) : IRoomRackQueryService
 {
     public async Task<Result<PageResult<RoomRackDto>>> GetRoomRackAsync(GetRoomRackQuery q, CancellationToken ct)
     {

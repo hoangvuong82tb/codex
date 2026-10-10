@@ -346,6 +346,12 @@ public sealed class EfPayableService : IPayableService
 
     public async Task<string> CreatePaymentVoucherAsync(CreatePaymentVoucherRequest request, CancellationToken cancellationToken = default)
     {
+        await _dbOperationGate.WaitAsync(cancellationToken);
+        try
+        {
+        if (request.Amount <= 0)
+            return string.Empty;
+
         if (!int.TryParse(request.SupplierId, out var supplierPk))
             return string.Empty;
 
@@ -365,6 +371,7 @@ public sealed class EfPayableService : IPayableService
             DocumentType = BusinessDocumentType.PaymentVoucher,
             DocumentDate = request.PaymentDate,
             Amount = request.Amount,
+            PaymentMethod = string.IsNullOrWhiteSpace(request.PaymentMethod) ? "Chưa xác định" : request.PaymentMethod.Trim(),
             Currency = "VND",
             VirtualPath = $@"D:\ACCOUNTING\Nhà cung cấp\{supplier.SupplierName}\04. Thanh toán - Tạm ứng\{request.PaymentDate:yyyy}\{request.PaymentDate:MM}",
             PhysicalFilePath = string.Empty,
@@ -378,9 +385,34 @@ public sealed class EfPayableService : IPayableService
         };
 
         _dbContext.BusinessDocuments.Add(doc);
+        _dbContext.PayableTransactions.Add(new PayableTransaction
+        {
+            Id = Guid.NewGuid(),
+            SupplierId = PostingSourceIds.FromInt32(supplier.Id),
+            SourceType = "PaymentVoucher",
+            SourceId = doc.Id,
+            DocumentNo = code,
+            DocumentDate = request.PaymentDate.Date,
+            DueDate = null,
+            Description = doc.Title,
+            DebitAmount = request.Amount,
+            CreditAmount = 0,
+            BalanceAmount = -request.Amount,
+            CurrencyCode = "VND",
+            // Keep the voucher visible in the workflow without reducing the
+            // supplier balance before approval.
+            Status = "Pending",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
         await _dbContext.SaveChangesAsync(cancellationToken);
         await _auditLogService.LogAsync("PayablePaymentCreated", "Finance.Payable", $"Supplier={supplier.SupplierCode}; Amount={request.Amount:N0}", cancellationToken);
         return code;
+        }
+        finally
+        {
+            _dbOperationGate.Release();
+        }
     }
 
     public async Task<bool?> GetPaymentVoucherApprovedAsync(string documentNo, CancellationToken cancellationToken = default)
@@ -411,6 +443,9 @@ public sealed class EfPayableService : IPayableService
 
     public async Task SetPaymentVoucherApprovedAsync(string documentNo, bool approved, CancellationToken cancellationToken = default)
     {
+        await _dbOperationGate.WaitAsync(cancellationToken);
+        try
+        {
         if (string.IsNullOrWhiteSpace(documentNo))
             return;
 
@@ -425,12 +460,111 @@ public sealed class EfPayableService : IPayableService
 
         doc.Status = approved ? DocumentStatus.Active : DocumentStatus.Draft;
         doc.UpdatedAt = DateTime.UtcNow;
+        var transaction = await _dbContext.PayableTransactions
+            .FirstOrDefaultAsync(
+                x => x.SourceId == doc.Id && x.SourceType == "PaymentVoucher",
+                cancellationToken);
+        if (transaction is not null)
+        {
+            transaction.Status = approved ? "Paid" : "Pending";
+            transaction.UpdatedAt = DateTime.UtcNow;
+        }
         await _dbContext.SaveChangesAsync(cancellationToken);
         await _auditLogService.LogAsync(
             approved ? "PayablePaymentApproved" : "PayablePaymentPending",
             "Finance.Payable",
             $"Document={doc.Code}",
             cancellationToken);
+        }
+        finally
+        {
+            _dbOperationGate.Release();
+        }
+    }
+
+    public async Task<bool> CancelPaymentVoucherAsync(string documentNo, CancellationToken cancellationToken = default)
+    {
+        await _dbOperationGate.WaitAsync(cancellationToken);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(documentNo))
+                return false;
+
+            var doc = await _dbContext.BusinessDocuments
+                .FirstOrDefaultAsync(
+                    x => x.DocumentType == BusinessDocumentType.PaymentVoucher &&
+                         x.Code == documentNo.Trim(),
+                    cancellationToken);
+            if (doc is null || doc.Status != DocumentStatus.Draft)
+                return false;
+
+            var transaction = await _dbContext.PayableTransactions
+                .FirstOrDefaultAsync(
+                    x => x.SourceId == doc.Id && x.SourceType == "PaymentVoucher",
+                    cancellationToken);
+            if (transaction is null || transaction.Status != "Pending")
+                return false;
+
+            doc.Status = DocumentStatus.Cancelled;
+            doc.UpdatedAt = DateTime.UtcNow;
+            transaction.Status = "Cancelled";
+            transaction.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _auditLogService.LogAsync(
+                "PayablePaymentCancelled",
+                "Finance.Payable",
+                $"Document={doc.Code}",
+                cancellationToken);
+            return true;
+        }
+        finally
+        {
+            _dbOperationGate.Release();
+        }
+    }
+
+    public async Task<bool> RejectPaymentVoucherAsync(string documentNo, string reason, CancellationToken cancellationToken = default)
+    {
+        await _dbOperationGate.WaitAsync(cancellationToken);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(documentNo) || string.IsNullOrWhiteSpace(reason))
+                return false;
+
+            var doc = await _dbContext.BusinessDocuments
+                .FirstOrDefaultAsync(
+                    x => x.DocumentType == BusinessDocumentType.PaymentVoucher &&
+                         x.Code == documentNo.Trim(),
+                    cancellationToken);
+            if (doc is null || doc.Status != DocumentStatus.Draft)
+                return false;
+
+            var transaction = await _dbContext.PayableTransactions
+                .FirstOrDefaultAsync(
+                    x => x.SourceId == doc.Id && x.SourceType == "PaymentVoucher",
+                    cancellationToken);
+            if (transaction is null || transaction.Status != "Pending")
+                return false;
+
+            var cleanReason = reason.Trim();
+            doc.Status = DocumentStatus.Rejected;
+            doc.Title = $"{doc.Title} | Lý do từ chối: {cleanReason}";
+            doc.UpdatedAt = DateTime.UtcNow;
+            transaction.Status = "Rejected";
+            transaction.Description = $"{transaction.Description} | Lý do từ chối: {cleanReason}";
+            transaction.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _auditLogService.LogAsync(
+                "PayablePaymentRejected",
+                "Finance.Payable",
+                $"Document={doc.Code}; Reason={cleanReason}",
+                cancellationToken);
+            return true;
+        }
+        finally
+        {
+            _dbOperationGate.Release();
+        }
     }
 
     public async Task CreateAdvancePaymentAsync(CreateAdvancePaymentRequest request, CancellationToken cancellationToken = default)
@@ -483,6 +617,7 @@ public sealed class EfPayableService : IPayableService
     private async Task<IReadOnlyList<PayableSummaryDto>> GetPersistedDebtSummariesAsync(PayableFilterDto filter, CancellationToken cancellationToken)
     {
         var query = _dbContext.PayableTransactions.AsNoTracking().AsQueryable();
+        query = query.Where(x => x.Status != "Pending" && x.Status != "Cancelled" && x.Status != "Rejected");
         if (filter.FromDate.HasValue)
             query = query.Where(x => x.DocumentDate.Date >= filter.FromDate.Value.Date);
         if (filter.ToDate.HasValue)
@@ -561,7 +696,10 @@ public sealed class EfPayableService : IPayableService
         var rows = new List<PayableTransactionDto>(transactions.Count);
         foreach (var transaction in transactions)
         {
-            running += transaction.CreditAmount - transaction.DebitAmount;
+            if (transaction.Status != "Pending" && transaction.Status != "Cancelled" && transaction.Status != "Rejected")
+            {
+                running += transaction.CreditAmount - transaction.DebitAmount;
+            }
             rows.Add(new PayableTransactionDto
             {
                 Id = transaction.Id.ToString("N"),
@@ -683,6 +821,8 @@ public sealed class EfPayableService : IPayableService
     {
         if (string.Equals(status, "Cancelled", StringComparison.OrdinalIgnoreCase))
             return DebtStatus.Cancelled;
+        if (string.Equals(status, "Rejected", StringComparison.OrdinalIgnoreCase))
+            return DebtStatus.Rejected;
         if (balance <= 0 || string.Equals(status, "Paid", StringComparison.OrdinalIgnoreCase))
             return DebtStatus.Paid;
         if (dueDate.HasValue && dueDate.Value.Date < DateTime.Today)

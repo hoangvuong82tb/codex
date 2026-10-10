@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using ASMILE.BO.Application.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -22,6 +23,8 @@ public sealed class AlertNotificationDto
 
 public sealed partial class NotificationCenterViewModel : ViewModelBase
 {
+    private readonly INotificationTaskService? _service;
+
     public ObservableCollection<AlertNotificationDto> Notifications { get; } = new();
     [ObservableProperty] private AlertNotificationDto? _selected;
     [ObservableProperty] private bool _isLoading;
@@ -35,6 +38,15 @@ public sealed partial class NotificationCenterViewModel : ViewModelBase
     public bool HasSelection => Selected is not null;
     public string[] Severities { get; } = ["Tat ca", "Info", "Success", "Warning", "Critical"];
 
+    public NotificationCenterViewModel()
+    {
+    }
+
+    public NotificationCenterViewModel(INotificationTaskService service)
+    {
+        _service = service;
+    }
+
     public async Task InitializeAsync(CancellationToken ct) => await LoadAsync(ct);
 
     [RelayCommand] private async Task LoadAsync(CancellationToken ct)
@@ -42,12 +54,38 @@ public sealed partial class NotificationCenterViewModel : ViewModelBase
         IsLoading = true;
         try
         {
+            ErrorMessage = string.Empty;
             Notifications.Clear();
-            var n1 = new AlertNotificationDto { NotificationNumber = "NTF-000001", Type = "VIP", Severity = "Success", Title = "VIP Arrival", Message = "Khach VIP Le Van C se den luc 14:00. Chuan bi phong 301 va don trai cay.", SourceModule = "VIP", CreatedAt = DateTime.UtcNow.AddHours(-1) }; n1.History.Add("Created");
-            var n2 = new AlertNotificationDto { NotificationNumber = "NTF-000002", Type = "Housekeeping", Severity = "Critical", Title = "Phong 105 OOO", Message = "Phong 105 da duoc danh dau Out Of Order. Can bao tri ngay.", SourceModule = "Housekeeping", RecipientDepartment = "Engineering", RequiresAck = true }; n2.History.Add("Created"); n2.History.Add("Read");
-            var n3 = new AlertNotificationDto { NotificationNumber = "NTF-000003", Type = "Payment", Severity = "Warning", Title = "Outstanding Balance", Message = "Khach Pham Thi D (P.102) con no 2,500,000 VND. Sap den ngay tra phong.", SourceModule = "Folio" }; n3.History.Add("Created");
-            Notifications.Add(n1); Notifications.Add(n2); Notifications.Add(n3);
-            TotalUnread = Notifications.Count(n => n.Status is "New" or "Unread"); TotalCritical = Notifications.Count(n => n.Severity == "Critical");
+            Selected = null;
+
+            if (_service is null)
+            {
+                TotalUnread = 0;
+                TotalCritical = 0;
+                InfoMessage = "Trung tâm thông báo chưa được kết nối dịch vụ dữ liệu; không hiển thị dữ liệu mẫu.";
+                return;
+            }
+
+            var source = await _service.GetNotificationsAsync(take: 500, cancellationToken: ct);
+            TotalUnread = await _service.GetUnreadCountAsync(ct);
+            TotalCritical = source.Count(x => string.Equals(x.Severity, "Critical", StringComparison.OrdinalIgnoreCase));
+
+            var alerts = source.Select(ToAlert).ToList();
+            if (!string.IsNullOrWhiteSpace(FilterSeverity) && !string.Equals(FilterSeverity, "Tat ca", StringComparison.OrdinalIgnoreCase))
+            {
+                alerts = alerts
+                    .Where(x => string.Equals(x.Severity, FilterSeverity, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            foreach (var alert in alerts)
+            {
+                Notifications.Add(alert);
+            }
+
+            InfoMessage = source.Count == 0
+                ? "Chưa có thông báo."
+                : string.Empty;
         }
         catch (Exception ex) { ErrorMessage = $"Loi: {ex.Message}"; }
         finally { IsLoading = false; }
@@ -55,10 +93,98 @@ public sealed partial class NotificationCenterViewModel : ViewModelBase
 
     [RelayCommand] private async Task RefreshAsync(CancellationToken ct) => await LoadAsync(ct);
     [RelayCommand] private void Select(AlertNotificationDto? n) => Selected = n;
-    [RelayCommand] private void MarkRead() { if (Selected is null) return; Selected.Status = "Read"; Selected.History.Add("Read"); TotalUnread = Notifications.Count(no => no.Status is "New" or "Unread"); }
-    [RelayCommand] private void Acknowledge() { if (Selected is null) return; Selected.Status = "Acknowledged"; Selected.History.Add("Acknowledged"); InfoMessage = $"Da xac nhan {Selected.NotificationNumber}."; }
-    [RelayCommand] private void Dismiss() { if (Selected is null) return; Selected.Status = "Dismissed"; Selected.History.Add("Dismissed"); }
+    [RelayCommand] private async Task MarkRead()
+    {
+        if (Selected is null || _service is null)
+        {
+            SetUnavailable();
+            return;
+        }
 
-    partial void OnSelectedChanged(AlertNotificationDto? v) => OnPropertyChanged(nameof(HasSelection));
-    partial void OnErrorMessageChanged(string v) => OnPropertyChanged(nameof(HasError));
+        await ExecuteStateChangeAsync(
+            () => _service.MarkReadAsync(Selected.NotificationId),
+            "Đã đánh dấu đã đọc.");
+    }
+
+    [RelayCommand] private async Task Acknowledge()
+    {
+        if (Selected is null || _service is null)
+        {
+            SetUnavailable();
+            return;
+        }
+
+        await ExecuteStateChangeAsync(
+            () => _service.AcknowledgeNotificationAsync(Selected.NotificationId),
+            "Đã xác nhận thông báo.");
+    }
+
+    [RelayCommand] private async Task Dismiss()
+    {
+        if (Selected is null || _service is null)
+        {
+            SetUnavailable();
+            return;
+        }
+
+        await ExecuteStateChangeAsync(
+            () => _service.DismissNotificationAsync(Selected.NotificationId),
+            "Đã ẩn thông báo.");
+    }
+
+    private async Task ExecuteStateChangeAsync(Func<Task> action, string message)
+    {
+        IsLoading = true;
+        try
+        {
+            ErrorMessage = string.Empty;
+            await action();
+            await LoadAsync(CancellationToken.None);
+            InfoMessage = message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Loi: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void SetUnavailable() => ErrorMessage = "Trung tâm thông báo chưa có command/service lưu CSDL; thao tác đã bị chặn.";
+
+    private static AlertNotificationDto ToAlert(ASMILE.BO.Application.DTOs.NotificationDto notification)
+    {
+        var status = notification.IsDismissed
+            ? "Đã ẩn"
+            : notification.IsAcknowledged
+                ? "Đã xác nhận"
+                : notification.IsRead
+                    ? "Đã đọc"
+                    : "Mới";
+
+        var alert = new AlertNotificationDto
+        {
+            NotificationId = notification.Id,
+            NotificationNumber = notification.Id.ToString("N"),
+            Type = notification.NotificationType,
+            Severity = notification.Severity,
+            Title = notification.Title,
+            Message = notification.Message,
+            Status = status,
+            SourceModule = notification.SourceType,
+            RequiresAck = string.Equals(notification.Severity, "Critical", StringComparison.OrdinalIgnoreCase),
+            CreatedAt = notification.CreatedAt
+        };
+
+        alert.History.Add($"Tạo lúc {notification.CreatedAt:dd/MM/yyyy HH:mm}");
+        alert.History.Add(notification.IsRead ? "Đã đọc" : "Chưa đọc");
+        if (notification.IsAcknowledged) alert.History.Add("Đã xác nhận");
+        if (notification.IsDismissed) alert.History.Add("Đã ẩn");
+        return alert;
+    }
+
+    partial void OnSelectedChanged(AlertNotificationDto? value) => OnPropertyChanged(nameof(HasSelection));
+    partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
 }

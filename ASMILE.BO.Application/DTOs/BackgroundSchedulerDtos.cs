@@ -10,6 +10,8 @@ public sealed class BackgroundSchedulerDefinitionDto
     public bool AllowConcurrentExecution { get; set; }
     public int RetryCount { get; set; }
     public int TimeoutSeconds { get; set; }
+    public int? IntervalMinutes { get; set; }
+    public string? CronExpression { get; set; }
     public DateTime? NextRunAtUtc { get; set; }
     public bool IsPaused { get; set; }
 }

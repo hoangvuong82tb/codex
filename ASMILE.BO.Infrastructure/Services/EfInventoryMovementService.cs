@@ -1,9 +1,12 @@
 using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Interfaces.Settings;
 using ASMILE.BO.Core.Entities;
 using ASMILE.BO.Core.Accounting;
+using ASMILE.BO.Core.Entities.Settings;
 using ASMILE.BO.Core.Interfaces.Services;
 using ASMILE.BO.Infrastructure.Persistence;
+using ASMILE.BO.Shared.Storage;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
@@ -14,11 +17,13 @@ public sealed class EfInventoryMovementService : IInventoryMovementService
 {
     private readonly AppDbContext _db;
     private readonly IAuditLogService _auditLogService;
+    private readonly ISettingsService _settingsService;
 
-    public EfInventoryMovementService(AppDbContext db, IAuditLogService auditLogService)
+    public EfInventoryMovementService(AppDbContext db, IAuditLogService auditLogService, ISettingsService settingsService)
     {
         _db = db;
         _auditLogService = auditLogService;
+        _settingsService = settingsService;
     }
 
     public async Task<InventoryDashboardDto> GetDashboardAsync(InventoryMovementFilterDto filter, CancellationToken cancellationToken = default)
@@ -96,6 +101,7 @@ public sealed class EfInventoryMovementService : IInventoryMovementService
         }
 
         var rows = await query.ToListAsync(cancellationToken);
+        var defaultMinStockThreshold = await GetLowStockThresholdAsync(cancellationToken);
 
         var result = rows
             .Select(row =>
@@ -105,7 +111,12 @@ public sealed class EfInventoryMovementService : IInventoryMovementService
                     return null;
                 }
 
-                var min = 10m;
+                var min = item.IsMinibarItem && item.MinibarMinStock > 0
+                    ? item.MinibarMinStock
+                    : defaultMinStockThreshold;
+                var max = item.IsMinibarItem && item.MinibarMaxStock >= min
+                    ? item.MinibarMaxStock
+                    : min;
                 var status = BuildStatus(row.ClosingQty, min, row.InQty, row.OutQty);
                 return new InventoryStockBalanceDto
                 {
@@ -113,6 +124,8 @@ public sealed class EfInventoryMovementService : IInventoryMovementService
                     ProductCode = item.ItemCode,
                     ProductName = item.ItemName,
                     ItemGroup = item.GroupName,
+                    SupplierCode = item.SupplierCode,
+                    SupplierName = item.SupplierName,
                     WarehouseId = wh.Id.ToString(CultureInfo.InvariantCulture),
                     WarehouseCode = wh.WarehouseCode,
                     WarehouseName = wh.WarehouseName,
@@ -121,6 +134,7 @@ public sealed class EfInventoryMovementService : IInventoryMovementService
                     TotalOut = row.OutQty,
                     ClosingQuantity = row.ClosingQty,
                     MinStockThreshold = min,
+                    MaxStockThreshold = max,
                     Unit = item.Unit,
                     AverageCost = row.AvgPrice,
                     StockValue = row.ClosingAmount != 0 ? row.ClosingAmount : row.ClosingQty * row.AvgPrice,
@@ -138,6 +152,21 @@ public sealed class EfInventoryMovementService : IInventoryMovementService
             .ToList();
 
         return result;
+    }
+
+    private async Task<decimal> GetLowStockThresholdAsync(CancellationToken cancellationToken)
+    {
+        // Settings UI persists app-scoped inventory settings under the stable
+        // "inventory" target; reading the unscoped value silently ignored the
+        // user's saved threshold and always fell back to 20.
+        var value = await _settingsService.GetValueAsync("Warehouse.LowStockThreshold", SettingScope.App, "inventory");
+        if (decimal.TryParse(value?.Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var threshold)
+            && threshold >= 0)
+        {
+            return threshold;
+        }
+
+        return 20m;
     }
 
     public async Task<IReadOnlyList<InventoryMovementDto>> GetMovementsAsync(InventoryMovementFilterDto filter, CancellationToken cancellationToken = default)
@@ -211,13 +240,17 @@ public sealed class EfInventoryMovementService : IInventoryMovementService
                     ProductId = x.ProductId,
                     ProductCode = x.ProductCode,
                     ProductName = x.ProductName,
+                    SupplierCode = x.SupplierCode,
                     WarehouseId = x.WarehouseId,
                     WarehouseCode = x.WarehouseCode,
                     CurrentStock = x.ClosingQuantity,
                     MinStockThreshold = x.MinStockThreshold,
+                    TargetStockThreshold = x.MaxStockThreshold,
                     MissingQuantity = Math.Max(0, missing),
-                    SuggestedSupplier = "NCC gần nhất",
-                    SuggestedPurchaseQty = Math.Max(0, missing * 1.2m),
+                    SuggestedSupplier = string.IsNullOrWhiteSpace(x.SupplierName)
+                        ? (string.IsNullOrWhiteSpace(x.SupplierCode) ? "Chưa cấu hình nhà cung cấp" : x.SupplierCode)
+                        : x.SupplierName,
+                    SuggestedPurchaseQty = Math.Max(0, x.MaxStockThreshold - x.ClosingQuantity),
                     Severity = x.ClosingQuantity < 0 ? "Critical" : "Warning"
                 };
             })
@@ -366,7 +399,7 @@ public sealed class EfInventoryMovementService : IInventoryMovementService
     public async Task<string> ExportCsvAsync(InventoryMovementFilterDto filter, CancellationToken cancellationToken = default)
     {
         var rows = await GetStockBalancesAsync(filter, cancellationToken);
-        var root = Path.Combine(AppContext.BaseDirectory, "exports", "inventory");
+        var root = ApplicationDataPaths.GetUserExportPath("inventory");
         Directory.CreateDirectory(root);
         var file = Path.Combine(root, $"inventory_report_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
 

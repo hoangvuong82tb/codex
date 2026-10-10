@@ -20,9 +20,9 @@
 
     <sys:Double x:Key="FO.Hub.MaxWidth">1500</sys:Double>
     <sys:Double x:Key="FO.Hub.HeaderHeight">54</sys:Double>
-    <sys:Double x:Key="FO.Card.MinWidth">266</sys:Double>
-    <sys:Double x:Key="FO.Card.Height">138</sys:Double>
-    <sys:Double x:Key="FO.Card.IconSize">42</sys:Double>
+    <sys:Double x:Key="FO.Card.MinWidth">236</sys:Double>
+    <sys:Double x:Key="FO.Card.Height">92</sys:Double>
+    <sys:Double x:Key="FO.Card.IconSize">54</sys:Double>
     <sys:Double x:Key="FO.Modal.MinWidth">760</sys:Double>
     <sys:Double x:Key="FO.Modal.MaxWidth">1500</sys:Double>
     <sys:Double x:Key="FO.Modal.MinHeight">540</sys:Double>
@@ -55,11 +55,14 @@
     <Style x:Key="FO.HubCardButton" TargetType="Button">
         <Setter Property="Width" Value="{StaticResource FO.Card.MinWidth}" />
         <Setter Property="Height" Value="{StaticResource FO.Card.Height}" />
-        <Setter Property="Margin" Value="0,0,18,18" />
-        <Setter Property="Padding" Value="18" />
-        <Setter Property="Background" Value="{StaticResource FO.Surface.CardBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource FO.Border.DefaultBrush}" />
+        <Setter Property="Margin" Value="9,10" />
+        <Setter Property="Padding" Value="16,0,14,0" />
+        <Setter Property="Background" Value="#FFFFFFF2" />
+        <Setter Property="BorderBrush" Value="#D5E3F5" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Effect">
+            <Setter.Value><DropShadowEffect BlurRadius="16" ShadowDepth="0" Direction="0" Opacity="0.08" Color="#1A3A5C" /></Setter.Value>
+        </Setter>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -68,7 +71,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource FO.Radius.Large}" SnapsToDevicePixels="True">
+                    <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="14" SnapsToDevicePixels="True">
                         <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -83,10 +86,10 @@
     </Style>
 
     <Style x:Key="FO.MainHubCardButton" TargetType="Button" BasedOn="{StaticResource FO.HubCardButton}">
-        <Setter Property="Width" Value="330" />
-        <Setter Property="Height" Value="168" />
-        <Setter Property="Margin" Value="0,0,16,16" />
-        <Setter Property="Padding" Value="22" />
+        <Setter Property="Width" Value="236" />
+        <Setter Property="Height" Value="92" />
+        <Setter Property="Margin" Value="9,10" />
+        <Setter Property="Padding" Value="16,0,14,0" />
     </Style>
 
     <Style x:Key="FO.HubCardIconTile" TargetType="Border">

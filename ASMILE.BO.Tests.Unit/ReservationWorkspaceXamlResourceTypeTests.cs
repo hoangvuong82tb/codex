@@ -43,11 +43,23 @@ public sealed class ReservationWorkspaceXamlResourceTypeTests
 
     private static string FindSolutionRoot()
     {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        var configuredRoot = Environment.GetEnvironmentVariable("ASMILE_BO_SOLUTION_ROOT");
+        if (!string.IsNullOrWhiteSpace(configuredRoot)
+            && File.Exists(Path.Combine(configuredRoot, "ASMILE.BO.sln"))
+            && File.Exists(Path.Combine(configuredRoot, "ASMILE.BO.App", "Themes", "Colors.xaml")))
         {
-            if (File.Exists(Path.Combine(directory.FullName, "ASMILE.BO.sln"))) return directory.FullName;
+            return Path.GetFullPath(configuredRoot);
         }
 
-        throw new DirectoryNotFoundException("Could not locate ASMILE.BO.sln from the test output directory.");
+        var candidateRoots = new[] { AppContext.BaseDirectory, Environment.CurrentDirectory };
+        foreach (var candidateRoot in candidateRoots)
+        {
+            for (var directory = new DirectoryInfo(candidateRoot); directory is not null; directory = directory.Parent)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "ASMILE.BO.sln"))) return directory.FullName;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Could not locate ASMILE.BO.sln from the test output or current directory.");
     }
 }

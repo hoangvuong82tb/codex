@@ -18,6 +18,14 @@ public sealed class CurrentCompanyContext : ICurrentCompanyContext
     private readonly ICompanyContextAccessor _contextAccessor;
     private IReadOnlyList<CompanyContextOptionDto>? _companies;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, IReadOnlyList<BranchContextOptionDto>> _branchCache = new();
+    // AsyncLocal scopes are useful for nested operations, but a value assigned
+    // inside an async method does not reliably flow back to its caller after the
+    // method completes. Keep the selected desktop scope on this singleton as the
+    // durable fallback for the current application session.
+    private Guid? _selectedCompanyId;
+    private Guid? _selectedBranchId;
+    private string? _selectedCompanyName;
+    private string? _selectedBranchName;
 
     public CurrentCompanyContext(IServiceScopeFactory scopeFactory, ICompanyContextAccessor contextAccessor)
     {
@@ -25,10 +33,10 @@ public sealed class CurrentCompanyContext : ICurrentCompanyContext
         _contextAccessor = contextAccessor;
     }
 
-    public Guid? CompanyId => _contextAccessor.CurrentCompanyId;
-    public Guid? BranchId => _contextAccessor.CurrentBranchId;
-    public string CompanyName => _contextAccessor.CurrentCompanyName ?? "Default Company";
-    public string? BranchName => _contextAccessor.CurrentBranchName;
+    public Guid? CompanyId => _contextAccessor.CurrentCompanyId ?? _selectedCompanyId;
+    public Guid? BranchId => _contextAccessor.CurrentBranchId ?? _selectedBranchId;
+    public string CompanyName => _contextAccessor.CurrentCompanyName ?? _selectedCompanyName ?? "Default Company";
+    public string? BranchName => _contextAccessor.CurrentBranchName ?? _selectedBranchName;
 
     public async Task EnsureInitializedAsync(CancellationToken cancellationToken = default)
     {
@@ -39,7 +47,7 @@ public sealed class CurrentCompanyContext : ICurrentCompanyContext
             var selected = companies.FirstOrDefault(x => x.IsDefault) ?? companies.FirstOrDefault();
             if (selected is not null)
             {
-                _contextAccessor.SetCurrentScope(selected.Id, selected.Name);
+                SetCurrentScope(selected.Id, selected.Name);
             }
         }
 
@@ -54,7 +62,7 @@ public sealed class CurrentCompanyContext : ICurrentCompanyContext
             throw new InvalidOperationException("Company is not available for the current user.");
         }
 
-        _contextAccessor.SetCurrentScope(company.Id, company.Name);
+        SetCurrentScope(company.Id, company.Name);
         _branchCache.Clear();
         await GetBranchesAsync(cancellationToken);
         await UpsertActiveCompanySessionAsync(cancellationToken);
@@ -64,7 +72,7 @@ public sealed class CurrentCompanyContext : ICurrentCompanyContext
     {
         if (branchId is null)
         {
-            _contextAccessor.SetCurrentScope(CompanyId, CompanyName);
+            SetCurrentScope(CompanyId, CompanyName);
             await UpsertActiveCompanySessionAsync(cancellationToken);
             return;
         }
@@ -75,7 +83,7 @@ public sealed class CurrentCompanyContext : ICurrentCompanyContext
             throw new InvalidOperationException("Branch is not available for the current company.");
         }
 
-        _contextAccessor.SetCurrentScope(CompanyId, CompanyName, branch.Id, branch.Name);
+        SetCurrentScope(CompanyId, CompanyName, branch.Id, branch.Name);
         await UpsertActiveCompanySessionAsync(cancellationToken);
     }
 
@@ -146,7 +154,7 @@ public sealed class CurrentCompanyContext : ICurrentCompanyContext
         var selected = companies.FirstOrDefault(x => x.IsDefault) ?? companies.FirstOrDefault();
         if (selected is not null)
         {
-            _contextAccessor.SetCurrentScope(selected.Id, selected.Name);
+            SetCurrentScope(selected.Id, selected.Name);
         }
     }
 
@@ -187,8 +195,17 @@ public sealed class CurrentCompanyContext : ICurrentCompanyContext
                 .Select(x => x.Name)
                 .FirstOrDefaultAsync(cancellationToken);
 
-        _contextAccessor.SetCurrentScope(company.Id, company.Name, session.BranchId, branchName);
+        SetCurrentScope(company.Id, company.Name, session.BranchId, branchName);
         return true;
+    }
+
+    private void SetCurrentScope(Guid? companyId, string? companyName, Guid? branchId = null, string? branchName = null)
+    {
+        _selectedCompanyId = companyId;
+        _selectedCompanyName = companyName;
+        _selectedBranchId = branchId;
+        _selectedBranchName = branchName;
+        _contextAccessor.SetCurrentScope(companyId, companyName, branchId, branchName);
     }
 
     private async Task UpsertActiveCompanySessionAsync(CancellationToken cancellationToken)

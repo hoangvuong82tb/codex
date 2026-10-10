@@ -1,0 +1,8 @@
+<Project>
+  <!-- Commercial Release packages must not ship source/debug symbols. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+    <IncludeSymbolsInSingleFile>false</IncludeSymbolsInSingleFile>
+  </PropertyGroup>
+</Project>

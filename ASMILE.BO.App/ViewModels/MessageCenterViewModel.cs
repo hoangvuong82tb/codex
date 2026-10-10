@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using ASMILE.BO.Application.FrontOffice.Foundation.Contexts;
+using ASMILE.BO.Application.FrontOffice.Message;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -25,6 +27,15 @@ public sealed class MessageDto
 
 public sealed partial class MessageCenterViewModel : ViewModelBase
 {
+    private readonly IGuestMessageService _service;
+    private readonly IFrontOfficeExecutionContextAccessor _contextAccessor;
+
+    public MessageCenterViewModel(IGuestMessageService service, IFrontOfficeExecutionContextAccessor contextAccessor)
+    {
+        _service = service;
+        _contextAccessor = contextAccessor;
+    }
+
     public ObservableCollection<MessageDto> Messages { get; } = new();
     [ObservableProperty] private MessageDto? _selectedMessage;
     [ObservableProperty] private bool _isLoading;
@@ -53,9 +64,10 @@ public sealed partial class MessageCenterViewModel : ViewModelBase
         try
         {
             Messages.Clear();
-            var m1 = new MessageDto { GuestMessageId = Guid.NewGuid(), MessageNumber = "MSG-202607-000001", GuestName = "Nguyen Van A", RoomNumber = "101", MessageType = "VIP Notice", Priority = "High", Status = "Read", Subject = "Chao mung khach VIP", Content = "Kinh gui ong Nguyen Van A. Chuc ong co mot ky nghi thu gian tai khach san chung toi.", Channel = "FrontDesk", RequiresResponse = false }; m1.History.Add("Created"); m1.History.Add("Sent"); m1.History.Add("Delivered"); m1.History.Add("Read");
-            var m2 = new MessageDto { GuestMessageId = Guid.NewGuid(), MessageNumber = "MSG-202607-000002", GuestName = "Le Van C", RoomNumber = "301", MessageType = "Airport Transfer Confirmation", Priority = "Normal", Status = "Replied", Subject = "Xac nhan xe dua don san bay", Content = "Xe se don ong tai sanh luc 7:30 sang mai.", Channel = "FrontDesk", RequiresResponse = true, ResponseContent = "Cam on. Toi xac nhan.", AssignedStaff = "Mai Lan" }; m2.History.Add("Created"); m2.History.Add("Sent"); m2.History.Add("Delivered"); m2.History.Add("Read"); m2.History.Add("Replied");
-            Messages.Add(m1); Messages.Add(m2);
+            var context = _contextAccessor.Current ?? throw new InvalidOperationException("FRONT_OFFICE_CONTEXT_REQUIRED");
+            var rows = await _service.GetAllAsync(context.Property.PropertyId.Value, ct);
+            foreach (var row in rows)
+                Messages.Add(Map(row));
             TotalUnread = Messages.Count(m => m.Status is "Sent" or "Delivered");
             TotalPending = Messages.Count(m => m.RequiresResponse && m.Status != "Replied" && m.Status != "Completed");
         }
@@ -66,10 +78,60 @@ public sealed partial class MessageCenterViewModel : ViewModelBase
     [RelayCommand] private async Task RefreshAsync(CancellationToken ct) => await LoadAsync(ct);
     [RelayCommand] private void SelectMessage(MessageDto? m) => SelectedMessage = m;
 
-    [RelayCommand] private void CreateMessage() { if (string.IsNullOrWhiteSpace(NewContent)) { ErrorMessage = "Vui long nhap noi dung."; return; } var nm = new MessageDto { GuestMessageId = Guid.NewGuid(), MessageNumber = $"MSG-202607-{Messages.Count + 1:D6}", MessageType = NewType, GuestName = NewGuest, RoomNumber = NewRoom, Subject = NewSubject, Content = NewContent, Priority = NewPriority, RequiresResponse = NewRequiresResponse, Status = "Sent", CreatedAt = DateTime.UtcNow }; nm.History.Add("Created"); nm.History.Add("Sent"); Messages.Insert(0, nm); InfoMessage = $"Da tao tin nhan {nm.MessageNumber}."; }
-    [RelayCommand] private void MarkRead() { if (SelectedMessage is null) return; SelectedMessage.Status = "Read"; SelectedMessage.History.Add("Read"); InfoMessage = "Da danh dau da doc."; }
-    [RelayCommand] private void SendReply() { if (SelectedMessage is null || string.IsNullOrWhiteSpace(ReplyContent)) return; SelectedMessage.ResponseContent = ReplyContent; SelectedMessage.Status = "Replied"; SelectedMessage.History.Add("Replied"); InfoMessage = $"Da tra loi {SelectedMessage.MessageNumber}."; ReplyContent = ""; }
+    [RelayCommand]
+    private async Task CreateMessageAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(NewContent)) { ErrorMessage = "Vui long nhap noi dung."; return; }
+        try
+        {
+            await _service.CreateAndSendAsync(new CreateGuestMessageRequest(
+                null, null, null, null, NullIfEmpty(NewGuest), NullIfEmpty(NewRoom),
+                NewType, "FrontDesk", NewPriority, NullIfEmpty(NewSubject), NewContent.Trim(),
+                NewRequiresResponse, "FrontOffice"), ct);
+            NewContent = string.Empty;
+            await LoadAsync(ct);
+            InfoMessage = "Da tao tin nhan trong du lieu that.";
+        }
+        catch (Exception ex) { ErrorMessage = $"Loi: {ex.Message}"; }
+    }
 
-    partial void OnSelectedMessageChanged(MessageDto? v) => OnPropertyChanged(nameof(HasSelection));
-    partial void OnErrorMessageChanged(string v) => OnPropertyChanged(nameof(HasError));
+    [RelayCommand]
+    private async Task MarkReadAsync(CancellationToken ct)
+    {
+        if (SelectedMessage is null) return;
+        try { SelectedMessage = Map(await _service.MarkReadAsync(SelectedMessage.GuestMessageId, ct)); await LoadAsync(ct); InfoMessage = "Da danh dau da doc."; }
+        catch (Exception ex) { ErrorMessage = $"Loi: {ex.Message}"; }
+    }
+
+    [RelayCommand]
+    private async Task SendReplyAsync(CancellationToken ct)
+    {
+        if (SelectedMessage is null || string.IsNullOrWhiteSpace(ReplyContent)) return;
+        try { await _service.ReplyAsync(SelectedMessage.GuestMessageId, ReplyContent, ct); ReplyContent = string.Empty; await LoadAsync(ct); InfoMessage = $"Da tra loi {SelectedMessage.MessageNumber}."; }
+        catch (Exception ex) { ErrorMessage = $"Loi: {ex.Message}"; }
+    }
+
+    private static MessageDto Map(GuestMessageDto row) => new()
+    {
+        GuestMessageId = row.GuestMessageId,
+        MessageNumber = row.MessageNumber,
+        GuestName = row.GuestName,
+        RoomNumber = row.RoomNumber,
+        MessageType = row.MessageType,
+        Channel = row.Channel,
+        Priority = row.Priority,
+        Status = row.Status,
+        Subject = row.Subject,
+        Content = row.Content,
+        RequiresResponse = row.RequiresResponse,
+        ResponseContent = row.ResponseContent,
+        AssignedStaff = row.AssignedStaff,
+        CreatedAt = row.CreatedAtUtc,
+        History = new ObservableCollection<string>(row.History)
+    };
+
+    private static string? NullIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    partial void OnSelectedMessageChanged(MessageDto? value) => OnPropertyChanged(nameof(HasSelection));
+    partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
 }

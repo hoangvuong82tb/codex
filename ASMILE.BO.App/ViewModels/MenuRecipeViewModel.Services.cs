@@ -66,10 +66,6 @@ public sealed partial class MenuRecipeViewModel
     private async Task LoadAllExtraServicesAsync()
     {
         var services = await _alacarteRestaurantService.GetExtraServicesAsync();
-        if (services.Count == 0)
-        {
-            services = await _alacarteRestaurantService.SeedDefaultExtraServicesAsync();
-        }
 
         _allExtraServices.Clear();
         _allExtraServices.AddRange(services);

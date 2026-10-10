@@ -34,6 +34,8 @@ public sealed record ShiftHandoverDto(
     string? Notes, DateTime HandoverAtUtc
 );
 
+public sealed record CashierOptionDto(Guid UserId, string DisplayName, string UserName);
+
 // =============================================================================
 // RECONCILIATION
 // =============================================================================
@@ -84,14 +86,6 @@ public sealed record TreasuryDashboardDto(
 // CONTRACTS
 // =============================================================================
 
-public interface ICashDrawerService
-{
-    Task<CashDrawerDto> OpenDrawerAsync(Guid drawerId, Guid cashierId, decimal openingFloat, CancellationToken ct);
-    Task<CashDrawerDto> CloseDrawerAsync(Guid drawerId, decimal actualCash, CancellationToken ct);
-    Task<CashDrawerDto> GetDrawerAsync(Guid drawerId, CancellationToken ct);
-    Task<IReadOnlyList<CashDrawerDto>> GetOpenDrawersAsync(Guid propertyId, CancellationToken ct);
-}
-
 public interface ICashShiftService
 {
     Task<CashShiftDto> OpenShiftAsync(Guid drawerId, Guid cashierId, decimal openingFloat, CancellationToken ct);
@@ -99,6 +93,8 @@ public interface ICashShiftService
     Task<ShiftHandoverDto> HandOverAsync(Guid fromShiftId, Guid toCashierId, decimal countedCash, string? notes, CancellationToken ct);
     Task<CashShiftDto> GetShiftAsync(Guid shiftId, CancellationToken ct);
     Task<IReadOnlyList<CashShiftDto>> GetActiveShiftsAsync(Guid propertyId, CancellationToken ct);
+    Task<IReadOnlyList<CashShiftDto>> GetShiftHistoryAsync(Guid propertyId, DateTime? fromUtc, DateTime? toUtc, CancellationToken ct);
+    Task<IReadOnlyList<CashierOptionDto>> GetCashierOptionsAsync(Guid propertyId, CancellationToken ct);
 }
 
 public interface ICashReconciliationService

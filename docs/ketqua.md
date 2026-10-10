@@ -1,5 +1,517 @@
 # KẾT QUẢ THỰC HIỆN
 
+## Phiên 2026-09-25 — Đánh giá tổng thể module Quản lý Khách sạn (Front Office Platform) — DONE
+
+### Mục tiêu
+Đánh giá toàn diện module quản lý khách sạn (Front Office platform: Reservation, Availability, Stay/Check-in, Folio, Payment, Night Audit, Housekeeping, Group, Concierge, Lost & Found, Minibar...) bằng phân tích tĩnh qua knowledge graph (62,384 nodes) + chạy test suite thực tế.
+
+### Dữ liệu thu thập
+- Quy mô: 1,539 file C# (Core 152 / Application 224 / Infrastructure 440 / App 516 / Tests 131), 244 XAML views, 110 ViewModels
+- Persistence: 1 AppDbContext 5,720 dòng với 346 DbSet, 251 migrations
+- Test: 1,429 test method; chạy thật Unit suite → **743/743 PASS (1m22s)**, build kéo theo đủ 4 layer (Unit tests reference cả App)
+- Complexity scan: backend method phức tạp nhất CheckInReservationAsync (c=33, 130 dòng, 44 callee); UI nặng nhất ArCompanyViewModel.LoadAsync (c=30, 305 dòng)
+
+### Điểm mạnh (backend đạt chuẩn enterprise PMS)
+1. Clean Architecture 4 lớp đúng hướng; UI không nhúng business logic xuống backend
+2. CQRS foundation: ICommand/IQuery, Result<T> + mã lỗi chuẩn hoá (STAY_*, RESERVATION_*)
+3. Strongly-typed ID (PropertyId, ActorId, CorrelationId...) + UUIDv7 tối ưu index
+4. Authorization theo permission tại từng command (ReservationPermissions, HotelStayPermissions)
+5. Optimistic concurrency RowVersion nhất quán trên mọi aggregate quan trọng
+6. Idempotency check-in: re-check-in trả về stay hiện có, không tạo trùng
+7. AvailabilityEngine là single source of truth (14-state) — RoomRack/TapeChart/FutureAvailability/Group cùng dùng
+8. State machine domain (8-state reservation), audit trail đầy đủ (ReservationHistory, HotelStayHistory)
+9. Migration governance 4 chế độ (Disabled/ValidateOnly/DevelopmentAutoMigrate/ApplyPendingMigrations), default ValidateOnly
+10. 0 TODO/FIXME/NotImplementedException trong 3 layer nghiệp vụ
+
+### Điểm yếu / Rủi ro
+1. God files UI: RestaurantViewModels.cs 9,893 dòng; BreakfastCafeSalesViewModel 4,543; BanquetRestaurantViewModel.Partial 4,498; SettingsViewModel 3,281 — cần tách theo workflow
+2. DbContext quái vật (346 DbSet, 1 context) — rủi ro migration drift, khó bounded-context
+3. API smell: SearchRoomsAsync 19 tham số (RoomMasterData)
+4. Hot path performance:
+   - AvailabilityEngine.GetRoomAvailabilityAsync load toàn bộ stays + reservations vào memory rồi FirstOrDefault trong vòng lặp (O(R×(S+Res)))
+   - CalculateDailyInventoryAsync/Forecast: N+1 query mỗi ngày (~120 round-trip cho forecast 30 ngày)
+   - CheckInReservationAsync fallback gán phòng: conflict-check từng candidate trong loop
+5. Test: Unit 743/743 pass nhưng Integration (33 test) cần SQL Server thật — chưa verify; E2E gần trống (2 file)
+6. Một số management center vẫn mock workflow (GroupService — MessageBox), Lost & Found đã nâng cấp lên real query service (legacy fixture `#if false`)
+7. Vệ sinh repo: ~80 build log + 01-03.zip + DEV_PROGRESS.rar + .tmp/ + artifacts/ đang commit
+8. Chưa có ADR; danh sách warning build ~732 (pre-existing)
+
+### Đề xuất ưu tiên (P0 → P2)
+- P0: Tách god ViewModels (Restaurant 9.9k dòng) thành partial theo workflow; fix N+1 forecast; chạy Integration tests với SQL Server thật
+- P1: Chia AppDbContext theo bounded context (FrontOffice / Accounting / F&B); dọn repo (gitignore logs, zip, .tmp, artifacts)
+- P2: Ghi ADR cho các quyết định kiến trúc lớn; nghiên cứu bỏ mock workflow còn lại; bổ sung E2E cho 2 luồng chính (Đặt phòng → Check-in → Folio → Check-out; Night Audit)
+
+### Build
+- `dotnet test ASMILE.BO.Tests.Unit` → 743/743 PASS, 0 failed, 0 skipped (1m22s), exit 0 — toàn solution compile OK
+
+### Kết luận: ĐÁNH GIÁ TỔNG THỂ — Backend 8.5/10, UI 7/10, Performance 6.5/10, Test 7.5/10 — NỀN TẢNG VỮNG, CÒN NỢ KỸ THUẬT TẬP TRUNG Ở LỚP UI VÀ PERF QUERY
+
+---
+
+## Phiên 2026-08-06 (lần 6) — AR Aging Analysis Center (Tuổi Nợ) — DONE
+
+### Mục tiêu
+Thiết kế trung tâm phân tích tuổi nợ chuyên nghiệp theo chuẩn Opera PMS / Oracle Hospitality / Infor HMS, giúp theo dõi, phân tích và quản lý các khoản công nợ theo thời gian.
+
+### Sửa
+- **Tạo `ArAgingViewModel.cs`** (~540 dòng): DTOs (ArAgingItemDto, ArAgingInvoiceDto, ArAgingCollectionDto, ArAgingPaymentDto, ArAgingTimelineEntry, ArAgingDocumentDto, ArAgingAuditEntry, ArAgingKpi, ArAgingTreeItem, ArAgingBucketConfig, ArAgingChartData, CollectorPerformanceDto, ArAgingPagerItem), KPI dashboard (12 cards), tree navigation (10 items), filter system (12 dimensions), pagination, bucket configuration (8 buckets), fake data (800 companies, 15000+ invoices, 6000+ payments), chart data (Aging Distribution, Top Debtors, Outstanding Trend, Collection Trend), collector performance dashboard, workflow commands (Analyze, CollectPayment, SendReminder, GenerateStatement, SendEmail, ExportExcel, ExportPdf, Print, ShowHistory, OpenCompany, OpenGuest, OpenInvoice, OpenPayment, OpenCollection)
+- **Tạo `ArAgingView.xaml`** (~1210 dòng): Full AR Aging Analysis Center UI
+  - Header: Module icon (red), title, Export/Print/Refresh buttons
+  - Dashboard KPI: 12 cards (Tổng công nợ, Current, 1-30, 31-60, 61-90, 91-120, 121-180, >180, Quá hạn, Đến hạn, Đã thu hôm nay, Tỷ lệ thu hồi)
+  - Toolbar: Phân tích, Thu tiền, Reminder, Statement, Email, Lịch sử, Grid/Card toggle
+  - Filter: Search + 8 ComboBoxes (Status, Partner Type, Market, Collector, Currency, Bucket, Risk) + 2 Checkboxes (Quá hạn, Vượt Credit) + Clear
+  - Left panel: TreeView 10 items (Tất cả, Current, 1-30, 31-60, 61-90, 91-120, 121-180, >180, Vượt Credit, Bị khóa) + Bucket config legend + Aging Summary
+  - Center: Heat Map bar (8 buckets color-coded) + DataGrid 20 cột (TT status, Company, Tên, Guest, Invoice, Reservation, Ngày Issue/Due, Current, 1-30, 31-60, 61-90, 91-120, 121-180, 181+, Outstanding, Credit Limit, Collector, Risk, Market, Currency, Age Days) + Card View
+  - Right panel: Sliding inspector 6 tabs (Tổng quan, Invoices, Collection, Payment, Lịch sử, Documents) — Bucket breakdown, Collection tracking, Collector Performance, Timeline + Audit Log
+  - Footer: Pagination + summary stats
+- **Tạo `ArAgingView.xaml.cs`**: 6 event handlers (OnLoaded, OnTreeItemClick, OnDetailTabClick, OnDataGridDoubleClick, OnItemCardClick, OnDismissInfo)
+- **Tạo `ArAgingWindow.xaml`**: Window wrapper (1600×920)
+- **Sửa `DependencyInjection.cs`**: Thêm ArAgingViewModel
+
+### Files
+- `ViewModels/ArAgingViewModel.cs` — tạo mới (~540 dòng)
+- `Views/ArAgingView.xaml` — tạo mới (~1210 dòng)
+- `Views/ArAgingView.xaml.cs` — tạo mới
+- `Views/ArAgingWindow.xaml` — tạo mới
+- `DependencyInjection.cs` — sửa (thêm registration)
+
+### Tính năng đã hoàn thành
+1. Dashboard KPI: 12 cards với màu Green/Blue/Yellow/Orange/Red/Dark Red
+2. Bucket cấu hình: 8 buckets (Current, 1-30, 31-60, 61-90, 91-120, 121-180, 181-365, >365)
+3. Heat Map: 8 buckets color-coded trong center panel
+4. Tree Navigation: 10 items với counts
+5. DataGrid: 20 cột với Sort/Filter/Group/Pin/Resize
+6. Inspector 6 tabs: Overview (13 fields + Bucket breakdown), Invoices, Collection (tracking + Collector Performance), Payment, Lịch sử (Timeline + Audit Log), Documents
+7. Collection Dashboard: Collector Performance với Recovery Rate
+8. Risk Level: Low/Medium/High/Critical badges
+9. Context Menu: 12 items (Open Company/Guest/Invoice/Payment, Reminder, Statement, History, Print, Email, Export, Collection)
+10. Search realtime: Company, Guest, Invoice, Reservation, Phone, Email, Collector, Tax Code
+11. Fake data: 800 companies, 15000+ invoices, 6000+ payments, 1000 outstanding, 400 overdue, 150 high risk
+12. Chart data: Aging Distribution, Top 10 Debtors, Outstanding Trend (12 months), Collection Trend (12 months)
+
+### Build
+- Build SUCCESS — 0 errors, 732 warnings (pre-existing)
+
+### Kết luận: AR AGING ANALYSIS CENTER COMPLETE
+
+---
+
+## Phiên 2026-08-06 (lần 5) — AR Payment Management Center (Thanh toán) — DONE
+
+### Mục tiêu
+Thiết kế trung tâm quản lý thanh toán công nợ chuyên nghiệp theo chuẩn Opera PMS / Oracle Hospitality / Infor HMS, quản lý toàn bộ các khoản thanh toán từ khách hàng, doanh nghiệp, đại lý và đối tác.
+
+### Sửa
+- **Sửa `ArPaymentViewModel.cs`** (~820 dòng, từ 545 dòng cũ): Thêm 8 DTOs mới (ArPaymentChartDataPoint, ArPaymentMethodPieSlice, ArPaymentTopCompany, ArPaymentCollectorStat, ArPaymentBankImportRow, ArPaymentReceiptCenterItem, ArPaymentSplitItem), 30+ properties mới (chart data collections, bank import, receipt center, collection dashboard, additional KPIs, mixed payment, additional filters), 25+ commands mới (EmailReceipt, UndoAllocate, ReversePayment, AutoAllocate, HandleOverPayment, Bank Import, Receipt Center, Collection Dashboard, Mixed Payment, View Navigation), chart data generation, enhanced KPI dashboard (18 cards), enhanced tree (13 items)
+- **Sửa `ArPaymentView.xaml`** (~700 dòng, từ 145 dòng cũ): Complete redesign — Header, KPI Dashboard (18 cards scrollable), Enhanced Toolbar (15 buttons), Enhanced Filter Bar (10 filters), Chart Dashboard (3 tabs: Biểu đồ, Collection Dashboard, Receipt Center), Left Panel Tree (13 items with Corporate/TA/OTA), Center DataGrid (18 columns with Bank, Exchange Rate, Over indicator, Progress bars), Right Inspector (8 tabs including Audit), Over Payment handling UI, Payment Form with Mixed Payment support, Allocation Form, Bank Import overlay, Receipt Center overlay, Collection Dashboard overlay, Footer with collection rate
+- **Sửa `ArPaymentView.xaml.cs`**: Added OnDashboardTabClick handler, enhanced OnKpiClick with filter application
+
+### Files
+- `ViewModels/ArPaymentViewModel.cs` — sửa (~820 dòng, +275 dòng)
+- `Views/ArPaymentView.xaml` — sửa (~700 dòng, +555 dòng)
+- `Views/ArPaymentView.xaml.cs` — sửa
+
+### Tính năng đã hoàn thành
+1. Dashboard KPI: 18 cards (Tổng TT, Hôm nay, Tháng, Năm, Tiền mặt, Chuyển khoản, Thẻ, QR, Virtual Card, Pending, Partial, Rejected, Over Pmt, Chưa phân bổ, Tổng tiền, Chưa phân bổ amount, Pending Amount, Over Amount)
+2. Toolbar: Nhận thanh toán, Phân bổ, Auto Allocate (FIFO), Hoàn tác, In Receipt, Email, Import Bank, Receipt Center, Collection, Panel Phải
+3. Filter: Search, Status, Method, Payment Date, Currency, Collector, Cashier, Bank, Clear
+4. Chart Dashboard: Payment by Month (bar chart), Payment Method (breakdown), Top Company, Collection Dashboard (KPI + trend + collector performance), Receipt Center mini
+5. DataGrid: 18 columns (Payment No, Receipt, Company, Guest, Invoice, Reservation, Ngày, Method, Bank, Amount, Allocated with progress bar, Còn lại, Currency, Exchange Rate, Reference, Collector, Over indicator, Status)
+6. Inspector 8 tabs: Tổng quan (with allocation progress bar + Over Payment actions), Phân bổ (Auto/Manual + progress bars), Invoice, Receipt, Lịch sử (Timeline), Documents, Ghi chú, Audit Log
+7. Bank Import: Simulate import, Auto Match, Manual Match, DataGrid with status
+8. Receipt Center: Full DataGrid with In/Email/PDF actions
+9. Collection Dashboard: 5 KPI cards, Outstanding Trend, Collector Performance
+10. Mixed Payment: Add/Remove payment splits in Payment Form
+11. Over Payment: Credit/Refund/Advance Deposit actions
+12. Context Menu: 12 items (View, Allocate, Auto Allocate, Undo, View Invoice, View Receipt, Print, Email, PDF, History, Reverse)
+13. 8000 fake payments with full data (allocations, invoices, receipts, timeline, documents, notes, audits)
+
+### Build
+- Build SUCCESS — 0 errors, 718 warnings (pre-existing)
+- App launched and running
+
+---
+
+## Phiên 2026-08-04 (lần 4) — AR Ledger Center (Công nợ) — DONE
+
+### Mục tiêu
+Thiết kế module Công nợ (Accounts Receivable Ledger Center) — quản lý toàn bộ công nợ doanh nghiệp, đại lý, OTA, Travel Agent, Government, Corporate, City Ledger, Credit Company. Đây là module AR quan trọng nhất, kết nối Reservation → Check-out → Folio → Invoice → Payment → Accounting.
+
+### Sửa
+- **Tạo `ArLedgerViewModel.cs`** (~550 dòng): DTOs (ArLedgerItemDto, ArInvoiceDto, ArPaymentDto, ArTimelineEntry, ArDocumentDto, ArNoteDto, ArAuditEntry, ArKpi, ArTreeItem, ArPaginationButton), KPI dashboard (12 cards), tree navigation (10 items), filter system (8 dimensions), pagination, workflow commands (Thu tiền, Đối chiếu, Xuất hóa đơn, In Statement, Gửi Email, Khóa công nợ, Ghi chú), 3 form overlays (Payment, Email, Note), 400 AR accounts + 5000+ invoices + 20000+ payments fake data
+- **Tạo `ArLedgerView.xaml`** (~700 dòng): Full AR Ledger Center UI
+  - Header: Module icon, title, Export Excel/PDF/Refresh buttons
+  - Dashboard KPI: 12 cards (Tổng công nợ, Quá hạn, Chưa đến hạn, Đã thu hôm nay, Đã thu tháng, Invoice mở, Invoice quá hạn, Doanh nghiệp, OTA, Travel Agent, City Ledger, Vượt Credit Limit)
+  - Toolbar: Thu tiền, Đối chiếu, Xuất hóa đơn, In Statement, Gửi Email, Khóa công nợ, Ghi chú, Grid/Card toggle
+  - Filter: Search + 7 ComboBoxes (Status, AR Type, Overdue, Currency, Market, Source, Salesman) + Clear
+  - Left panel: TreeView 10 items (Tất cả, Doanh nghiệp, OTA, Travel Agent, Government, Corporate, City Ledger, Quá hạn, Đến hạn, Đã khóa)
+  - Center: DataGrid 16 cột (AR No, Invoice, Company, Loại, Khách, Reservation, Folio, Ngày PS, Ngày ĐH, Còn nợ, Đã thu, Balance, Currency, Credit Limit, Quá hạn, Trạng thái) + Card View
+  - Right panel: Sliding inspector 6 tabs (Tổng quan, Invoices, Payments, Lịch sử, Documents, Ghi chú) — Timeline + Audit Log + Credit Limit warning
+  - Footer: Pagination
+  - Form overlay: 3 inline forms (Payment, Email, Note) với validation
+- **Tạo `ArLedgerView.xaml.cs`**: 6 event handlers
+- **Tạo `ArLedgerWindow.xaml` + `.xaml.cs`**: Window wrapper
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire "Công nợ" card → OpenArLedgerWindow
+- **Sửa `DependencyInjection.cs`**: Thêm ArLedgerViewModel
+
+### Files
+- `ViewModels/ArLedgerViewModel.cs` — tạo mới (~550 dòng)
+- `Views/ArLedgerView.xaml` — tạo mới (~700 dòng)
+- `Views/ArLedgerView.xaml.cs` — tạo mới
+- `Views/ArLedgerWindow.xaml` — tạo mới
+- `Views/ArLedgerWindow.xaml.cs` — tạo mới
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa (wire card + OpenArLedgerWindow method)
+- `DependencyInjection.cs` — sửa (thêm registration)
+
+### Kết quả
+- Build: PASS (0 errors, 550 pre-existing warnings)
+- Fake data: 400 doanh nghiệp (200 DN + 40 OTA + 40 TA + 20 Government + 20 Corporate + 80 City Ledger/Credit), 5000+ invoices, 20000+ payments, 300+ quá hạn
+- Không sửa backend, database, repository
+- AR Ledger kết nối với Reservation → Check-out → Folio → Invoice → Payment → Accounting (sync data từ Folio)
+- Credit Limit management: Limit/Used/Available cards, exceeded warning
+- Status badges: Open, PartiallyPaid, Paid, Overdue, Closed, Disputed
+- AR Type badges: DN, OTA, TA, GOV, CORP, CL, CC
+
+## Phiên 2026-08-04 (lần 3) — Housekeeping Workforce Management Center — DONE
+
+### Mục tiêu
+Thiết kế module Nhân công (Housekeeping Workforce Management Center) — quản lý 60 Housekeeper + 12 Supervisor, phân công phòng, KPI, hiệu suất, 3 ca làm việc, 500 phòng.
+
+### Sửa
+- **Tạo `WorkforceViewModel.cs`** (~500 dòng): DTOs (WorkforceStaffDto, AssignmentDto, WorkforceKpi, WorkforceTreeItem, WorkforceTimelineEntry, WorkforceAuditEntry, WorkforcePaginationButton), KPI dashboard (14 cards), tree navigation (10 items), filter system (8 dimensions), pagination, workflow commands (Assign Rooms, Shift Change, Area Change), 72 staff + 500 room assignments fake data
+- **Tạo `WorkforceView.xaml`** (~500 dòng): Full Workforce Management Center — Header, KPI dashboard (14 cards), Toolbar (Phân công, Đổi ca, Đổi khu vực, Xem lịch, KPI), Filter bar, Left TreeView (10 items), Center DataGrid (12 columns with progress bar + KPI grade badge) + Card View, Right Inspector (5 tabs: Overview, Assignment, Performance, Schedule, History), Footer pagination, 3 form overlays
+- **Tạo `WorkforceView.xaml.cs`**: 6 event handlers
+- **Tạo `WorkforceWindow.xaml` + `.xaml.cs`**: Window wrapper
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire "Phân công" → "Nhân công" card → OpenWorkforceWindow
+- **Sửa `RoomRackConverters.cs`**: Thêm ProgressPercentToWidthConverter, ShiftToTimeConverter, ShiftToEndTimeConverter
+
+### Files
+- `ViewModels/WorkforceViewModel.cs` — tạo mới (~500 dòng)
+- `Views/WorkforceView.xaml` — tạo mới (~500 dòng)
+- `Views/WorkforceView.xaml.cs` — tạo mới
+- `Views/WorkforceWindow.xaml` — tạo mới
+- `Views/WorkforceWindow.xaml.cs` — tạo mới
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa (wire card)
+- `Converters/RoomRackConverters.cs` — sửa (thêm 3 converters)
+
+### Kết quả
+- Build: PASS (0 errors, 0 warnings)
+- Fake data: 72 nhân viên (12 Supervisor + 60 Housekeeper), 3 ca, 500 phòng phân công
+- Không sửa backend, database
+
+## Phiên 2026-08-04 (lần 2) — Minibar Management Center — DONE
+
+### Mục tiêu
+Thiết kế module Minibar (Minibar Revenue Management Center) — quản lý toàn bộ doanh thu minibar, với KPI dashboard, tree navigation, DataGrid + Card View, Inspector 5 tab, 4 workflow forms, 180 phòng fake data.
+
+### Sửa
+- **Tạo `MinibarViewModel.cs`** (~500 dòng): DTOs (MinibarRoomDto, MinibarLineItemDto, MinibarKpi, MinibarTreeItem, MinibarTimelineEntry, MinibarAuditEntry, MinibarPaginationButton), form state management (4 forms: Inspect, Restock, Post, Inventory), KPI dashboard (10 cards), tree navigation (8 items), filter system (9 dimensions), pagination, workflow commands (Inspect, Restock, Post Folio, Cancel Post, Inventory), 180-room fake data (90 có minibar, 40 phát sinh, 20 VIP, 10 chưa Post, 20 sản phẩm mẫu)
+- **Tạo `MinibarView.xaml`** (~600 dòng): Full Minibar Management Center UI
+  - Header: Module icon, title, Export/Print/Refresh buttons
+  - Dashboard KPI: 10 cards (Tổng, Chưa KT, Đã KT, Có phát sinh, Không phát sinh, Đã Post, Chưa Post, Doanh thu hôm nay, Doanh thu tháng, Giá trị tồn)
+  - Toolbar: Kiểm tra, Bổ sung, Kiểm kê, Post Folio, Hủy Post, Grid/Card toggle
+  - Filter: Search + 6 dropdowns + 3 checkboxes (VIP, Đã Post, Chưa Post)
+  - Left panel: TreeView 8 items (Tất cả, Chưa KT, Có phát sinh, Không phát sinh, Đã Post, Chưa Post, VIP, Rush)
+  - Center: DataGrid 12 cột + Card View
+  - Right panel: Sliding inspector 5 tabs (Tổng quan, Mặt hàng, Charge, Lịch sử, Ghi chú) — Timeline + Audit Log
+  - Footer: Pagination
+  - Form overlay: 4 inline forms (Inspect, Restock, Post, Inventory) với validation
+- **Tạo `MinibarView.xaml.cs`**: 6 event handlers
+- **Tạo `MinibarWindow.xaml` + `.xaml.cs`**: Window wrapper
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire Minibar card → OpenMinibarWindow
+
+### Files
+- `ViewModels/MinibarViewModel.cs` — tạo mới (~500 dòng)
+- `Views/MinibarView.xaml` — tạo mới (~600 dòng)
+- `Views/MinibarView.xaml.cs` — tạo mới
+- `Views/MinibarWindow.xaml` — tạo mới
+- `Views/MinibarWindow.xaml.cs` — tạo mới
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa (wire card)
+
+### Kết quả
+- Build: PASS (0 errors, 0 warnings)
+- Fake data: 180 phòng, 90 có minibar, 40 phát sinh tiêu thụ, 20 VIP, 10 chưa Post, 20 sản phẩm mẫu
+- Không sửa backend, database
+
+## Phiên 2026-08-04 — Lost & Found Property Tracking Management Center — DONE
+
+### Mục tiêu
+Thiết kế module Lost & Found (Property Tracking Management Center) — quản lý toàn bộ tài sản khách để quên, với KPI dashboard, tree navigation, DataGrid + Card View, Inspector panel 6 tab, 5 workflow forms, và 200 fake data items.
+
+### Sửa
+- **Sửa `LostFoundViewModel.cs`**: Thêm form state management (IsFormOpen, FormMode, 5 form field groups), 5 workflow form commands (OpenRecordForm, SubmitRecordForm, OpenEditForm, SubmitEditForm, OpenContactForm, SubmitContactForm, OpenReturnForm, SubmitReturnForm, OpenDisposalForm, SubmitDisposalForm, CloseForm), tab visibility properties (IsOverviewTab..IsRemarkTab), auto-open detail panel on selection
+- **Viết lại `LostFoundView.xaml`** (~1170 dòng): Full Property Tracking Management Center UI
+  - Header: Module icon, title, Export/Print/Refresh buttons
+  - Dashboard KPI: 10 cards (Tổng, Mới, Đã lưu kho, Đang liên hệ, Đã trả, Đã thanh lý, Quá hạn, Giá trị cao, Hôm nay, Tuần này) — clickable for filtering
+  - Toolbar: Ghi nhận, Sửa, Xóa, Nhập kho, Trả khách, Thanh lý, Liên hệ, Grid/Card view toggle
+  - Filter bar: Search + 6 ComboBoxes (Status, Category, Floor, Housekeeper, Value Range, High Value) + Clear
+  - Left panel: TreeView 8 items (Tất cả, Mới, Đã lưu kho, Đang liên hệ, Đã trả, Đã thanh lý, Quá hạn, Giá trị cao)
+  - Center: DataGrid 14 cột (Mã, Tên, Loại, Phòng, Khách, Reservation, Ngày, Housekeeper, Kho, Giá trị, Trạng thái, Liên hệ, Remark) + Card View với WrapPanel
+  - Right panel: Sliding inspector 6 tabs (Tổng quan, Khách, Kho, Lịch sử, Ảnh, Ghi chú) — Timeline + Audit Log
+  - Footer: Pagination (First/Prev/Page buttons/Next/Last) + Page size selector
+  - Form overlay: 5 inline forms (Record, Edit, Contact, Return, Disposal) với validation
+- **Viết lại `LostFoundView.xaml.cs`**: Event handlers (OnLoaded, OnKpiClick, OnTreeItemClick, OnItemCardClick, OnDataGridDoubleClick, OnDetailTabClick, OnDismissInfo)
+
+### Files
+- `ViewModels/LostFoundViewModel.cs` — sửa (thêm ~300 dòng form management + workflow)
+- `Views/LostFoundView.xaml` — viết lại hoàn toàn (~1170 dòng)
+- `Views/LostFoundView.xaml.cs` — viết lại hoàn toàn
+
+### Kết quả
+- Build: PASS (0 errors, 0 new warnings)
+- Fake data: 200 tài sản, 60 lưu kho, 20 đang liên hệ, 80 đã trả, 10 quá hạn, 5 giá trị cao
+- Không sửa backend, database
+
+## Phiên 2026-08-01 (lần 3) — Group Booking Wizard (Đặt phòng đoàn) 8-Step — DONE
+
+### Mục tiêu
+Tạo màn hình Đặt phòng đoàn dạng Wizard 8 bước (A-H). Đây là nơi thực hiện booking thực tế cho đoàn đã có hồ sơ, khác hoàn toàn với "Tạo đoàn" (chỉ tạo hồ sơ). Wizard bao gồm: chọn đoàn → Room Block → Giá đoàn → Đặt cọc → Rooming List → Chính sách → Kiểm tra → Xác nhận.
+
+### Sửa
+- **Tạo `GroupBookingWizardWindow.xaml`** (190 dòng): Window shell, header (orange gradient #FFAD39→#ED7900), 8-step stepper, status strip, content area (left 68% + right sidebar 32%), fixed footer
+- **Tạo `GroupBookingWizardWindow.xaml.cs`** (~580 dòng): Full wizard logic 8 steps A-H
+  - Step A: Chọn đoàn — 40 mock groups, search + filter, card-based selection with highlight
+  - Step B: Room Block — DataGrid (Room Type/Qty/Adults/Children/Rate Plan/Extra Bed/Smoking/Note), KPI cards, add/copy/delete actions
+  - Step C: Giá đoàn — Group Rate theo hạng phòng (BAR/Contract/Selling/Discount/Final), VAT/Service Charge, Forecast Revenue
+  - Step D: Đặt cọc & Bảo đảm — Multi-installment deposit schedule, Cut-off/Release dates, Guarantee type
+  - Step E: Rooming List — Guest grid (Name/Gender/Arrival/Departure/RoomType/Sharing/VIP/Note), Auto-fill, Unknown Guest support
+  - Step F: Chính sách — Late Check-out, Early Check-in, Free Upgrade, FOC, Tour Leader/Driver/Guide rooms, Meal Plan, Services, Special Request
+  - Step G: Kiểm tra — 8-item checklist with pass/fail status, Blocking + Warning lists
+  - Step H: Xác nhận — Summary preview, Room Block summary, 6 confirm checkboxes, Success state
+  - Right sidebar: Group info, Room Block summary, Financial forecast, Blocking/Warning
+  - Status strip: Đoàn/Đến/Đi/Khách/Phòng/Doanh thu/Tiền tệ/Đặt cọc chips
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire card "Đặt phòng đoàn" → GroupBookingWizardWindow
+
+### Files
+- `Views/GroupBookingWizardWindow.xaml` — tạo mới (190 dòng)
+- `Views/GroupBookingWizardWindow.xaml.cs` — tạo mới (~580 dòng)
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa wire card + thêm method
+
+### Kết quả
+- Build: PASS (0 errors)
+- Không sửa backend, database
+- Tất cả dữ liệu là mock (40 groups, room blocks, rates, deposits, rooming list)
+
+### Kết luận: GROUP BOOKING WIZARD COMPLETE
+
+## Phiên 2026-08-01 — Group Operation Center (Danh sách đoàn) Redesign — DONE
+
+### Mục tiêu
+Thiết kế lại toàn bộ màn hình "Danh sách đoàn" thành Group Operation Center — trung tâm điều phối nghiệp vụ đoàn. Chuyển từ ListBox cơ bản thành giao diện chuyên nghiệp: Dashboard KPI, Professional DataGrid 16 cột, Preview Panel 5 tab, Toolbar 13 workflow action, Filter bar, Pagination fixed footer, Context menu, Row color coding, Status badges, Progress bars, Warning indicators.
+
+### Sửa
+- **Rewrite `GroupReservationView.xaml`** (~550 dòng): Group Operation Center layout
+  - Header: Icon đoàn (purple gradient) + title + count badge + Refresh/Export buttons
+  - Dashboard KPI Cards (10 cards): Tổng đoàn, Đang ở, Sắp đến, Hôm nay đến/đi, Chờ đặt cọc, Chưa phân phòng, Còn công nợ, No Show, Doanh thu
+  - Toolbar (13 buttons): Tạo đoàn, Đặt phòng, Phân phòng, Check-in, Check-out, Rooming List, Master Folio, Đặt cọc, Hóa đơn, Email, In, Nhân bản, Đóng đoàn
+  - Filter bar: Tìm kiếm + 4 primary combos (Trạng thái/Market/Nguồn/Loại đoàn) + expandable 3 more (Quốc gia/VIP/Thanh toán) + Xóa lọc
+  - Professional DataGrid 16 cột: #, Mã đoàn/Tên, Trưởng đoàn, Công ty/Đại lý, Đến/Đi, Phòng (with progress bar), Khách, Market, Nguồn, Doanh thu, Còn lại, Trạng thái (colored badge), Warning badges
+  - Row color coding: Draft=xám, Cancelled/NoShow=đỏ/cam, Closed=xanh
+  - Right-click context menu 16 items
+  - Right Preview Panel (420px) 5 tabs: Tổng quan, Phòng (room list + KPI), Khách (guest list + VIP), Tài chính (revenue/deposit/balance/Master Folio), Ghi chú (5 department notes)
+  - Empty state: icon + "Chọn một đoàn"
+  - Fixed footer: pagination « ← Trang X / Y → » + PageSize combo + tổng count
+  - Double-click → Group Workspace mock
+- **Rewrite `GroupReservationViewModel.cs`** (~510 dòng): Enhanced ViewModel
+  - 320 mock groups với đầy đủ 30+ fields (GroupListDto mở rộng)
+  - 11 trạng thái với StatusBadge/StatusColor/RawBg
+  - 10 Dashboard KPI cards auto-calculated
+  - Advanced filter: 8 filter dimensions + search
+  - Pagination: First/Prev/Next/Last/SetPage + PageSize
+  - Workflow commands: OpenCreateGroup, OpenGroupCheckIn, OpenGroupCheckOut, OpenFolioWindow, OpenDepositWindow, OpenInvoiceWindow, OpenEmailWindow, OpenPrintWindow, DuplicateGroup, CloseGroup, DeleteDraftGroup, ExportToExcel
+  - Retained: Auto assignment, Master Folio, Company Billing, Bulk CheckIn/Out, Payment recording
+- **Rewrite `GroupReservationView.xaml.cs`** — Tab click handlers + double-click handler
+
+### Files
+- `Views/GroupReservationView.xaml` — rewrite hoàn toàn (~550 dòng)
+- `Views/GroupReservationView.xaml.cs` — rewrite (~55 dòng)
+- `ViewModels/GroupReservationViewModel.cs` — rewrite hoàn toàn (~510 dòng)
+
+### Kết quả
+- Build: PASS (0 errors)
+- Không sửa backend, không sửa database
+- Tất cả workflow commands link đến existing windows (CreateGroupWindow, GroupCheckInWindow, GroupCheckoutWindow, GroupReservationWindow)
+- Mock data: 320 đoàn với đầy đủ thông tin
+
+### Kết luận: GROUP OPERATION CENTER COMPLETE
+
+## Phiên 2026-07-27 — Create Group Wizard UI Mockup (Tạo đoàn) — DONE
+
+### Mục tiêu
+Tạo màn hình Tạo đoàn dạng Wizard 8 bước (A-H) cho ASMILE-BO Front Office: hồ sơ đoàn, liên hệ, lưu trú, nhu cầu phòng, giá & thanh toán, dịch vụ, kiểm tra, xác nhận. UI mockup, chưa nối backend.
+
+### Sửa
+- **Tạo `CreateGroupWindow.xaml`** (310 dòng): Window shell với Header, Stepper bar 8 bước, Context Summary strip, Content area (trái: step content, phải: Inspector), Sticky Footer
+- **Tạo `CreateGroupWindow.xaml.cs`** (~1650 dòng): Full wizard logic với 8 bước
+  - Step A: Thông tin đoàn (tên, loại, segment, market, quy mô, VIP, priority, tags, ghi chú)
+  - Step B: Liên hệ & đơn vị (Công ty/Đại lý/Ban tổ chức/Cá nhân, contact chính, contact phụ)
+  - Step C: Lưu trú dự kiến (ngày đến/đi, số đêm, cut-off, phương tiện, arrival/departure waves, pickup/drop-off)
+  - Step D: Nhu cầu phòng (room requirement builder, KPI cards, availability matrix mock)
+  - Step E: Giá & thanh toán (rate plan, currency, package, payment, deposit, commission, tax & fees)
+  - Step F: Dịch vụ & yêu cầu (services, F&B, meeting, transport, VIP & security, documents, notes)
+  - Step G: Kiểm tra (checklist, readiness score, blocking/warning summary)
+  - Step H: Xác nhận (summary preview, confirm checkboxes, success state mock)
+  - Inspector realtime cho mỗi step, Context Summary strip, Validation/Warning/Blocking system
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire card "Tạo đoàn" → `OpenCreateGroupWindow()` (thay vì `OpenGroupReservationWindow`)
+- **Fix build**: Thêm `<GenerateAssemblyInfo>false</GenerateAssemblyInfo>` + `<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>` vào 4 csproj (Core, Shared, Application, Infrastructure) — fix lỗi .NET 10 SDK build net8.0
+
+### Files
+- `Views/CreateGroupWindow.xaml` — tạo mới (310 dòng)
+- `Views/CreateGroupWindow.xaml.cs` — tạo mới (~1650 dòng)
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa wire Tạo đoàn card
+- `ASMILE.BO.Core/ASMILE.BO.Core.csproj` — fix build
+- `ASMILE.BO.Shared/ASMILE.BO.Shared.csproj` — fix build
+- `ASMILE.BO.Application/ASMILE.BO.Application.csproj` — fix build
+- `ASMILE.BO.Infrastructure/ASMILE.BO.Infrastructure.csproj` — fix build
+
+### Kết quả
+- Build: PASS (0 errors, 256 pre-existing warnings)
+- App launched: OK (2 instances running)
+- Backend không đụng đến
+- Không sửa database, không migration
+- Không sửa module khác
+- Report: `docs/GROUP_CREATE_UI_MOCKUP_REPORT.md`
+
+### Kết luận: CREATE GROUP WIZARD UI MOCKUP COMPLETE
+
+## Phiên 2026-07-25 (lần 32) — ProformaFolioWindow Bill Review Workspace — DONE
+
+### Vấn đề
+Cần màn hình In tạm tính dạng Bill Review Workspace (không phải wizard) để kiểm tra hóa đơn trước thanh toán/check-out: chọn Folio, xem bill preview với nhiều template/ngôn ngữ/currency, inspector, print/export/email mockup.
+
+### Sửa
+- **Tạo `ProformaFolioWindow.xaml`** (95 dòng) + **`.cs`** (430 dòng): 3-column workspace
+  - Left: 8 Folio browser (Master, Room, Restaurant, Spa, Company, USD folios)
+  - Center: Bill preview với hotel header, guest info grid, posting table 6 cột, totals, side tabs 8 tab (Tổng quan KPI, Posting, Thanh toán, Đặt cọc, Hoàn tiền, Routing, Tài liệu, Lịch sử)
+  - Right: Inspector 8 tab
+  - Toolbar: 6 templates (Standard/Compact/Detailed/Corporate/TA/Group) + 3 ngôn ngữ + 3 currency options
+  - Actions: Preview, Print mockup, Export mockup, Email mockup
+- **Wire `OnPrint`** trong `CashieringWorkspaceView.xaml.cs`
+
+### Files
+- `Views/ProformaFolioWindow.xaml` — tạo mới
+- `Views/ProformaFolioWindow.xaml.cs` — tạo mới
+- `Views/CashieringWorkspaceView.xaml.cs` — sửa OnPrint handler
+
+### Kết quả
+- Build: PASS (0 errors)
+- Report: `docs/PROFORMA_FOLIO_FULL_UI_IMPLEMENTATION_REPORT.md`
+
+### Kết luận: PROFORMA FOLIO WORKSPACE COMPLETE
+
+## Phiên 2026-07-25 (lần 31) — TransferPostingWindow 6-Step Wizard — DONE
+
+### Vấn đề
+Cần màn hình Chuyển khoản mục dạng wizard 6 bước để di chuyển posting giữa các Folio: chọn posting → chọn Folio đích → quy tắc chuyển → preview → validation → xác nhận.
+
+### Sửa
+- **Tạo `TransferPostingWindow.xaml`** (150 dòng) + **`.cs`** (420 dòng): 320 mock postings, 10 target folios
+  - Step A: Posting browser 17 cột + filter + eligibility flag
+  - Step B: 10 target folios với compatibility check
+  - Step C: 4 transfer modes (Entire/Percent/Amount/Qty) + Tax/Package/Payer rules
+  - Step D: Source/target preview
+  - Step E: Validation checklist 8 mục + Warning Center
+  - Step F: Summary + Readiness
+- **Wire `OnTransfer`** trong `CashieringWorkspaceView.xaml.cs`
+
+### Files
+- `Views/TransferPostingWindow.xaml` — tạo mới
+- `Views/TransferPostingWindow.xaml.cs` — tạo mới
+- `Views/CashieringWorkspaceView.xaml.cs` — sửa OnTransfer handler
+
+### Kết quả
+- Build: PASS (0 errors)
+- Report: `docs/TRANSFER_POSTING_FULL_UI_IMPLEMENTATION_REPORT.md`
+
+### Kết luận: TRANSFER POSTING WIZARD COMPLETE
+
+## Phiên 2026-07-25 (lần 30) — MergeFolioWindow 6-Step Wizard — DONE
+
+### Vấn đề
+Cần màn hình Gộp Folio dạng wizard 6 bước để hợp nhất nhiều Folio nguồn vào một Folio đích: chọn nhiều Folio nguồn → kiểm tra tương thích → chọn Folio đích → quy tắc gộp → đối chiếu → xác nhận.
+
+### Sửa
+- **Tạo `MergeFolioWindow.xaml`** (150 dòng): Wizard 6 bước, Header, Step bar, Summary strip, Footer
+- **Tạo `MergeFolioWindow.xaml.cs`** (520 dòng): 120 mock Folio, multi-select (tối thiểu 2), Compatibility Matrix 11 tiêu chí, 8 nhóm quy tắc gộp (Transaction/Payer/Deposit/Payment/Refund/Currency/Tax/Package/Document), xử lý trạng thái Folio nguồn sau gộp, duplicate detection, Warning Center, Readiness checklist
+- **Wire `OnMerge`** trong `CashieringWorkspaceView.xaml.cs`
+
+### Files
+- `Views/MergeFolioWindow.xaml` — tạo mới
+- `Views/MergeFolioWindow.xaml.cs` — tạo mới
+- `Views/CashieringWorkspaceView.xaml.cs` — sửa OnMerge handler
+
+### Kết quả
+- Build: PASS (0 errors)
+- App launched: OK
+- Report: `docs/MERGE_FOLIO_FULL_UI_IMPLEMENTATION_REPORT.md`
+
+### Kết luận: MERGE FOLIO WIZARD COMPLETE
+
+## Phiên 2026-07-25 (lần 29) — SplitFolioWindow 6-Step Wizard — DONE
+
+### Vấn đề
+Cần màn hình Tách Folio dạng wizard 6 bước để phân chia khoản mục từ Folio nguồn sang nhiều Folio đích: chọn Folio nguồn → chọn khoản mục → chọn Folio đích → quy tắc tách → đối chiếu trước/sau → xác nhận.
+
+### Sửa
+- **Tạo `SplitFolioWindow.xaml`** (200 dòng): Wizard 6 bước — Header, Step bar, Summary strip, 6 step panels (A→F), Footer cố định
+  - Step A: DataGrid 120 Folio nguồn + filter + pager 20/50/100 + detail panel 15 field
+  - Step B: DataGrid 350 khoản mục + multi-select + partial split + selection summary
+  - Step C: Multi-target Folio đích + tạo Folio mockup
+  - Step D: 11 quy tắc tách (ByItem, ByService, ByDate, ByGuest, ByRoom, ByPayer, ByCompanyTA, ByRatio, ByAmount, ByEqual, ByBilling)
+  - Step E: Before/after reconciliation + Warning Center (blocking + non-blocking)
+  - Step F: Tóm tắt + Readiness checklist 12 mục + confirmation dialog
+- **Tạo `SplitFolioWindow.xaml.cs`** (718 dòng): Mock data 120 folio + 350 khoản mục, full wizard logic, filter/pager, state management
+- **Wire `CashieringWorkspaceView.xaml.cs`**: `OnSplit` mở SplitFolioWindow (thay vì MessageBox mockup)
+
+### Files
+- `Views/SplitFolioWindow.xaml` — tạo mới (200 dòng)
+- `Views/SplitFolioWindow.xaml.cs` — tạo mới (718 dòng)
+- `Views/CashieringWorkspaceView.xaml.cs` — sửa OnSplit handler
+
+### Kết quả
+- Build: PASS (0 errors)
+- App launched: OK
+- Backend không đụng đến
+- Report: `docs/SPLIT_FOLIO_FULL_UI_IMPLEMENTATION_REPORT.md`
+
+### Kết luận: SPLIT FOLIO WIZARD COMPLETE
+
+## Phiên 2026-07-25 (lần 28) — Folio Financial Workspace + Test Fixes — DONE
+
+### Vấn đề
+`FolioWorkspaceWindow` cần được thiết kế lại thành Financial Workspace hoàn chỉnh (không phải wizard) để quản lý toàn bộ nghiệp vụ tài chính Front Office: nhiều Folio, nhiều Guest, nhiều Payer, nhiều Currency, Charge, Payment, Deposit, Refund, Tax, Routing, Company, TA.
+
+### Sửa
+- **Rewrite `FolioWorkspaceWindow.xaml`** (187 dòng): 3-column workspace layout — Header + Toolbar + Top Summary + Body (Folio list | Transaction center | Inspector) + Bottom Summary + Footer
+  - 18 cột DataGrid (Thời gian, Mã GD, Tham chiếu, Loại, Diễn giải, BP, Outlet, SL, ĐG, Tiền, Thuế, Disc, P.DV, Tệ, Người TT, Operator, T.Thái)
+  - Ribbon filter 10 nút (ALL, Charge, Payment, Deposit, Refund, Adjustment, Transfer, Tax, Discount, Service Charge)
+  - Side tabs 8 tab (Tổng quan, Giao dịch, Thanh toán, Đặt cọc, Hoàn tiền, Routing, Lịch sử, Tài liệu)
+  - Inspector 7 sub-tab (Tổng quan, Tài chính, Thuế, Audit, Routing, Phê duyệt, Lịch sử)
+  - Dual summary strips (top: thông tin stay, bottom: realtime financial totals)
+  - Pager 20/50/100, double-click preview
+- **Rewrite `FolioWorkspaceWindow.xaml.cs`** (470 dòng): mock data 476 records
+  - 13 folio (2 khách, 11 loại: Master, Room, Restaurant, Spa, Laundry, Extra, Company, Agent, Event, Voucher, City Ledger)
+  - 320 transactions, 80 payments, 30 deposits, 25 refunds, 8 routing rules
+  - 3 currencies (VND/USD/EUR), 14 transaction types, 7 departments, 8 outlets
+  - Color-coded ribbon, folio status badges, realtime balance calculation
+- **Fix 4 test files** (10 lỗi compile) do constructor signature changes
+
+### Files
+- `Views/FolioWorkspaceWindow.xaml` — rewrite hoàn toàn (187 dòng)
+- `Views/FolioWorkspaceWindow.xaml.cs` — rewrite hoàn toàn (470 dòng)
+- `ASMILE.BO.Tests.Unit/ReservationHubViewModelTests.cs` — 2 fixes
+- `ASMILE.BO.Tests.Unit/ReceptionHubViewModelTests.cs` — 1 fix
+- `ASMILE.BO.Tests.Unit/FrontOfficeHubViewModelTests.cs` — 5 fixes
+- `ASMILE.BO.Tests.Unit/CheckInModalAcceptanceTests.cs` — 1 fix
+
+### Kết quả
+- Build: PASS (0 errors, 98 pre-existing warnings)
+- App launched: OK
+- Backend không đụng đến
+- Report: `docs/FOLIO_WORKSPACE_IMPLEMENTATION_REPORT.md`
+
+### Kết luận: FOLIO FINANCIAL WORKSPACE COMPLETE
+
 ## Phiên 2026-07-24 (lần 27) — Modern Calendar Popup UI — DONE
 
 ### Vấn đề
@@ -1282,3 +1794,390 @@ PASS (0 warnings, 0 errors)
 
 ### Runtime status
 App launched. Cần verify tab filter hoạt động đúng với data thật.
+
+---
+
+## Phiên 2026-08-03 — Room Inspection (Kiểm tra phòng) — DONE
+
+### Mục tiêu
+Thiết kế module "Kiểm tra phòng" (Room Inspection) — Quality Control Center của Housekeeping. Supervisor sử dụng để kiểm tra chất lượng, chấm điểm (Inspection Score), duyệt/từ chối phòng sau khi Housekeeper hoàn thành. Đồng bộ 100% layout với các module Phòng bẩn - Đang dọn - Phòng sạch.
+
+### Sửa
+- **Tạo `RoomInspectionViewModel.cs`** (~650 dòng): 7 DTO class + ViewModel
+  - `RoomInspectionDto`: 40+ fields với Inspection Score 3 thành phần (Checklist 80 + Amenities 10 + Room Condition 10 = 100)
+  - `InspectionChecklistItem`: 24 checklist items (Giường, Chăn, Gối, Khăn, Toilet, Lavabo, Gương, Sàn, Ban công, TV, Điều hòa, Wifi, Safe, Minibar, Amenities, Dép, Bình nước, Điện, Đèn, Cửa, Khóa, Mùi phòng, Rèm, Tổng thể)
+  - `InspectorStatDto`: thống kê 12 Supervisor (Inspected Today, Passed, Failed, Avg Score, Pass Rate)
+  - Fake data: 120 phòng, 35 Waiting Inspection, 8 VIP, 6 Rush, 5 Overdue, 12 Supervisor, 20 Housekeeper
+  - 4 trạng thái: Pending (tím), Passed (xanh lá), Failed (đỏ), Overdue (cam)
+  - 10 KPI cards: Chờ kiểm tra, Đạt, Không đạt, VIP, Rush, Quá hạn, Đã KT HN, TB Score, Pass Rate, TB thời gian
+  - Inspection Score tự tính 3 thành phần, Grade A+ (95%+) đến D (<70%)
+  - Validation: không cho PASS nếu Checklist chưa đủ, Minibar chưa xử lý, Maintenance đang mở, Lost & Found chưa xác nhận, Score <80%
+  - VIP: bắt buộc Supervisor kiểm tra trực tiếp
+  - Photo gallery: Before/After/Inspection
+  - Timeline: Checkout → Phân công → Bắt đầu dọn → Hoàn thành → Kiểm tra → Đạt/Không đạt → Làm lại
+  - Workflow: Approve (→ Vacant Clean → FO bán ngay), Reject (→ Cleaning Again → quay về Đang dọn), Change Inspector, Upload ảnh, Maintenance, Lost & Found
+- **Tạo `RoomInspectionView.xaml`** (~375 dòng): Layout đồng bộ 100% CleanRoomView
+  - Header: icon tím (#7C3AED gradient) + "Kiểm tra phòng" + count badge "X phòng chờ kiểm tra"
+  - KPI Dashboard: 10 cards WrapPanel
+  - Toolbar: Approve (xanh lá PrimaryBtn), Reject (đỏ), Đổi Supervisor, Upload ảnh, Maintenance, Lost & Found + view mode toggle + Batch actions
+  - Filter bar: Search + 7 ComboBox (Status, Supervisor, Floor, Building, RoomType, Priority) + 2 CheckBox (VIP, Rush)
+  - Left Tree: Tất cả → Chờ kiểm tra, VIP, Rush, Không đạt, Đã hoàn thành, Quá hạn
+  - Center Grid: DataGrid 12 cột (Phòng, Loại, Khách, Checkout, NV dọn, Supervisor, Dọn xong, Score %, Grade, VIP/Rush, Trạng thái, Ghi chú)
+  - Card View: Score lớn 20px + ProgressBar + Grade badge
+  - Floor View: Tầng 1-10 với màu trạng thái (Pending tím, Passed xanh, Failed đỏ)
+  - Right Inspector (380px) 5 tabs: Tổng quan, Kiểm tra (Score + Grade badge + block reason), Checklist (24 items + ProgressBar), Ảnh (Gallery Before/After/Inspection), Lịch sử (Timeline dọc)
+  - Footer: Pagination + Status summary (Chờ KT · Đạt · Fail)
+- **Tạo `RoomInspectionView.xaml.cs`** (~75 dòng): Event handlers
+- **Tạo `RoomInspectionWindow.xaml` + `.cs`**: Window shell 1500x880, CenterOwner
+
+### Files
+- `ViewModels/RoomInspectionViewModel.cs` — tạo mới (~650 dòng)
+- `Views/RoomInspectionView.xaml` — tạo mới (~375 dòng)
+- `Views/RoomInspectionView.xaml.cs` — tạo mới (~75 dòng)
+- `Views/RoomInspectionWindow.xaml` — tạo mới
+- `Views/RoomInspectionWindow.xaml.cs` — tạo mới
+
+### Kết quả
+- Build: PASS (0 errors)
+- Không sửa backend, database
+- Tất cả dữ liệu là mock (120 phòng, 35 chờ kiểm tra, 12 supervisor)
+- Đồng bộ 100% layout với Phòng bẩn - Đang dọn - Phòng sạch
+- Inspection Score: Checklist 80 + Amenities 10 + Room Condition 10 = 100
+- Liên kết nghiệp vụ: Dirty Room → Cleaning → Waiting Inspection → Room Inspection → PASS → Clean Room (VC) → Reservation/Check-in
+
+### Kết luận: ROOM INSPECTION (QUALITY CONTROL CENTER) COMPLETE
+
+## Phiên 2026-08-03 — Cleaning In Progress (Đang dọn) — DONE
+
+### Mục tiêu
+Thiết kế module "Đang dọn" (Cleaning In Progress) — Dashboard giám sát tiến độ vệ sinh phòng theo thời gian thực. Đồng bộ 100% layout với module "Phòng sạch" (CleanRoomView). Hỗ trợ 3 chế độ hiển thị (Grid/Card/Floor), KPI dashboard, Inspector 5 tab, Workflow 15 hành động.
+
+### Sửa
+- **Tạo `CleaningInProgressViewModel.cs`** (~720 dòng): 7 DTO class + ViewModel
+  - `CleaningInProgressDto`: 30+ fields (Room, Guest, Housekeeper, Timeline, Checklist, Photo, Maintenance, Lost & Found, Minibar)
+  - `CleaningKpi`, `CleaningChecklistItem`, `CleaningTimelineEntry`, `CleaningTreeItem`, `CleaningPaginationButton`, `HousekeeperStatDto`, `FloorViewDto`
+  - Fake data: 150 phòng, 40 đang dọn, 10 VIP, 8 Rush, 5 Overdue, 5 Waiting Inspection, 12 Housekeeper, 3 Supervisor
+  - 6 trạng thái: Assigned, Cleaning, Paused, WaitingInspection, Completed, Overdue (màu riêng)
+  - 10 KPI cards: Đang dọn, Hoàn thành HN, Quá hạn, VIP, Rush, Chờ kiểm tra, TB thời gian, Lâu nhất, Nhanh nhất, NV Online
+  - Workflow: Phân công → Bắt đầu dọn → Tạm dừng → Tiếp tục → Hoàn thành → Gửi Inspection → Pass/Reject → Đổi NV → Upload ảnh
+  - Batch: Assign, Change Staff, Complete, Inspect
+  - 3 chế độ xem: Grid (DataGrid 14 cột), Card (WrapPanel), Floor (theo tầng)
+  - Validation: Checklist chưa đủ, Minibar chưa xử lý, Maintenance chưa xử lý, Lost & Found chưa xác nhận
+  - Housekeeper stats: Tên, Đang dọn, Hoàn thành, TB, VIP, Rush, Inspection Fail, Online
+  - Filter: Housekeeper, Supervisor, Floor, Building, Room Type, Priority, VIP, Rush, Duration, Keyword
+- **Tạo `CleaningInProgressView.xaml`** (~375 dòng): Layout đồng bộ 100% CleanRoomView
+  - Header: icon xanh dương (#2563EB gradient) + "Đang dọn" + count badge
+  - KPI Dashboard: 10 cards WrapPanel
+  - Toolbar: Phân công (PrimaryBtn), Bắt đầu dọn, Tạm dừng, Tiếp tục, Hoàn thành, Gửi Inspection, Đổi NV, Upload ảnh + view mode toggle (Grid/Card/Floor) + Batch actions
+  - Filter bar: 11 controls (Search + 7 ComboBox + 2 CheckBox + Xóa lọc)
+  - Left Tree: Tất cả → Đang dọn, Đã phân công, VIP, Rush, Quá hạn, Sắp xong, Chờ kiểm tra, Tạm dừng
+  - Center Grid: DataGrid 14 cột (Phòng, Loại, Khách, Checkout, NV dọn, Bắt đầu, Thời gian, Dự kiến xong, Tiến độ, Checklist, Ưu tiên, Trạng thái, Ghi chú) + ProgressBar + overdue badge
+  - Card View: 240xWrapPanel cards với Room, Guest, HK, Progress, Elapsed/Remaining, VIP/Rush/Overdue badges
+  - Floor View: Tầng 1-10, mỗi tầng grid các phòng với màu trạng thái
+  - Right Inspector (380px) 5 tabs: Tổng quan (Thông tin phòng + Khách + Khách sắp đến), Dọn phòng (Phân công + SLA + Overdue warning), Checklist (13 items + ProgressBar), Timeline (dọc timeline), Lịch sử (Maintenance, Lost & Found, Minibar, Ảnh, Inspection)
+  - Footer: Pagination + Status summary (Đang dọn · Tạm dừng · Overdue)
+- **Tạo `CleaningInProgressView.xaml.cs`** (~80 dòng): Event handlers (OnLoaded, OnTreeItemSelected, OnRoomSelectionChanged, OnRoomDoubleClick, OnKpiClick, OnCardClick, OnDetailTabClick)
+- **Tạo `CleaningInProgressWindow.xaml` + `.cs`**: Window shell 1500x880, CenterOwner
+
+### Files
+- `ViewModels/CleaningInProgressViewModel.cs` — tạo mới (~720 dòng)
+- `Views/CleaningInProgressView.xaml` — tạo mới (~375 dòng)
+- `Views/CleaningInProgressView.xaml.cs` — tạo mới (~80 dòng)
+- `Views/CleaningInProgressWindow.xaml` — tạo mới
+- `Views/CleaningInProgressWindow.xaml.cs` — tạo mới
+
+### Kết quả
+- Build: PASS (0 errors, 0 warnings)
+- Không sửa backend, database
+- Tất cả dữ liệu là mock (150 phòng, 40 đang dọn, 12 housekeeper)
+- Đồng bộ 100% layout với CleanRoomView — chỉ khác dữ liệu và nghiệp vụ
+- Liên kết nghiệp vụ: Check-out → Dirty Room → Cleaning In Progress → Inspection → Clean Room → Reservation → Check-in
+
+### Kết luận: CLEANING IN PROGRESS MODULE COMPLETE
+
+## Phiên 2026-08-02 (lần 2) — Housekeeping Room Status (Tình trạng phòng) — DONE
+
+### Mục tiêu
+Thiết kế màn hình Housekeeping → Tình trạng phòng (Room Status) theo chuẩn PMS 5 sao (Opera PMS, Fidelio, Cloudbeds, Shiji PMS). Đây là trung tâm điều hành toàn bộ trạng thái phòng của khách sạn, hỗ trợ 3 chế độ hiển thị (Grid/Table/Floor View), realtime dashboard KPI, detail panel 5 tab, context menu 15 hành động, legend, warning badges, timeline.
+
+### Sửa
+- **Tạo `HousekeepingRoomStatusViewModel.cs`** (~420 dòng): ViewModel với 7 DTO class
+  - `RoomStatusDto`: 50+ fields (room info, FO status, HK status, guest info, amenities, warnings, color properties)
+  - `RoomStatusKpi`: 12 dashboard cards with progress bar support
+  - `RoomLegendItem`: 12 status legend entries
+  - `RoomTimelineEntry`: timeline events with icon
+  - `RoomWarningItem`: warning badges (VIP chưa dọn, khách sắp đến, minibar, lost & found)
+  - 9 FO statuses: VC (xanh lá), VD (vàng), OC (xanh dương), OD (đỏ), OOO (xám), OOS (cam), PU (tím), EA (cyan), ED (cam nhạt)
+  - Color scheme: mỗi status có BgColor, BgBorder, StatusDotColor riêng
+  - Mock data: ~200 rooms across 8 floors, 10 room types, realistic status distribution
+  - 3 view modes: Grid (Opera-style room cards), Table (DataGrid 10 cột), Floor View (theo tầng)
+  - Full filter: FO Status, HK Status, Room Type, Floor, Area, Room Class, Room Condition, VIP, Occupied, Vacant, OOO, OOS + Search Room/Guest/Reservation
+  - Context menu actions: Mark Clean, Mark Dirty, Send to HK, Inspect, Set OOO/OOS, Clear OOO/OOS, Change Attendant, Minibar, Lost & Found, Folio, Reservation, Room History
+- **Tạo `HousekeepingRoomStatusView.xaml`** (~750 dòng): Full UI layout
+  - Header: icon (blue gradient #4A8EFF→#1765F2) + title + room count badge + Refresh/Sync/Export/Print buttons
+  - Dashboard KPI Cards (12 cards): Tổng phòng, VC, VD, OC, OD, OOO, OOS, Khách đến HN, Khách đi HN, Công suất (progress), Tỉ lệ sạch (progress), Tỉ lệ bẩn (progress)
+  - Toolbar: Refresh/Sync/FullScreen/Export/Print + View Mode toggle (Grid/Table/Tầng)
+  - Filter bar: 6 primary combos + expandable 8 more (class/condition/search guest/reservation + 5 checkboxes)
+  - Room Grid (Opera-style): 120×105px cards with room number, type, FO status (colored dot + label), guest name, VIP badge, amenity icons (minibar, DND, extra bed, baby cot, laundry, wakeup, inspection)
+  - Card color coding: background + border color per FO status
+  - Table View: DataGrid 10 cột (Phòng, Tầng, Loại, HK Status, FO Status, Khách, VIP, Tiện ích, Ghi chú, Attendant) + context menu 15 items
+  - Floor View: Floor selector buttons + room cards grouped by floor
+  - Warning badges strip: VIP chưa dọn, Khách sắp đến, Minibar chưa nhập, Lost & Found
+  - Legend strip: 12 status codes with colored swatches
+  - Right Detail Panel (370px): 5 tabs — Phòng (room info + status), Khách (guest info 11 fields), HK (housekeeping details 7 fields), Tiện ích (8 amenity chips), Timeline (vertical timeline events)
+  - Empty state: icon + "Chọn một phòng"
+  - Fixed footer: display count + occupancy/clean/dirty rates
+- **Tạo `HousekeepingRoomStatusView.xaml.cs`** (~80 dòng): Room card click, grid selection, double-click, detail tab switching, info dismiss
+- **Tạo `HousekeepingRoomStatusWindow.xaml`** + `.cs`: Standalone window 1500×900
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire card "Tình trạng phòng" → `OpenHousekeepingRoomStatusWindow()`
+
+### Files
+- `ViewModels/HousekeepingRoomStatusViewModel.cs` — tạo mới (~420 dòng)
+- `Views/HousekeepingRoomStatusView.xaml` — tạo mới (~750 dòng)
+- `Views/HousekeepingRoomStatusView.xaml.cs` — tạo mới (~80 dòng)
+- `Views/HousekeepingRoomStatusWindow.xaml` — tạo mới
+- `Views/HousekeepingRoomStatusWindow.xaml.cs` — tạo mới
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa wire card + thêm method
+
+### Kết quả
+- Build: PASS (0 errors)
+- Không sửa backend, không sửa database
+- Tất cả dữ liệu là mock (~200 rooms, 8 floors, 10 room types, 9 FO statuses, 5 HK statuses)
+- 3 chế độ hiển thị: Room Grid (Opera-style), Table (DataGrid), Floor View
+- 12 dashboard KPI cards với màu sắc khác nhau theo trạng thái
+- Context menu 15 hành động nghiệp vụ Housekeeping
+- Detail panel 5 tab: Phòng, Khách, HK, Tiện ích, Timeline
+
+### Kết luận: HOUSEKEEPING ROOM STATUS COMPLETE
+
+---
+
+## Phiên 2026-08-03 — Room Master Management Center (Danh sách phòng) — DONE
+
+### Mục tiêu
+Thiết kế module Danh sách phòng (Room Master Management Center) — trung tâm quản lý toàn bộ hồ sơ phòng của khách sạn. Module quản lý hồ sơ từng phòng (thông tin, tiện nghi, lịch sử), theo dõi trạng thái FO/Housekeeping, xem khách đang ở, hỗ trợ TreeView navigation, Card View, bar chart statistics, QR code, batch operations.
+
+### Sửa
+- **Tạo `RoomMasterViewModel.cs`** (~610 dòng): ViewModel với 7 DTO class
+  - `RoomMasterDto`: 70+ fields (room info, FO/HK status, guest info, 14 facilities, badges, colors)
+  - `RoomMasterKpi`: 12 dashboard cards with FilterKey/FilterValue for click-to-filter
+  - `RoomTreeItem`: TreeView node with children, IsExpanded, IsSelected, FilterKey/FilterValue
+  - `RoomFacilityItem`: 14 facility items (TV, Smart TV, Minibar, Safe, Bathtub, Shower, Hair Dryer, Wifi, Balcony, Kitchen, Coffee, Iron, AirCon, Desk)
+  - `RoomHistoryEntry`: history timeline entries
+  - `RoomDistributionItem`: bar chart data with Label, Count, Color, Percentage
+  - `RoomPaginationButton`: pagination button model
+  - Mock data: ~168 rooms across 8 floors, 3 buildings, 12 room types, 7 FO statuses
+  - TreeView structure: All Rooms → Building (A/B/C) → Floor (1-8) → Room Type (8 types) → FO Status → Housekeeping
+  - 3 view modes: Table (16-column DataGrid), Card View (130×110 colored cards)
+  - Full filter system: FO/HK Status, Room Type, Floor, Building, Room Class, Bed Type, View, Condition, 5 checkboxes (Smoking/Connecting/Occupied/Vacant/OOO-OOS/VIP)
+  - Clickable KPI cards that apply filters
+  - Pagination: First/Prev/Next/Last/SetPage + PageSize (20/50/100)
+  - Chart data: TypeDistribution, StatusDistribution, ClassDistribution
+  - Context menu: Open Reservation, Open Folio, Room Move, Change Status, QR Code, Room History
+  - Batch operations: Batch Clean, Batch Dirty, Batch OOO, Batch OOS
+- **Tạo `RoomMasterView.xaml`** (~280 dòng): Full UI layout
+  - Header: icon (teal gradient #31C9B8→#00A58F) + title + room count badge + Refresh/Export/Print buttons
+  - Dashboard KPI Cards (12 cards): clickable, filter-on-click
+  - Toolbar: Thêm/Sửa/Đổi trạng thái/QR Code + Export/In + Batch: Sạch/Bẩn/OOO/OOS + Card/Table toggle
+  - Left TreeView panel (220px): 5-level hierarchy with icons and room counts
+  - Center: DataGrid 14 cột (Phòng, Tên, Building, Tầng, Loại, Class, View, Giường, Diện tích, HK, FO Status, Khách, Attendant, Ghi chú) with context menu + Card View toggle
+  - Card View: 130×110px colored cards (room number, type, FO status, guest, attendant, VIP badge)
+  - Right Inspector (370px): 6 tabs — Tổng quan (15 fields), Khách (10 fields), HK, Tiện ích (14 facility checkboxes), Lịch sử (timeline), Ghi chú
+  - Statistics footer: Type Distribution bar chart + Status Distribution bar chart + Pagination
+- **Tạo `RoomMasterView.xaml.cs`** (~95 dòng): Tree click, room card click, grid selection, double-click, detail tab switching, KPI filter click
+- **Tạo `RoomMasterWindow.xaml`** + `.cs`: Standalone window 1560×920
+- **Tạo `RoomDetailWindow.xaml`** (~120 dòng) + `.cs`: Room Profile popup
+  - 5 sections: Room Features, Images placeholder, Facility Checklist (12 checkboxes), Maintenance History, Room Usage History Timeline
+  - Save/Close footer buttons
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire card "Danh sách phòng" → `OpenRoomMasterWindow()`
+
+### Files
+- `ViewModels/RoomMasterViewModel.cs` — tạo mới (~610 dòng)
+- `Views/RoomMasterView.xaml` — tạo mới (~280 dòng)
+- `Views/RoomMasterView.xaml.cs` — tạo mới (~95 dòng)
+- `Views/RoomMasterWindow.xaml` — tạo mới
+- `Views/RoomMasterWindow.xaml.cs` — tạo mới
+- `Views/RoomDetailWindow.xaml` — tạo mới (~120 dòng)
+- `Views/RoomDetailWindow.xaml.cs` — tạo mới
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa wire card + thêm method
+
+### Kết quả
+- Build: PASS (0 errors)
+- Không sửa backend, không sửa database
+- Tất cả dữ liệu là mock (~168 rooms, 8 floors, 3 buildings, 12 room types)
+- TreeView navigation 5 cấp độ (All/Building/Floor/RoomType/Status/HK)
+- 12 clickable KPI cards
+- 14 facility items per room
+- Bar chart statistics (Type + Status distribution)
+- Room Profile detail popup với 5 sections
+- Card View + Table View toggle
+- Batch operations (Sạch/Bẩn/OOO/OOS)
+- QR Code mockup
+
+### Kết luận: ROOM MASTER MANAGEMENT CENTER COMPLETE
+
+---
+
+## Phiên 2026-08-03 (lần 2) — Clean Room Management Center (Phòng sạch) — DONE
+
+### Mục tiêu
+Thiết kế module Phòng sạch (Clean Room Management Center) — trung tâm điều phối toàn bộ quy trình làm sạch phòng: Check-out → Dirty → Phân công → Đang dọn → Hoàn thành → Kiểm tra → Ready. Hỗ trợ checklist vệ sinh 13 bước, inspection pass/reject, phân công attendant/supervisor, VIP/Rush priority, TreeView navigation, progress tracking.
+
+### Sửa
+- **Tạo `CleanRoomViewModel.cs`** (~410 dòng): ViewModel với 5 DTO class
+  - `CleanRoomDto`: 40+ fields (room info, pipeline status, FO/HK status, VIP/Rush priority, previous/next guest, cleaning times, checklist progress, inspection results)
+  - `CleanChecklistItem`: 13 checklist items (Thay ga, Đổi khăn, Lau sàn, Lau kính, WC, Amenities, Minibar, TV, Điều hòa, Đèn, Ban công, Safe, Khử mùi) with done/pending status
+  - `CleanRoomKpi`: 11 dashboard cards with click-to-filter
+  - `CleanHistoryEntry`: history timeline (Checkout → Dirty → Assigned → Cleaning → Inspection → Ready)
+  - `CleanTreeItem`: TreeView nodes (All/Dirty/VD-OD/VIP/Rush/Inspection/Completed)
+  - 6-stage cleaning pipeline: Dirty → Assigned → Cleaning → Inspection → Ready/Rejected
+  - Mock data: ~88 rooms across 8 floors, realistic pipeline distribution
+  - Workflow commands: AssignAttendant, StartCleaning, CompleteCleaning, PassInspection, RejectInspection, MarkReady
+  - VIP validation: VIP rooms require Supervisor Pass before Ready
+  - Checklist validation: can't mark Complete without full checklist
+  - Batch operations: Batch Assign, Batch Complete, Batch Inspect
+- **Tạo `CleanRoomView.xaml`** (~250 dòng): Full UI layout
+  - Header: icon (green gradient #4ED86E→#18B33F) + title + dirty room count + Refresh/Export/Print
+  - Dashboard KPI Cards (11 cards): Cần dọn, Đã sạch, Đang dọn, Chờ kiểm tra, VIP, Rush, VD, OD, Đã phân công, Làm lại, Hoàn thành HN
+  - Toolbar: Nhận việc, Bắt đầu dọn, Hoàn thành, Gửi kiểm tra, Đánh dấu Ready, Inspection Pass/Fail + Batch Assign/Complete/Inspect
+  - Filter bar: Search + Pipeline status + Floor + Room Type + Area + Attendant + VIP/Rush checkboxes
+  - Left TreeView: 5-level (All → Dirty (VD/OD) → VIP → Rush → Inspection (Đạt/Làm lại) → Đã hoàn thành)
+  - Center DataGrid 12 cột: Phòng (colored dot), Loại, Tầng, Khách cũ, Checkout, Ưu tiên (VIP/RUSH badges), Trạng thái (colored badge), Attendant, Tiến độ (progress bar + %), TG dọn, Kiểm tra, Ghi chú
+  - Row color coding: Priority sort (VIP/Rush first)
+  - Right Inspector (380px): 5 tabs — Tổng quan (room + previous guest + next guest/ETA/Special Request), Dọn phòng (attendant/supervisor/times + 13-item checklist with progress bar), Kiểm tra (inspector/time/result/reason), Khách (next guest/VIP/ETA/request), Lịch sử (timeline)
+  - Context menu 9 items
+  - Empty state + fixed footer with pagination
+- **Tạo `CleanRoomView.xaml.cs`** (~60 dòng): Tree click, grid selection, double-click, tab switching, KPI filter click
+- **Tạo `CleanRoomWindow.xaml`** + `.cs`: Standalone window 1500×880
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire card "Phòng sạch" → `OpenCleanRoomWindow()`
+
+### Files
+- `ViewModels/CleanRoomViewModel.cs` — tạo mới (~410 dòng)
+- `Views/CleanRoomView.xaml` — tạo mới (~250 dòng)
+- `Views/CleanRoomView.xaml.cs` — tạo mới (~60 dòng)
+- `Views/CleanRoomWindow.xaml` — tạo mới
+- `Views/CleanRoomWindow.xaml.cs` — tạo mới
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa wire card + thêm method
+
+### Kết quả
+- Build: PASS (0 errors)
+- Không sửa backend, không sửa database
+- Tất cả dữ liệu là mock (~88 rooms, 8 floors, 6 pipeline stages)
+- 13-item cleaning checklist with per-item completion
+- 6-stage pipeline: Dirty → Assigned → Cleaning → Inspection → Ready/Rejected
+- VIP validation: VIP rooms require Supervisor Pass
+- Inspection Pass/Reject flow with reason
+- FO sync: Ready status automatically sets FoStatus to VC
+- Batch operations: Assign, Complete, Inspect
+
+### Kết luận: CLEAN ROOM MANAGEMENT CENTER COMPLETE
+
+---
+
+## Phiên 2026-08-03 (lần 3) — Dirty Room Management (Phòng bẩn) — DONE
+
+### Mục tiêu
+Thiết kế module Phòng bẩn (Dirty Room Management) — màn hình Housekeeping được dùng nhiều nhất, xử lý tất cả phòng cần dọn: từ Dirty → Cleaning → Paused → Inspection → Clean/Fail. Hỗ trợ checklist 13 mục với checkbox trực tiếp, multi-select, photo gallery (before/after), Lost & Found/Minibar/Maintenance links, VIP/Rush/Overdue badges, business rules validation.
+
+### Sửa
+- **Tạo `DirtyRoomViewModel.cs`** (~460 dòng): ViewModel với 3 DTO class
+  - `DirtyRoomDto` (INotifyPropertyChanged): 60+ fields (room info, 8-stage pipeline, guest details, 13 checklist items with computed progress, photo flags, Lost&Found/Minibar/Maintenance flags, multi-select)
+  - 8-stage pipeline: Dirty → Cleaning → Paused → Inspection → Clean / FailInspection / OOO
+  - Priority scoring: VIP=200, Rush=100, Overdue=50 — auto-sorts
+  - Business rules: Finish blocked if checklist incomplete, has maintenance, or minibar not confirmed
+  - Checklist 13 items: Giường, Toilet, Khăn, Amenities, Minibar, Ban công, Điều hòa, TV, Tủ, Dép, Điện, Khóa, Khác
+  - Pause/Resume workflow: Cleaning ↔ Paused
+  - Mock data: 120 rooms (40 Dirty, 18 Cleaning, 15 Inspection, 30 Clean, 10 VIP, 8 Rush, 5 OOO, 5 FailInspection)
+  - Filters: Ca, Tầng, Khu vực, Trạng thái, Nhân viên, Loại phòng + 6 checkboxes (VIP/Rush/OOO/Inspection/Quá hạn/Chỉ của tôi)
+  - Workflow commands: Assign/Start/Pause/Resume/Finish/Approve/Reject/ChangeAttendant
+  - Links: Lost&Found, Minibar, Maintenance, Folio, Reservation
+- **Tạo `DirtyRoomView.xaml`** (~280 dòng): 3-column layout
+  - Left (270px): Dashboard 10 KPI cards (Cần dọn/VIP/Rush/Checkout HN/Fail KT/OOO/Đang dọn/Đã sạch/Chờ KT/Quá hạn) with filter-on-click + Full filter panel
+  - Center: DataGrid 11 cột (□ checkbox, Phòng colored dot, Loại, Khách, Check-out, Ưu tiên VIP/RUSH/! badges, Trạng thái colored badge, Bẩn từ, HK, Tiến độ progress bar, Ghi chú) with context menu
+  - Right (380px): Detail panel 4 tabs — Thông tin (room+guest+HK info + action link buttons), Checklist (13 checkboxes with TwoWay binding + progress bar), Ảnh (before/after photo placeholders with Upload buttons), Lịch sử (timeline)
+  - Toolbar: Chọn tất cả/Bỏ chọn + Phân công/Bắt đầu/Tạm dừng/Hoàn thành/Gửi KT + Approve/Reject + Đổi NV + Batch buttons
+  - Footer: pagination + status summary (Cần dọn/Đang dọn/Sạch counts)
+- **Tạo `DirtyRoomView.xaml.cs`** (~40 dòng): Grid selection, KPI click, tab switching
+- **Tạo `DirtyRoomWindow.xaml`** + `.cs`: Standalone window 1480×880
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire card "Phòng bẩn" → `OpenDirtyRoomWindow()`
+
+### Files
+- `ViewModels/DirtyRoomViewModel.cs` — tạo mới (~460 dòng)
+- `Views/DirtyRoomView.xaml` — tạo mới (~280 dòng)
+- `Views/DirtyRoomView.xaml.cs` — tạo mới (~40 dòng)
+- `Views/DirtyRoomWindow.xaml` — tạo mới
+- `Views/DirtyRoomWindow.xaml.cs` — tạo mới
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa wire card + thêm method
+
+### Kết quả
+- Build: PASS (0 errors)
+- Không sửa backend, không sửa database
+- Tất cả dữ liệu là mock (120 rooms, 8 pipeline stages, 13 checklist items)
+- 3-column layout: Dashboard + DataGrid + Detail Inspector
+- Multi-select với Select All/Deselect All
+- Pause/Resume workflow
+- Business rules: block Finish nếu checklist chưa đủ, có maintenance, minibar chưa xử lý
+- Photo gallery mock (before/after)
+- Lost & Found, Minibar, Maintenance link buttons
+- Priority auto-sort: VIP → Rush → Overdue → Normal
+
+### Kết luận: DIRTY ROOM MANAGEMENT COMPLETE
+
+---
+
+## Phiên 2026-08-02 — Group Service Management Center (Dịch vụ đoàn) — DONE
+
+### Mục tiêu
+Thiết kế module Dịch vụ đoàn (Group Service Management Center) — nơi điều phối toàn bộ dịch vụ của đoàn trong suốt vòng đời lưu trú. Module quản lý 8 nhóm dịch vụ (Nhà hàng, Hội họp, Vận chuyển, Spa, Giặt ủi, Tiệc, Thiết bị, Khác), hỗ trợ dashboard KPI, timeline, inspector 6 tab, batch operations, post to folio, print/export mockup.
+
+### Sửa
+- **Tạo `GroupServiceViewModel.cs`** (~1040 dòng): ViewModel chính với 9 DTO class
+  - `GroupServiceDto`: 50+ fields bao gồm category-specific (Restaurant: MenuType/RestaurantName; Meeting: Projector/Screen/Sound/Stage; Transport: Flight/Vehicle/Driver/Pickup/Dropoff; Spa: Treatment/Therapist; Laundry: IsExpress/DeliveryTime)
+  - `ServiceDashboardKpi`, `ServiceCategoryItem`, `ServiceTimelineEntry`, `ServiceHistoryEntry`, `ServicePaginationButton`, `ServiceRevenueItem`
+  - Mock data: ~480 services (130 Restaurant + 90 Meeting + 70 Transport + 55 Spa + 40 Laundry + 40 Banquet + 25 Equipment + 30 Other)
+  - 10 group references (VinGroup, FPT, Samsung, Vietcombank, Unilever, Asia Travel, Saigon Tourist, Toyota, Nestlé, P&G)
+  - 6 statuses: Pending → Confirmed → InProgress → Completed → PostedToFolio (+ Cancelled)
+  - Full filter system: 8 filter dimensions (search, status, category, department, restaurant, chargeTo, group, date range)
+  - Pagination: First/Prev/Next/Last/SetPage + PageSize (20/50/100)
+  - Category panel: 9 categories (All + 8 service types) with counts
+  - CRUD: Add/Edit/Delete/Confirm/Complete/Cancel/PostToFolio
+  - Batch operations: Batch Confirm/Complete/Cancel/PostFolio
+  - Print/Export/Email/Duplicate mockup
+- **Tạo `GroupServiceView.xaml`** (~1030 dòng): Full UI layout
+  - Header: icon (pink gradient #FF5A94→#E32F70) + title + count badge + Refresh/Export buttons
+  - Dashboard KPI Cards (9 cards): Tổng DV, Đã xác nhận, Đang phục vụ, Hoàn thành, Đã hủy, Chờ xác nhận, Doanh thu, VAT, Còn phải thu
+  - Revenue breakdown: 8 category chips with amounts
+  - Toolbar (18 buttons): Thêm/Sửa/Xóa, Xác nhận/Hoàn thành/Hủy, Chuyển Folio, In/Email/Export, Nhân bản, Batch: Xác nhận/Hoàn thành/Hủy/Folio
+  - Filter bar: Tìm kiếm + 5 primary combos (Status/Category/Department/Restaurant/ChargeTo) + expandable 3 more (Đoàn/Từ ngày/Đến ngày)
+  - Left Panel (200px): Category navigation with icons, labels, counts, active state
+  - Center DataGrid: 13 columns (Mã DV, Loại, Department, Ngày/Giờ, SL, Đơn giá, Giảm, Thuế, Tổng, Đoàn, PIC, Trạng thái, Warning)
+  - Row color coding: Cancelled=red, Completed=green, PostedToFolio=purple
+  - Right Inspector (420px): 6 tabs — Tổng quan (info + category-specific fields), Lịch (timeline), Tài chính (pricing detail + Charge To), Khách (group info), Lịch sử (timeline events), Ghi chú
+  - Empty state + context menu 12 items
+  - Fixed footer: pagination + total count + revenue
+- **Tạo `GroupServiceView.xaml.cs`** (~95 dòng): Tab switching, category field visibility toggle, info dismiss
+- **Tạo `GroupServiceWindow.xaml`** + `.cs`: Standalone window 1560×920 hosting the view with DI DataContext
+- **Tạo `AddGroupServiceWindow.xaml`** (~280 dòng) + `.cs`: Large dialog for adding services
+  - 5 sections: Basic Info (2-column grid), Pricing (5 columns), Charge To (radio buttons), Category-specific fields, PIC & Remark
+  - All category-specific fields inline (Restaurant/Menu, Meeting/Setup/Equipment checks, Transport/Vehicle/Flight, Spa/Treatment/Therapist, Laundry/Express)
+- **Sửa `FrontOfficeHubViewModel.cs`**: Wire card "Dịch vụ đoàn" → `OpenGroupServiceWindow()`
+
+### Files
+- `ViewModels/GroupServiceViewModel.cs` — tạo mới (~1040 dòng)
+- `Views/GroupServiceView.xaml` — tạo mới (~1030 dòng)
+- `Views/GroupServiceView.xaml.cs` — tạo mới (~95 dòng)
+- `Views/GroupServiceWindow.xaml` — tạo mới
+- `Views/GroupServiceWindow.xaml.cs` — tạo mới
+- `Views/AddGroupServiceWindow.xaml` — tạo mới (~280 dòng)
+- `Views/AddGroupServiceWindow.xaml.cs` — tạo mới
+- `ViewModels/FrontOfficeHubViewModel.cs` — sửa wire card + thêm method
+
+### Kết quả
+- Build: PASS (0 errors)
+- Không sửa backend, không sửa database
+- Tất cả dữ liệu là mock (~480 services, 8 categories, 10 groups, 6 statuses)
+- Mọi workflow commands là UI mockup (MessageBox)
+- Module tích hợp với workflow đoàn: Tạo đoàn → Đặt phòng đoàn → Rooming List → Phân phòng → **Dịch vụ đoàn** → Check In → Folio → Check Out
+- Liên kết đến module Thu ngân (Post to Folio) nhưng không tạo Folio/Payment mới
+
+### Kết luận: GROUP SERVICE MANAGEMENT CENTER COMPLETE

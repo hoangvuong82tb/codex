@@ -8,4 +8,5 @@ public interface IVirtualExplorerService
     Task<IReadOnlyList<VirtualExplorerNodeDto>> GetChildrenAsync(string virtualPath);
     Task<IReadOnlyList<VirtualExplorerNodeDto>> SearchAsync(string keyword);
     Task<VirtualExplorerNodeDto?> GetNodeAsync(string virtualPath);
+    Task<VirtualExplorerRefreshResultDto> RefreshAsync(CancellationToken cancellationToken = default);
 }

@@ -86,7 +86,7 @@ public sealed partial class WarehousesViewModel : ViewModelBase
             "#2F65D9",
             isPinned: false,
             showOnDesktop: false,
-            iconPath: @"D:\ASMILE-BO\Windows_Icon\Icons\applications\warehouse.ico");
+            iconPath: ApplicationAssetPaths.Icon(@"Icons\applications\warehouse.ico"));
 
         _windowManagerService.OpenOrActivate(module, () =>
             new InventoryStockInsightModuleViewModel(

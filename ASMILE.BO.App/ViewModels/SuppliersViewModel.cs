@@ -34,7 +34,7 @@ public partial class SuppliersViewModel : ViewModelBase
         "#3B6EF5",
         isPinned: false,
         showOnDesktop: false,
-        iconPath: @"D:\ASMILE-BO\Windows_Icon\Icons\applications\import.ico");
+        iconPath: ApplicationAssetPaths.Icon(@"Icons\applications\import.ico"));
 
     public ObservableCollection<SupplierDto> Suppliers { get; } = new();
     public TablePagerViewModel<SupplierDto> SuppliersPager { get; } = new() { ItemName = "nhà cung cấp" };
@@ -91,6 +91,7 @@ public partial class SuppliersViewModel : ViewModelBase
             SupplierCode = value.SupplierCode,
             SupplierName = value.SupplierName,
             Phone = value.Phone,
+            TaxCode = value.TaxCode,
             BankAccountNo = value.BankAccountNo,
             Address = value.Address,
             Note = value.Note,

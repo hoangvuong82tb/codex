@@ -52,8 +52,27 @@ public sealed class GuestProfile
     }
 
     public void UpdateProfile(string? phone, string? email, string? address, string? nationality, string? gender, DateOnly? dob, DateTime nowUtc, ActorId? actorId) { Phone = phone?.Trim(); Email = email?.Trim(); Address = address?.Trim(); Nationality = nationality?.Trim(); Gender = gender; DateOfBirth = dob; Touch(nowUtc, actorId); }
+    public void SetNotes(string? notes, DateTime nowUtc, ActorId? actorId) { Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(); Touch(nowUtc, actorId); }
     public void SetVip(VipLevel level, DateTime nowUtc, ActorId? actorId) { VipLevel = level; Touch(nowUtc, actorId); }
-    public void AddDocument(GuestDocumentType type, string number, string? issuingCountry, DateOnly? expiry, DateTime nowUtc) { _documents.Add(GuestDocument.Create(GuestProfileId, PropertyId, type, number, issuingCountry, expiry, nowUtc)); }
+    public void AddDocument(GuestDocumentType type, string number, string? issuingCountry, DateOnly? expiry, DateTime nowUtc) { _documents.Add(GuestDocument.Create(GuestProfileId, PropertyId, type, number, issuingCountry, expiry, nowUtc)); Touch(nowUtc, null); }
+    public void SetDocument(GuestDocumentType type, string? number, string? issuingCountry, DateOnly? expiry, DateTime nowUtc, ActorId? actorId)
+    {
+        var normalizedNumber = number?.Trim();
+        var existing = _documents.FirstOrDefault(x => x.DocumentType == type);
+        if (string.IsNullOrWhiteSpace(normalizedNumber))
+        {
+            if (existing is not null) _documents.Remove(existing);
+        }
+        else if (existing is null)
+        {
+            _documents.Add(GuestDocument.Create(GuestProfileId, PropertyId, type, normalizedNumber, issuingCountry, expiry, nowUtc));
+        }
+        else
+        {
+            existing.Update(normalizedNumber, issuingCountry, expiry);
+        }
+        Touch(nowUtc, actorId);
+    }
     public void AddPreference(string key, string value) { var existing = _preferences.FirstOrDefault(p => p.Key == key); if (existing is not null) _preferences.Remove(existing); _preferences.Add(GuestPreference.Create(GuestProfileId, PropertyId, key, value)); }
     public void RecordStay(decimal revenue, DateOnly stayDate) { TotalStays++; TotalRevenue += revenue; LastStayDate = stayDate; AverageSpend = TotalStays > 0 ? TotalRevenue / TotalStays : 0; }
     public void Blacklist(string reason, DateTime nowUtc, ActorId? actorId) { IsBlacklisted = true; BlacklistReason = reason?.Trim(); BlacklistedBy = actorId?.Value; BlacklistedAtUtc = nowUtc; Touch(nowUtc, actorId); }
@@ -66,6 +85,7 @@ public sealed class GuestDocument
     private GuestDocument() { }
     public Guid GuestDocumentId { get; private set; }
     public Guid GuestProfileId { get; private set; }
+    public GuestProfile? GuestProfile { get; private set; }
     public Guid PropertyId { get; private set; }
     public GuestDocumentType DocumentType { get; private set; }
     public string DocumentNumber { get; private set; } = string.Empty;
@@ -73,6 +93,12 @@ public sealed class GuestDocument
     public DateOnly? ExpiryDate { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public static GuestDocument Create(Guid guestId, Guid propertyId, GuestDocumentType type, string number, string? country, DateOnly? expiry, DateTime nowUtc) => new() { GuestDocumentId = Uuid7.NewGuid(), GuestProfileId = guestId, PropertyId = propertyId, DocumentType = type, DocumentNumber = number, IssuingCountry = country, ExpiryDate = expiry, CreatedAtUtc = nowUtc };
+    internal void Update(string number, string? country, DateOnly? expiry)
+    {
+        DocumentNumber = number;
+        IssuingCountry = country?.Trim();
+        ExpiryDate = expiry;
+    }
 }
 
 public sealed class GuestPreference
@@ -80,6 +106,7 @@ public sealed class GuestPreference
     private GuestPreference() { }
     public Guid GuestPreferenceId { get; private set; }
     public Guid GuestProfileId { get; private set; }
+    public GuestProfile? GuestProfile { get; private set; }
     public Guid PropertyId { get; private set; }
     public string Key { get; private set; } = string.Empty;
     public string Value { get; private set; } = string.Empty;

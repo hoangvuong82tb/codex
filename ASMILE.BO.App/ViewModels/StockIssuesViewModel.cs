@@ -5,7 +5,6 @@ using ASMILE.BO.Application.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
 
 namespace ASMILE.BO.App.ViewModels;
 
@@ -26,10 +25,15 @@ public sealed partial class StockIssuesViewModel : ViewModelBase
     private readonly INotificationService _notificationService;
     private readonly IDialogService _dialogService;
     private readonly IWindowManagerService _windowManagerService;
+    private readonly IModuleSettingsService _moduleSettingsService;
     private readonly Dictionary<int, Dictionary<int, StockBalanceDto>> _warehouseStockCache = new();
     private readonly Dictionary<int, string> _itemUnitById = new();
     private readonly Dictionary<string, string> _itemUnitByKey = new();
     private CancellationTokenSource? _loadCts;
+    private string _issueCodePattern = "PX-{yyyyMMdd}-{0000}";
+    private string _defaultWarehouseCode = string.Empty;
+    private bool _codeSettingsLoaded;
+    private bool _defaultWarehouseWarningShown;
 
     public ObservableCollection<StockIssueDto> Issues { get; } = new();
     public ObservableCollection<StockIssueDto> FilteredIssues { get; } = new();
@@ -159,7 +163,8 @@ public sealed partial class StockIssuesViewModel : ViewModelBase
         IWarehouseAppService warehouseService,
         INotificationService notificationService,
         IDialogService dialogService,
-        IWindowManagerService windowManagerService)
+        IWindowManagerService windowManagerService,
+        IModuleSettingsService moduleSettingsService)
     {
         _inventoryService = inventoryService;
         _itemService = itemService;
@@ -169,6 +174,7 @@ public sealed partial class StockIssuesViewModel : ViewModelBase
         _notificationService = notificationService;
         _dialogService = dialogService;
         _windowManagerService = windowManagerService;
+        _moduleSettingsService = moduleSettingsService;
 
         New();
         _ = LoadAsync();
@@ -192,7 +198,7 @@ public sealed partial class StockIssuesViewModel : ViewModelBase
             "#2F65D9",
             isPinned: false,
             showOnDesktop: false,
-            iconPath: @"D:\ASMILE-BO\Windows_Icon\Icons\applications\export.ico");
+            iconPath: ApplicationAssetPaths.Icon(@"Icons\applications\export.ico"));
 
         var vm = new StockIssueDetailModuleViewModel(normalizedIssue, _windowManagerService);
         vm.RequestClose += () =>
@@ -476,6 +482,7 @@ public sealed partial class StockIssuesViewModel : ViewModelBase
         IsBusy = true;
         try
         {
+            await LoadCodeSettingsAsync();
             _warehouseStockCache.Clear();
             var items = (await _itemService.GetLookupAsync())
                 .GroupBy(x => $"{(x.Code ?? string.Empty).Trim().ToUpperInvariant()}|{(x.Name ?? string.Empty).Trim().ToUpperInvariant()}")
@@ -516,6 +523,10 @@ public sealed partial class StockIssuesViewModel : ViewModelBase
             var warehouses = await _warehouseService.GetLookupAsync();
             WarehouseLookup.Clear();
             foreach (var warehouse in warehouses) WarehouseLookup.Add(warehouse);
+            if (EditingId == 0)
+            {
+                WarehouseId = ResolveDefaultWarehouseId();
+            }
 
             var rows = await _inventoryService.SearchIssuesAsync(FilterFromDate, FilterToDate, Keyword, null, token);
             Issues.Clear();
@@ -535,10 +546,10 @@ public sealed partial class StockIssuesViewModel : ViewModelBase
     private void New()
     {
         EditingId = 0;
-        IssueNo = GenerateNextIssueNo();
         IssueDate = DateTime.Today;
+        IssueNo = GenerateNextIssueNo();
         Description = string.Empty;
-        WarehouseId = WarehouseLookup.FirstOrDefault()?.Id ?? 0;
+        WarehouseId = ResolveDefaultWarehouseId();
         ToWarehouseId = null;
         DepartmentCode = DepartmentLookup.FirstOrDefault()?.Code ?? string.Empty;
         ReceiverName = string.Empty;
@@ -569,48 +580,52 @@ public sealed partial class StockIssuesViewModel : ViewModelBase
 
     private string GenerateNextIssueNo()
     {
-        var nextSequence = GetNextIssueSequence();
-        var randomLetters = GetRandomLetters(2);
-        return $"PX-{randomLetters}{nextSequence:00000}";
+        var nextSequence = InventoryDocumentCodePattern.GetNextSequence(
+            _issueCodePattern,
+            IssueDate,
+            Issues.Select(x => x.IssueNo));
+        return InventoryDocumentCodePattern.Render(_issueCodePattern, IssueDate, nextSequence);
     }
 
-    private int GetNextIssueSequence()
+    private async Task LoadCodeSettingsAsync()
     {
-        var pattern = new Regex(@"^PX-[A-Z]{2}(?<seq>\d{5,6})$", RegexOptions.Compiled);
-        var maxSequence = 0;
-
-        foreach (var issue in Issues)
+        if (_codeSettingsLoaded)
         {
-            if (string.IsNullOrWhiteSpace(issue.IssueNo))
+            return;
+        }
+
+        var state = await _moduleSettingsService.LoadAsync("issues");
+        state.Values.TryGetValue("voucherCodePattern", out var pattern);
+        state.Values.TryGetValue("defaultWarehouse", out var defaultWarehouseCode);
+        _defaultWarehouseCode = defaultWarehouseCode ?? string.Empty;
+        _issueCodePattern = InventoryDocumentCodePattern.Normalize(pattern, "PX-{yyyyMMdd}-{0000}");
+        _codeSettingsLoaded = true;
+
+        if (EditingId == 0)
+        {
+            IssueNo = GenerateNextIssueNo();
+        }
+    }
+
+    private int ResolveDefaultWarehouseId()
+    {
+        if (!string.IsNullOrWhiteSpace(_defaultWarehouseCode))
+        {
+            var configuredWarehouse = WarehouseLookup.FirstOrDefault(x => string.Equals(
+                x.Code?.Trim(), _defaultWarehouseCode.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (configuredWarehouse is not null)
             {
-                continue;
+                return configuredWarehouse.Id;
             }
 
-            var match = pattern.Match(issue.IssueNo.Trim().ToUpperInvariant());
-            if (!match.Success)
+            if (!_defaultWarehouseWarningShown)
             {
-                continue;
-            }
-
-            if (int.TryParse(match.Groups["seq"].Value, out var sequence) && sequence > maxSequence)
-            {
-                maxSequence = sequence;
+                _notificationService.Show($"Kho mặc định '{_defaultWarehouseCode}' không còn hoạt động; tạm dùng kho đầu tiên trong danh mục.");
+                _defaultWarehouseWarningShown = true;
             }
         }
 
-        return maxSequence + 1;
-    }
-
-    private static string GetRandomLetters(int length)
-    {
-        const string letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        Span<char> chars = stackalloc char[length];
-        for (var i = 0; i < length; i++)
-        {
-            chars[i] = letters[Random.Shared.Next(letters.Length)];
-        }
-
-        return new string(chars);
+        return WarehouseLookup.FirstOrDefault()?.Id ?? 0;
     }
 
     [RelayCommand]

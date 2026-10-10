@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Globalization;
 
 namespace ASMILE.BO.App.ViewModels;
 
@@ -99,7 +100,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
             "#2F65D9",
             isPinned: false,
             showOnDesktop: false,
-            iconPath: @"D:\ASMILE-BO\Windows_Icon\Icons\applications\item.ico");
+            iconPath: ApplicationAssetPaths.Icon(@"Icons\applications\item.ico"));
 
         _windowManagerService.OpenOrActivate(module, () =>
             new InventoryStockInsightModuleViewModel(
@@ -127,6 +128,13 @@ public sealed partial class ItemsViewModel : ViewModelBase
             GroupName = value.GroupName,
             SupplierCode = value.SupplierCode,
             SupplierName = value.SupplierName,
+            RetailPrice = value.RetailPrice,
+            VatRate = value.VatRate,
+            IsMinibarItem = value.IsMinibarItem,
+            MinibarCategory = value.MinibarCategory,
+            MinibarStandardQuantity = value.MinibarStandardQuantity,
+            MinibarMinStock = value.MinibarMinStock,
+            MinibarMaxStock = value.MinibarMaxStock,
             IsActive = value.IsActive
         };
 
@@ -327,6 +335,30 @@ public sealed partial class ItemsViewModel : ViewModelBase
                     continue;
                 }
 
+                if (!TryParseOptionalBool(row.IsMinibarItemRaw, out var isMinibarItem)
+                    || !TryParseDecimal(row.RetailPriceRaw, out var retailPrice)
+                    || !TryParseDecimal(row.MinibarStandardQuantityRaw, out var minibarStandardQuantity)
+                    || !TryParseDecimal(row.MinibarMinStockRaw, out var minibarMinStock)
+                    || !TryParseDecimal(row.MinibarMaxStockRaw, out var minibarMaxStock))
+                {
+                    skipped++;
+                    messages.Add($"Dòng {row.RowNumber}: Sai định dạng giá, VAT hoặc cấu hình minibar.");
+                    continue;
+                }
+
+                decimal? vatRate = null;
+                if (!string.IsNullOrWhiteSpace(row.VatRateRaw))
+                {
+                    if (!TryParseDecimal(row.VatRateRaw, out var parsedVatRate))
+                    {
+                        skipped++;
+                        messages.Add($"Dòng {row.RowNumber}: Sai định dạng VAT.");
+                        continue;
+                    }
+
+                    vatRate = parsedVatRate;
+                }
+
                 try
                 {
                     await _service.SaveAsync(new ItemDto
@@ -337,6 +369,13 @@ public sealed partial class ItemsViewModel : ViewModelBase
                         GroupName = row.GroupName.Trim(),
                         SupplierCode = row.SupplierCode.Trim(),
                         SupplierName = row.SupplierName.Trim(),
+                        RetailPrice = retailPrice,
+                        VatRate = vatRate,
+                        IsMinibarItem = isMinibarItem,
+                        MinibarCategory = row.MinibarCategory.Trim(),
+                        MinibarStandardQuantity = minibarStandardQuantity,
+                        MinibarMinStock = minibarMinStock,
+                        MinibarMaxStock = minibarMaxStock,
                         IsActive = isActive
                     });
                     imported++;
@@ -576,5 +615,33 @@ public sealed partial class ItemsViewModel : ViewModelBase
                 value = false;
                 return false;
         }
+    }
+
+    private static bool TryParseDecimal(string? raw, out decimal value)
+    {
+        var normalized = (raw ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            value = 0m;
+            return true;
+        }
+
+        if (decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out value))
+        {
+            return true;
+        }
+
+        return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.GetCultureInfo("vi-VN"), out value);
+    }
+
+    private static bool TryParseOptionalBool(string? raw, out bool value)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            value = false;
+            return true;
+        }
+
+        return TryParseBool(raw, out value);
     }
 }

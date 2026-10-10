@@ -2056,7 +2056,8 @@ public sealed class AlacarteRestaurantService : IAlacarteRestaurantService
         var currentEffectiveQuantity = Math.Max(0, line.Qty + line.SupplementQuantity);
         var requestedEffectiveQuantity = Math.Max(0, requestedQty + requestedSupplementQuantity);
         var station = IsBar(line.MenuItem?.PreparationArea) ? "Bar" : "Kitchen";
-        var sentBy = string.IsNullOrWhiteSpace(order.CreatedBy) ? "system" : order.CreatedBy;
+        var sentBy = TrimOrNull(request.AdjustmentBy)
+            ?? (string.IsNullOrWhiteSpace(order.CreatedBy) ? "system" : order.CreatedBy);
         var adjustmentReason = TrimOrNull(request.AdjustmentReason);
 
         if (requestedEffectiveQuantity > currentEffectiveQuantity)

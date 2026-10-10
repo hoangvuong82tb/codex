@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ASMILE.BO.App.Services;
 
-/// <summary>Scoped adapter over existing hotel-room and reservation queries. It contains no reception workflow or command.</summary>
+/// <summary>Scoped adapter over Front Office queries and check-in/check-out commands.</summary>
 public sealed class ReceptionUiService : IReceptionUiService
 {
     private readonly IServiceScopeFactory scopeFactory;
@@ -25,6 +25,7 @@ public sealed class ReceptionUiService : IReceptionUiService
     private SearchStaysQueryHandler staySearch = null!;
     private GetCurrentInHouseStaysQueryHandler currentInHouse = null!;
     private CheckInHotelStayCommandHandler checkIn = null!;
+    private CheckInReservationCommandHandler checkInReservation = null!;
     private CheckOutHotelStayCommandHandler checkOut = null!;
 
     public ReceptionUiService(IServiceScopeFactory scopeFactory)
@@ -55,7 +56,10 @@ public sealed class ReceptionUiService : IReceptionUiService
             .Select(room => new ReceptionReadOnlyRow(
                 room.RoomNumber,
                 string.Join(" • ", new[] { room.DisplayName, room.HotelRoomTypeName, room.Floor, room.Building }.Where(value => !string.IsNullOrWhiteSpace(value))),
-                room.OperationalStatus == HotelRoomOperationalStatus.OutOfOrder ? "Ngừng khai thác" : "Tạm dừng"))
+                room.OperationalStatus == HotelRoomOperationalStatus.OutOfOrder ? "Ngừng khai thác" : "Tạm dừng",
+                room.OperationalStatusChangedAtUtc,
+                room.OperationalStatusExpiresAtUtc,
+                room.OperationalStatusReason))
             .ToArray();
         return Result<IReadOnlyList<ReceptionReadOnlyRow>>.Success(rows);
     }
@@ -79,6 +83,7 @@ public sealed class ReceptionUiService : IReceptionUiService
     public async Task<Result<IReadOnlyList<HotelStayDto>>> GetPendingArrivalsAsync(string? keyword, CancellationToken cancellationToken)
     { var result = await staySearch.HandleAsync(new SearchStaysQuery(keyword, HotelStayStatus.PendingArrival, null, null, new PageRequest(1, 200), "arrival"), cancellationToken); return result.IsFailure ? Result<IReadOnlyList<HotelStayDto>>.Failure(result.Error!) : Result<IReadOnlyList<HotelStayDto>>.Success(result.Value!.Items); }
     public Task<Result<HotelStayDto>> CheckInAsync(Guid stayId, byte[] rowVersion, CancellationToken cancellationToken) => checkIn.HandleAsync(new CheckInHotelStayCommand(stayId, rowVersion), cancellationToken);
+    public Task<Result<HotelStayDto>> CheckInReservationAsync(Guid reservationId, byte[] rowVersion, CancellationToken cancellationToken) => checkInReservation.HandleAsync(new CheckInReservationCommand(reservationId, rowVersion), cancellationToken);
     public async Task<Result<IReadOnlyList<HotelStayDto>>> GetInHouseForCheckOutAsync(string? keyword, CancellationToken cancellationToken)
     { var result = await staySearch.HandleAsync(new SearchStaysQuery(keyword, HotelStayStatus.InHouse, null, null, new PageRequest(1, 200), "departure"), cancellationToken); return result.IsFailure ? Result<IReadOnlyList<HotelStayDto>>.Failure(result.Error!) : Result<IReadOnlyList<HotelStayDto>>.Success(result.Value!.Items); }
     public Task<Result<HotelStayDto>> CheckOutAsync(Guid stayId, byte[] rowVersion, CancellationToken cancellationToken) => checkOut.HandleAsync(new CheckOutHotelStayCommand(stayId, rowVersion), cancellationToken);
@@ -90,7 +95,9 @@ public sealed class ReceptionUiService : IReceptionUiService
             return Result<IReadOnlyList<ReceptionReadOnlyRow>>.Failure(Error.Authorization("FRONT_OFFICE_CONTEXT_REQUIRED", "A Front Office property context is required."));
         }
 
-        var date = DateOnly.FromDateTime(DateTime.Today);
+        // Hotel operations follow the property's business date, which can differ
+        // from the workstation date after night audit or across time zones.
+        var date = current.BusinessDate.BusinessDate;
         var page = await reservationSearch.HandleAsync(
             new SearchReservationsQuery(current.Property.PropertyId.Value, new ReservationSearchFilter(null, null, null, date, date.AddDays(1), null, null, null, null, null, null, null), new PageRequest(1, 200), arrivals ? "arrival" : "departure"),
             cancellationToken);
@@ -119,6 +126,7 @@ public sealed class ReceptionUiService : IReceptionUiService
         staySearch = services.GetRequiredService<SearchStaysQueryHandler>();
         currentInHouse = services.GetRequiredService<GetCurrentInHouseStaysQueryHandler>();
         checkIn = services.GetRequiredService<CheckInHotelStayCommandHandler>();
+        checkInReservation = services.GetRequiredService<CheckInReservationCommandHandler>();
         checkOut = services.GetRequiredService<CheckOutHotelStayCommandHandler>();
         dnd = services.GetRequiredService<ToggleDoNotDisturbCommandHandler>();
         wakeUpCall = services.GetRequiredService<RequestWakeUpCallCommandHandler>();

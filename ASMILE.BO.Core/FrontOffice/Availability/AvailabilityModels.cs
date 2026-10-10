@@ -67,7 +67,8 @@ public readonly record struct AvailabilityRequest(
     Guid? RoomTypeId,
     int Adults,
     int Children,
-    int RoomCount);
+    int RoomCount,
+    Guid? ExcludedGroupReservationId = null);
 
 public readonly record struct AvailabilityResult(
     bool IsAvailable,

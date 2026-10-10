@@ -1,6 +1,7 @@
 <Window x:Class="ASMILE.BO.App.Views.LockedRoomWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
         Title="Phòng khóa" Width="1420" Height="880"
         MinWidth="1180" MinHeight="720"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
@@ -184,7 +185,7 @@
 
             <!-- ═══ CỘT TRÁI: DataGrid ═══ -->
             <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="0">
-                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Border Padding="16,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Text="Danh sách phòng khóa" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A"/>
@@ -213,6 +214,12 @@
                             <DataGridTextColumn Header="Ghi chú" Binding="{Binding Note}" Width="140"/>
                         </DataGrid.Columns>
                     </DataGrid>
+                    <Border Grid.Row="2" Padding="10,8" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Background="#FBFCFE">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="PagerSummary" VerticalAlignment="Center" FontSize="12" Foreground="#64748B"/>
+                            <controls:ServerPagerControl Grid.Column="1" x:Name="Pager" DataContext="{x:Null}"/>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 

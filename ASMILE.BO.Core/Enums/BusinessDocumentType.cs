@@ -11,5 +11,7 @@ public enum BusinessDocumentType
     Contract = 6,
     Report = 7,
     Attachment = 8,
-    Log = 9
+    Log = 9,
+    // Keep this value appended so existing persisted document-type values remain stable.
+    PaymentReceipt = 10
 }

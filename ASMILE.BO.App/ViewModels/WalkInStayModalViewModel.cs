@@ -38,17 +38,18 @@ public sealed partial class WalkInStayModalViewModel : ViewModelBase
     private void Close() => _closeAction();
 
     [RelayCommand]
-    private async Task ConfirmAsync()
+    private Task ConfirmAsync()
     {
-        if (!CanConfirm) return;
+        if (!CanConfirm) return Task.CompletedTask;
         IsLoading = true; ErrorMessage = null;
         try
         {
-            InfoMessage = "Tạo lưu trú nhanh Walk-in thành công.";
-            await Task.Delay(500);
-            _closeAction();
+            // This legacy DataTemplate is not the persisted Walk-In workflow.
+            // Do not report success without writing Reservation/Stay data.
+            ErrorMessage = "Luồng Walk-In cũ không còn được dùng. Vui lòng mở màn hình Walk-In để lưu dữ liệu thật.";
         }
         catch (Exception ex) { ErrorMessage = $"Lỗi: {ex.Message}"; }
         finally { IsLoading = false; }
+        return Task.CompletedTask;
     }
 }

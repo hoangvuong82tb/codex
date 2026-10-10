@@ -1,0 +1,444 @@
+<UserControl x:Class="ASMILE.BO.App.Views.RoomMasterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ASMILE.BO.App.ViewModels"
+             xmlns:converters="clr-namespace:ASMILE.BO.App.Converters"
+             UseLayoutRounding="True" Loaded="OnLoaded"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVis"/>
+        <converters:StringToBrushConverter x:Key="StringToBrush"/>
+        <Style x:Key="PanelCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style x:Key="PrimaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Background" Value="#31C9B8"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#00A58F"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="SecondaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="ToolbarBtn" TargetType="Button">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F0FDF4"/><Setter TargetName="Bd" Property="BorderBrush" Value="#86EFAC"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="FilterTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="11,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D7E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2563EB"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="FilterCombo" TargetType="ComboBox" BasedOn="{StaticResource FluentComboBox}">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="Padding" Value="10,0,34,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D7E2F0"/>
+        </Style>
+        <Style x:Key="ModDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="RowBackground" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="ColumnHeaderHeight" Value="40"/>
+            <Setter Property="RowHeight" Value="40"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+            <Setter Property="RowStyle" Value="{StaticResource RoomDataGridRowStyle}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value><Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#F0FDF4"/>
+                    <Setter Property="Foreground" Value="#00A58F"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                    <Setter Property="Padding" Value="6,0"/></Style></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="RoomDataGridRowStyle" TargetType="DataGridRow">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridRow">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <DataGridCellsPresenter />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                    <Setter Property="BorderBrush" Value="#D7E2F0"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                    <Setter Property="BorderBrush" Value="#D7E2F0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="PagerBtn" TargetType="Button">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="0">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="RoomPagerPageButton" TargetType="Button" BasedOn="{StaticResource FluentPaginationButton}">
+            <Setter Property="Content" Value="{Binding Label}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                    <Setter Property="Background" Value="#2563EB"/>
+                    <Setter Property="BorderBrush" Value="#2563EB"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsEllipsis}" Value="True">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="Width" Value="24"/>
+                    <Setter Property="MinWidth" Value="24"/>
+                    <Setter Property="MaxWidth" Value="24"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="InspectorTabBtn" TargetType="Button">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Padding="20,14" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="44" Height="44" CornerRadius="12">
+                    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#31C9B8" Offset="0"/><GradientStop Color="#00A58F" Offset="1"/></LinearGradientBrush></Border.Background>
+                    <TextBlock Text="&#xE8D1;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Tra cứu phòng" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/>
+                        <Border CornerRadius="10" Padding="6,2" Margin="10,0,0,0" Background="#F0FDF4">
+                            <TextBlock Text="{Binding TotalRooms, StringFormat='{}{0} phòng'}" FontSize="12" FontWeight="SemiBold" Foreground="#00A58F"/></Border></StackPanel>
+                    <TextBlock Text="Tìm nhanh phòng, trạng thái vận hành và hồ sơ lưu trú." FontSize="12" Foreground="#64748B" Margin="0,2,0,0"/></StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="Làm mới" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryBtn}"/>
+                    <Button Content="Xuất Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource SecondaryBtn}" Margin="6,0,0,0"/>
+                    <Button Content="In" Command="{Binding PrintReportCommand}" Style="{StaticResource SecondaryBtn}" Margin="6,0,0,0"/></StackPanel></Grid></Border>
+
+        <Border Grid.Row="1" Padding="12,8" Background="#FAFBFD" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <ItemsControl ItemsSource="{Binding DashboardKpis}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:RoomMasterKpi}">
+                    <Border Width="110" Margin="0,0,6,4" Padding="8,5" CornerRadius="8" Background="{Binding BgColor}" BorderBrush="{Binding Color}" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="OnKpiClick">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Label}" FontSize="9" Foreground="{Binding Color}"/>
+                            <TextBlock Text="{Binding Value}" FontSize="16" FontWeight="Bold" Foreground="{Binding Color}"/></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></Border>
+
+        <Border Grid.Row="2" Padding="12,7" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <WrapPanel>
+                <Button Content="+ Thêm phòng" Command="{Binding AddRoomCommand}" Style="{StaticResource PrimaryBtn}" Margin="0,0,6,4"/>
+                <Button Content="Sửa" Command="{Binding EditRoomCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Button Content="Đổi trạng thái" Command="{Binding ChangeStatusCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Button Content="QR Code" Command="{Binding GenerateQrCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Separator Width="1" Height="20" Background="#E2E8F0" Margin="6,8" Style="{x:Null}"/>
+                <Button Content="Xuất Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Button Content="In" Command="{Binding PrintReportCommand}" Style="{StaticResource ToolbarBtn}"/>
+                <Separator Width="1" Height="20" Background="#E2E8F0" Margin="6,8" Style="{x:Null}"/>
+                <Button Content="Batch: Sạch" Command="{Binding BatchMarkCleanCommand}" Style="{StaticResource ToolbarBtn}" FontSize="10" Padding="8,0"/>
+                <Button Content="Batch: Bẩn" Command="{Binding BatchMarkDirtyCommand}" Style="{StaticResource ToolbarBtn}" FontSize="10" Padding="8,0"/>
+                <Button Content="Batch: OOO" Command="{Binding BatchOooCommand}" Style="{StaticResource ToolbarBtn}" FontSize="10" Padding="8,0"/>
+                <Button Content="Batch: OOS" Command="{Binding BatchOosCommand}" Style="{StaticResource ToolbarBtn}" FontSize="10" Padding="8,0"/>
+                <Button Content="Card" Command="{Binding SetViewCardCommand}" Style="{StaticResource ToolbarBtn}" FontSize="10" Padding="8,0"/>
+                <Button Content="Table" Command="{Binding SetViewTableCommand}" Style="{StaticResource ToolbarBtn}" FontSize="10" Padding="8,0"/></WrapPanel></Border>
+
+        <Border Grid.Row="3" Padding="10,6" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <WrapPanel>
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="210" ToolTip="Tìm theo số phòng, tên phòng hoặc khách lưu trú" Margin="0,0,6,4"/>
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.FoStatusFilters}" SelectedItem="{Binding FilterFoStatus}" Style="{StaticResource FilterCombo}" Width="126" ToolTip="Trạng thái Front Office" Margin="0,0,6,4"/>
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.HkStatusFilters}" SelectedItem="{Binding FilterHkStatus}" Style="{StaticResource FilterCombo}" Width="118" ToolTip="Trạng thái Housekeeping" Margin="0,0,6,4"/>
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.RoomTypeFilters}" SelectedItem="{Binding FilterRoomType}" Style="{StaticResource FilterCombo}" Width="126" ToolTip="Loại phòng" Margin="0,0,6,4"/>
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.FloorFilters}" SelectedItem="{Binding FilterFloor}" Style="{StaticResource FilterCombo}" Width="92" ToolTip="Tầng" Margin="0,0,6,4"/>
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.BuildingFilters}" SelectedItem="{Binding FilterBuilding}" Style="{StaticResource FilterCombo}" Width="100" ToolTip="Tòa nhà" Margin="0,0,6,4"/>
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.RoomClassFilters}" SelectedItem="{Binding FilterRoomClass}" Style="{StaticResource FilterCombo}" Width="118" ToolTip="Hạng phòng" Margin="0,0,6,4"/>
+                    <Button Content="Thêm lọc" Style="{StaticResource SecondaryBtn}" Height="32" FontSize="11" Margin="0,0,6,4" Padding="8,0" Command="{Binding ToggleFilterCommand}"/>
+                    <Button Content="Xóa lọc" Style="{StaticResource SecondaryBtn}" Height="32" FontSize="11" Margin="0,0,0,4" Padding="8,0" Command="{Binding ClearFiltersCommand}"/></WrapPanel>
+                <WrapPanel Grid.Row="1" Visibility="{Binding IsFilterExpanded, Converter={StaticResource BoolToVis}}" Margin="0,4,0,0">
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.BedTypeFilters}" SelectedItem="{Binding FilterBedType}" Style="{StaticResource FilterCombo}" Width="90" Margin="0,0,6,4"/>
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.ViewFilters}" SelectedItem="{Binding FilterView}" Style="{StaticResource FilterCombo}" Width="90" Margin="0,0,6,4"/>
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.ConditionFilters}" SelectedItem="{Binding FilterCondition}" Style="{StaticResource FilterCombo}" Width="100" Margin="0,0,6,4"/>
+                    <CheckBox Content="Smoking" IsChecked="{Binding FilterSmokingOnly}" FontSize="11" Margin="0,2,8,0"/>
+                    <CheckBox Content="Connecting" IsChecked="{Binding FilterConnectingOnly}" FontSize="11" Margin="0,2,8,0"/>
+                    <CheckBox Content="Có khách" IsChecked="{Binding FilterOccupiedOnly}" FontSize="11" Margin="0,2,8,0"/>
+                    <CheckBox Content="Trống" IsChecked="{Binding FilterVacantOnly}" FontSize="11" Margin="0,2,8,0"/>
+                    <CheckBox Content="OOO/OOS" IsChecked="{Binding FilterOooOos}" FontSize="11" Margin="0,2,8,0"/>
+                    <CheckBox Content="VIP" IsChecked="{Binding FilterVipOnly}" FontSize="11" Margin="0,2,0,0"/></WrapPanel></Grid></Border>
+
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="184"/><ColumnDefinition Width="*" MinWidth="520"/><ColumnDefinition Width="382"/></Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Margin="10,8,4,8" Style="{StaticResource PanelCard}" Padding="0" ToolTip="Bộ lọc nhanh theo trạng thái và tầng">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.04" Color="#000000"/></Border.Effect>
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Padding="12,9" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
+                        <TextBlock Text="Danh mục phòng" FontSize="13" FontWeight="SemiBold" Foreground="#102E5A"/></Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="6,4">
+                        <TreeView x:Name="RoomTree" ItemsSource="{Binding TreeItems}" BorderThickness="0" Background="Transparent" SelectedItemChanged="OnTreeItemSelected">
+                            <TreeView.ItemContainerStyle><Style TargetType="TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="FontFamily" Value="Segoe UI"/>
+                                <Setter Property="Padding" Value="4,3"/></Style></TreeView.ItemContainerStyle>
+                            <TreeView.ItemTemplate><HierarchicalDataTemplate DataType="{x:Type vm:RoomTreeItem}" ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal" Margin="2,1">
+                                    <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBlock Text="{Binding Label}" FontSize="12" Foreground="#334155" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Count, StringFormat=' ({0})'}" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center" Margin="3,0,0,0"/></StackPanel></HierarchicalDataTemplate></TreeView.ItemTemplate></TreeView></ScrollViewer></Grid></Border>
+
+            <Border Grid.Column="1" Margin="4,8,6,8" Style="{StaticResource PanelCard}" Padding="0">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.04" Color="#000000"/></Border.Effect>
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Background="#F0FDF4" Padding="10,6" Visibility="{Binding InfoMessage, Converter={StaticResource StringToVis}}">
+                        <TextBlock Text="{Binding InfoMessage}" FontSize="12" Foreground="#16A34A"/></Border>
+
+                    <DataGrid Grid.Row="1" Style="{StaticResource ModDataGrid}" ItemsSource="{Binding FilteredRooms}"
+                              SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" SelectionChanged="OnRoomSelectionChanged"
+                              Visibility="{Binding IsTableView, Converter={StaticResource BoolToVis}}" MouseDoubleClick="OnRoomDoubleClick">
+                        <DataGrid.ContextMenu><ContextMenu FontFamily="Segoe UI" FontSize="12">
+                            <MenuItem Header="Mở Reservation" Command="{Binding OpenReservationFromRoomCommand}"/>
+                            <MenuItem Header="Mở Folio" Command="{Binding OpenFolioFromRoomCommand}"/>
+                            <MenuItem Header="Đổi phòng" Command="{Binding RoomMoveCommand}"/>
+                            <Separator/>
+                            <MenuItem Header="Đổi trạng thái" Command="{Binding ChangeStatusCommand}"/>
+                            <MenuItem Header="QR Code" Command="{Binding GenerateQrCommand}"/>
+                            <MenuItem Header="Lịch sử phòng" Command="{Binding RoomHistoryCmdCommand}"/></ContextMenu></DataGrid.ContextMenu>
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Chọn" Width="48"><DataGridTemplateColumn.CellTemplate><DataTemplate DataType="{x:Type vm:RoomMasterDto}"><CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="Chọn phòng cho thao tác hàng loạt"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Phòng" Width="65"><DataGridTemplateColumn.CellTemplate><DataTemplate DataType="{x:Type vm:RoomMasterDto}"><StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding FoStatusColor, Converter={StaticResource StringToBrush}}" Margin="0,0,4,0"/><TextBlock Text="{Binding RoomNumber}" FontSize="12" FontWeight="SemiBold" Foreground="#17365D"/></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Tên" Width="120" Binding="{Binding RoomName}"/>
+                            <DataGridTextColumn Header="Building" Width="50" Binding="{Binding Building}"/>
+                            <DataGridTextColumn Header="Tầng" Width="40" Binding="{Binding Floor}"/>
+                            <DataGridTextColumn Header="Loại" Width="60" Binding="{Binding RoomType}"/>
+                            <DataGridTextColumn Header="Class" Width="60" Binding="{Binding RoomClass}"/>
+                            <DataGridTextColumn Header="View" Width="70" Binding="{Binding View}"/>
+                            <DataGridTextColumn Header="Giường" Width="50" Binding="{Binding BedType}"/>
+                            <DataGridTextColumn Header="Diện tích" Width="60" Binding="{Binding SquareMeters, StringFormat='{}{0} m²'}"/>
+                            <DataGridTemplateColumn Header="HK" Width="80"><DataGridTemplateColumn.CellTemplate><DataTemplate DataType="{x:Type vm:RoomMasterDto}"><Border CornerRadius="6" Padding="5,2" Background="#F1F5F9" HorizontalAlignment="Left"><TextBlock Text="{Binding HkStatusLabel}" FontSize="10" Foreground="#475569" FontWeight="SemiBold"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="FO Status" Width="110"><DataGridTemplateColumn.CellTemplate><DataTemplate DataType="{x:Type vm:RoomMasterDto}"><Border CornerRadius="6" Padding="5,2" Background="{Binding FoStatusBg, Converter={StaticResource StringToBrush}}" BorderBrush="{Binding FoStatusColor, Converter={StaticResource StringToBrush}}" BorderThickness="1" HorizontalAlignment="Left"><TextBlock Text="{Binding FoStatusLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{Binding FoStatusColor, Converter={StaticResource StringToBrush}}"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Khách" Width="120" Binding="{Binding GuestName}"/>
+                            <DataGridTextColumn Header="Attendant" Width="90" Binding="{Binding Attendant}"/>
+                            <DataGridTextColumn Header="Ghi chú" Width="100" Binding="{Binding Remark}"/></DataGrid.Columns></DataGrid>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="{Binding IsCardView, Converter={StaticResource BoolToVis}}">
+                        <ItemsControl ItemsSource="{Binding FilteredRooms}" Margin="8,6,8,8">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:RoomMasterDto}">
+                                <Border Width="130" Height="110" Margin="0,0,4,4" CornerRadius="10" Cursor="Hand" Background="{Binding CardColor, Converter={StaticResource StringToBrush}}" BorderBrush="{Binding CardBorder, Converter={StaticResource StringToBrush}}" BorderThickness="1.5" MouseLeftButtonDown="OnRoomCardClick">
+                                    <Grid Margin="8,6"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                        <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding RoomNumber}" FontSize="14" FontWeight="Bold" Foreground="#17365D"/><Border CornerRadius="4" Padding="3,1" Margin="4,0,0,0" Background="#E32F70" Visibility="{Binding VipLevel, Converter={StaticResource StringToVis}}"><TextBlock Text="VIP" FontSize="8" Foreground="White" FontWeight="SemiBold"/></Border></StackPanel>
+                                        <TextBlock Grid.Row="1" Text="{Binding RoomTypeName}" FontSize="10" Foreground="#64748B" Margin="0,1,0,0"/>
+                                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,2,0,0"><Ellipse Width="7" Height="7" Fill="{Binding FoStatusColor, Converter={StaticResource StringToBrush}}" Margin="0,0,3,0"/><TextBlock Text="{Binding FoStatusLabel}" FontSize="10" FontWeight="SemiBold" Foreground="{Binding FoStatusColor, Converter={StaticResource StringToBrush}}"/></StackPanel>
+                                        <TextBlock Grid.Row="3" Text="{Binding GuestName}" FontSize="9" Foreground="#475569" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                                        <TextBlock Grid.Row="4" Text="{Binding Attendant}" FontSize="8" Foreground="#94A3B8" TextTrimming="CharacterEllipsis"/></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer></Grid></Border>
+
+            <Border Grid.Column="2" Margin="6,8,10,8" Style="{StaticResource PanelCard}" Visibility="{Binding IsDetailOpen, Converter={StaticResource BoolToVis}}">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.04" Color="#000000"/></Border.Effect>
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Padding="14,10" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding SelectedRoom.RoomNumber}" FontSize="18" FontWeight="Bold" Foreground="#102E5A"/><Border CornerRadius="4" Padding="4,1" Margin="6,0,0,0" Background="#FFF0F5" Visibility="{Binding SelectedRoom.VipLevel, Converter={StaticResource StringToVis}}"><TextBlock Text="VIP" FontSize="9" Foreground="#E32F70" FontWeight="SemiBold"/></Border></StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0"><TextBlock Text="{Binding SelectedRoom.RoomTypeName}" FontSize="12" Foreground="#64748B"/><TextBlock Text=" · " FontSize="12" Foreground="#CBD5E1"/><TextBlock Text="{Binding SelectedRoom.Building, StringFormat='Building {0}'}" FontSize="12" Foreground="#64748B"/><TextBlock Text=" · " FontSize="12" Foreground="#CBD5E1"/><TextBlock Text="{Binding SelectedRoom.Floor, StringFormat='Tầng {0}'}" FontSize="12" Foreground="#64748B"/></StackPanel></StackPanel>
+                            <Button Grid.Column="1" Content="✕" Width="28" Height="28" Command="{Binding CloseDetailCommand}" Style="{StaticResource SecondaryBtn}" FontSize="12" Padding="0"/></Grid></Border>
+                    <WrapPanel Grid.Row="1" Margin="10,6,10,0">
+                        <Button x:Name="TabOverview" Content="Tổng quan" Width="70" Style="{StaticResource InspectorTabBtn}" Click="OnDetailTabClick" Tag="0" Margin="0,0,2,0"/>
+                        <Button x:Name="TabGuest" Content="Khách" Width="55" Style="{StaticResource InspectorTabBtn}" Click="OnDetailTabClick" Tag="1" Margin="0,0,2,0"/>
+                        <Button x:Name="TabHK" Content="HK" Width="40" Style="{StaticResource InspectorTabBtn}" Click="OnDetailTabClick" Tag="2" Margin="0,0,2,0"/>
+                        <Button x:Name="TabFacility" Content="Tiện ích" Width="65" Style="{StaticResource InspectorTabBtn}" Click="OnDetailTabClick" Tag="3" Margin="0,0,2,0"/>
+                        <Button x:Name="TabHistory" Content="Lịch sử" Width="60" Style="{StaticResource InspectorTabBtn}" Click="OnDetailTabClick" Tag="4" Margin="0,0,2,0"/>
+                        <Button x:Name="TabRemark" Content="Ghi chú" Width="60" Style="{StaticResource InspectorTabBtn}" Click="OnDetailTabClick" Tag="5"/></WrapPanel>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="10,6,10,12">
+                        <StackPanel>
+                            <StackPanel x:Name="DetailTab0" Visibility="Visible">
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10" Margin="0,0,0,6"><StackPanel>
+                                    <TextBlock Text="Thông tin phòng" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Số phòng: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.RoomNumber}" Foreground="#17365D" FontWeight="SemiBold"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Tên: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.RoomName}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Building: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.Building, StringFormat='Building {0}'}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Tầng: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.Floor, StringFormat='Tầng {0}'}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Loại: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.RoomTypeName}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Diện tích: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.SquareMeters, StringFormat='{}{0} m²'}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="View: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.View}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Giường: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.BedType}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Max Pax: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.MaxPax}" Foreground="#17365D"/></TextBlock></StackPanel></Border>
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10"><StackPanel>
+                                    <TextBlock Text="Trạng thái" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="FO: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.FoStatusLabel}" Foreground="#17365D" FontWeight="SemiBold"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="HK: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.HkStatusLabel}" Foreground="#17365D"/></TextBlock></StackPanel></Border></StackPanel>
+                            <StackPanel x:Name="DetailTab1" Visibility="Collapsed">
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10"><StackPanel>
+                                    <TextBlock Text="Thông tin khách" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Tên: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.GuestName}" Foreground="#17365D" FontWeight="SemiBold"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Reservation: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.ReservationCode}" Foreground="#2563EB"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Công ty: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.CompanyName}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Đến/Đi: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.ArrivalDate, StringFormat='{}{0:dd/MM}'}" Foreground="#17365D"/><Run Text=" → "/><Run Text="{Binding SelectedRoom.DepartureDate, StringFormat='{}{0:dd/MM}'}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Stay: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.StayDays, StringFormat='{}{0} đêm'}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="VIP: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.VipLevel}" Foreground="#E32F70" FontWeight="SemiBold"/></TextBlock></StackPanel></Border></StackPanel>
+                            <StackPanel x:Name="DetailTab2" Visibility="Collapsed">
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10"><StackPanel>
+                                    <TextBlock Text="Housekeeping" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Trạng thái: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.HkStatusLabel}" Foreground="#17365D" FontWeight="SemiBold"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Dọn lần cuối: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.LastCleaned, StringFormat='{}{0:HH:mm dd/MM}'}" Foreground="#17365D"/></TextBlock>
+                                    <TextBlock FontSize="11" Margin="0,1"><Run Text="Attendant: " Foreground="#94A3B8"/><Run Text="{Binding SelectedRoom.Attendant}" Foreground="#17365D"/></TextBlock></StackPanel></Border></StackPanel>
+                            <StackPanel x:Name="DetailTab3" Visibility="Collapsed">
+                                <ItemsControl ItemsSource="{Binding RoomFacilities}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:RoomFacilityItem}">
+                                    <Border Padding="10,7" Margin="0,0,0,4" CornerRadius="8" Background="White" BorderBrush="#F1F5F9" BorderThickness="1">
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding IconGlyph}" FontSize="16" Width="28"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="#334155"/>
+                                            <TextBlock Grid.Column="2" Text="✓" FontSize="14" Foreground="#16A34A" Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVis}}"/></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>
+                            <StackPanel x:Name="DetailTab4" Visibility="Collapsed">
+                                <ItemsControl ItemsSource="{Binding RoomHistory}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:RoomHistoryEntry}">
+                                    <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM HH:mm}'}" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Top" Margin="0,3,0,0"/>
+                                        <Rectangle Grid.Column="1" Width="2" Fill="#E2E8F0" HorizontalAlignment="Center"/><Ellipse Grid.Column="1" Width="8" Height="8" Fill="{Binding Color, Converter={StaticResource StringToBrush}}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,5,0,0"/>
+                                        <Border Grid.Column="2" Background="White" CornerRadius="8" Padding="10,7" BorderBrush="#F1F5F9" BorderThickness="1" Margin="0,0,0,6"><StackPanel><TextBlock Text="{Binding Event}" FontSize="11" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="{Binding Detail}" FontSize="10" Foreground="#64748B"/></StackPanel></Border></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>
+                            <StackPanel x:Name="DetailTab5" Visibility="Collapsed">
+                                <Border Background="#FAFBFD" CornerRadius="8" Padding="12,10"><StackPanel>
+                                    <TextBlock Text="Ghi chú" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                    <Border Background="White" CornerRadius="8" Padding="12,10" BorderBrush="#E2E8F0" BorderThickness="1" MinHeight="150">
+                                        <TextBlock Text="{Binding SelectedRoom.Remark, TargetNullValue='Chưa có ghi chú.'}" FontSize="12" Foreground="#334155" TextWrapping="Wrap"/></Border></StackPanel></Border></StackPanel></StackPanel></ScrollViewer></Grid></Border>
+
+            <Border Grid.Column="2" Margin="6,8,10,8" Style="{StaticResource PanelCard}" Visibility="{Binding IsDetailClosed, Converter={StaticResource BoolToVis}}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE8D1;" FontFamily="Segoe MDL2 Assets" FontSize="48" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Chọn một phòng" FontSize="16" FontWeight="SemiBold" Foreground="#52657D" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBlock Text="để xem hồ sơ chi tiết." FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center"/></StackPanel></Border></Grid>
+
+        <Border Grid.Row="5" Padding="14,10" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,12,0" Visibility="Collapsed">
+                    <TextBlock Text="Phân bố loại phòng" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,4"/>
+                    <ItemsControl ItemsSource="{Binding TypeDistribution}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:RoomDistributionItem}">
+                        <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="120"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Label}" FontSize="10" Foreground="#64748B"/>
+                            <Border Grid.Column="1" Height="14" CornerRadius="4" Background="#F1F5F9" Margin="4,0"><Border Height="14" CornerRadius="4" Background="{Binding Color}" Width="{Binding Percentage, StringFormat='{}{0}'}" HorizontalAlignment="Left"/></Border>
+                            <TextBlock Grid.Column="2" Text="{Binding Count}" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Margin="4,0,0,0"/></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>
+                <StackPanel Grid.Column="0" Margin="12,0,0,0" Visibility="Collapsed">
+                    <TextBlock Text="Phân bố trạng thái" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,4"/>
+                    <ItemsControl ItemsSource="{Binding StatusDistribution}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:RoomDistributionItem}">
+                        <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="120"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Label}" FontSize="10" Foreground="#64748B"/>
+                            <Border Grid.Column="1" Height="14" CornerRadius="4" Background="#F1F5F9" Margin="4,0"><Border Height="14" CornerRadius="4" Background="{Binding Color}" Width="{Binding Percentage, StringFormat='{}{0}'}" HorizontalAlignment="Left"/></Border>
+                            <TextBlock Grid.Column="2" Text="{Binding Count}" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Margin="4,0,0,0"/></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="16,0,0,0">
+                    <TextBlock Text="{Binding PageDisplay}" FontSize="11" Foreground="#64748B" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Button Style="{StaticResource FluentPaginationButton}" Content="&#x00AB;" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPrevPage}" ToolTip="Trang đầu"/>
+                    <Button Style="{StaticResource FluentPaginationButton}" Content="&#x2039;" Command="{Binding PrevPageCommand}" IsEnabled="{Binding HasPrevPage}" ToolTip="Trang trước"/>
+                    <ItemsControl ItemsSource="{Binding PageButtons}" VerticalAlignment="Center">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource RoomPagerPageButton}"
+                                        Command="{Binding DataContext.SetPageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding PageNumber}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Style="{StaticResource FluentPaginationButton}" Content="&#x203A;" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" ToolTip="Trang sau"/>
+                    <Button Style="{StaticResource FluentPaginationButton}" Content="&#x00BB;" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" ToolTip="Trang cuối"/>
+                    <ComboBox ItemsSource="{x:Static vm:RoomMasterViewModel.PageSizeOptions}" SelectedItem="{Binding PageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemStringFormat="{}{0} / trang" Style="{StaticResource FluentComboBox}" Width="122" Height="32" MinWidth="122" Padding="12,0,34,0" FontSize="12" Margin="8,0,0,0"/>
+                </StackPanel></Grid></Border></Grid></UserControl>

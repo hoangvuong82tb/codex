@@ -1,6 +1,7 @@
 # Build output and test results
 **/[Bb]in/
 **/[Oo]bj/
+**/[Bb]in-*/
 **/TestResults/
 *_wpftmp.csproj
 
@@ -15,6 +16,7 @@ DEEPSEEK_PROJECT_CONTEXT.md
 # Local runtime configuration and secrets
 ASMILE.BO.App/appsettings.json
 appsettings.example.json
+!appsettings.example.json
 .env
 .env.*
 !*.example
@@ -30,6 +32,10 @@ Backups/
 artifacts/
 logs/
 tmp/
+**/.tmp/
+**/.codex-*-test-output/
+*.db
+*.bak
 z1/
 z2/
 

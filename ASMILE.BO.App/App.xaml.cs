@@ -1,18 +1,25 @@
 ﻿using ASMILE.BO.Application;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Interfaces.Settings;
+using ASMILE.BO.App.Services;
+using ASMILE.BO.Core.Entities.Settings;
 using ASMILE.BO.Infrastructure;
 using ASMILE.BO.Infrastructure.Persistence;
 using ASMILE.BO.Shared.Exceptions;
 using ASMILE.BO.Shared.Security;
+using ASMILE.BO.Shared.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
+using Serilog.Core;
 using System.IO;
 using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 
 namespace ASMILE.BO.App;
 
@@ -23,11 +30,25 @@ public partial class App : System.Windows.Application
     private static int _isShowingFatalDialog;
     private static DateTime _lastFatalDialogAtUtc = DateTime.MinValue;
 
+    public IServiceProvider? Services => _applicationScope?.ServiceProvider ?? _host?.Services;
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+        // Several legacy module templates render a ComboBox header and chevron
+        // without a clickable toggle over the value area. Register this once at
+        // application level so clicking any non-editable selection field always
+        // opens its drop-down; the mouse wheel remains optional navigation only.
+        EventManager.RegisterClassHandler(
+            typeof(ComboBox),
+            UIElement.PreviewMouseLeftButtonDownEvent,
+            new MouseButtonEventHandler(OnComboBoxHeaderClick),
+            handledEventsToo: true);
+
+        Directory.CreateDirectory(ApplicationDataPaths.UserLogsDirectory);
+        var logLevelSwitch = new LoggingLevelSwitch();
         _host = Host.CreateDefaultBuilder()
             .UseDefaultServiceProvider((context, options) =>
             {
@@ -37,11 +58,35 @@ public partial class App : System.Windows.Application
             .ConfigureAppConfiguration(config =>
             {
                 config.SetBasePath(AppContext.BaseDirectory);
-                config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                // Local appsettings is developer-only and is intentionally
+                // excluded from publish. Production deployments provide the
+                // connection string and other secrets through environment or
+                // deployment configuration instead.
+                config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+                // Deployment and E2E overrides must win over the local
+                // appsettings defaults (for example Database:MigrationMode).
+                config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Serilog:WriteTo:0:Args:path"] = ApplicationDataPaths.UserLogFilePattern
+                });
+                config.AddEnvironmentVariables();
+                // Authorized Settings changes are saved as a protected,
+                // per-user override and take effect after the next launch.
+                config.AddJsonFile(
+                    ApplicationDataPaths.GetUserSettingsFile("database-connection.json"),
+                    optional: true,
+                    reloadOnChange: false);
             })
-            .UseSerilog((context, services, loggerConfig) => loggerConfig.ReadFrom.Configuration(context.Configuration))
+            .UseSerilog((context, services, loggerConfig) =>
+                loggerConfig
+                    .ReadFrom.Configuration(context.Configuration)
+                    .MinimumLevel.ControlledBy(logLevelSwitch))
             .ConfigureServices((context, services) =>
             {
+                services.AddSingleton(logLevelSwitch);
+                services.AddHostedService<SettingsLogLevelMonitor>();
+                services.AddHostedService<ApplicationLogRetentionService>();
+                services.AddHostedService<SettingsDatabaseCommandTimeoutMonitor>();
                 services.AddApplication();
                 services.AddInfrastructure(context.Configuration);
                 DependencyInjection.AddPresentation(services);
@@ -52,24 +97,93 @@ public partial class App : System.Windows.Application
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
-        using (var scope = _host.Services.CreateScope())
+        try
         {
-            var migrationService = scope.ServiceProvider.GetRequiredService<DatabaseMigrationService>();
-            await migrationService.InitializeAsync();
+            using (var scope = _host.Services.CreateScope())
+            {
+                var migrationService = scope.ServiceProvider.GetRequiredService<DatabaseMigrationService>();
+                await migrationService.InitializeAsync();
 
-            var seedService = scope.ServiceProvider.GetRequiredService<ISecuritySeedService>();
-            await seedService.EnsureSeedDataAsync();
+                try
+                {
+                    var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
+                    var exportRoot = await settingsService.GetValueAsync("Storage.ExportRootPath", SettingScope.System, null);
+                    ApplicationDataPaths.ConfigureUserExportsDirectory(exportRoot?.Value);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Could not load the configured export directory. Falling back to the default user export folder.");
+                    ApplicationDataPaths.ConfigureUserExportsDirectory(null);
+                }
+
+                // Establish the company/branch scope before any hosted service
+                // or window can query property-scoped data. This prevents a
+                // startup race from briefly using the default-company fallback
+                // while the shell is still loading its context.
+                var currentCompanyContext = scope.ServiceProvider.GetRequiredService<ICurrentCompanyContext>();
+                await currentCompanyContext.EnsureInitializedAsync();
+
+                if (currentCompanyContext.CompanyId is Guid companyId)
+                {
+                    var adoptedFoundationRows = await migrationService.EnsureLegacyFoundationScopeAsync(companyId);
+                    if (adoptedFoundationRows > 0)
+                    {
+                        Log.Information(
+                            "Adopted {Count} legacy foundation rows after company scope initialization.",
+                            adoptedFoundationRows);
+                    }
+
+                    var seedWarnings = await migrationService.ValidateSeedConsistencyAsync();
+                    foreach (var warning in seedWarnings)
+                    {
+                        Log.Warning("Seed consistency warning after company scope initialization: {Warning}", warning);
+                    }
+                }
+
+                var seedService = scope.ServiceProvider.GetRequiredService<ISecuritySeedService>();
+                await seedService.EnsureSeedDataAsync();
+            }
+
+            await _host.StartAsync();
+
+            _applicationScope = _host.Services.CreateScope();
+            var mainWindow = _applicationScope.ServiceProvider.GetRequiredService<MainWindow>();
+            MainWindow = mainWindow;
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
+            mainWindow.Show();
+
+            base.OnStartup(e);
         }
+        catch (Exception ex)
+        {
+            Log.Fatal(
+                ex,
+                "Application startup failed. Message={Message}",
+                InputSanitizer.TrimAndLimit(ex.Message, 500));
 
-        await _host.StartAsync();
+            MessageBox.Show(
+                "Ứng dụng không thể khởi động do cấu hình hoặc cơ sở dữ liệu chưa sẵn sàng. Vui lòng kiểm tra nhật ký hệ thống.",
+                "Không thể khởi động",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
 
-        _applicationScope = _host.Services.CreateScope();
-        var mainWindow = _applicationScope.ServiceProvider.GetRequiredService<MainWindow>();
-        MainWindow = mainWindow;
-        ShutdownMode = ShutdownMode.OnMainWindowClose;
-        mainWindow.Show();
+            try
+            {
+                if (_host is not null)
+                    await _host.StopAsync();
+            }
+            catch
+            {
+                // Preserve the original startup failure while best-effort
+                // cleanup prevents a blank process from remaining alive.
+            }
 
-        base.OnStartup(e);
+            _applicationScope?.Dispose();
+            _applicationScope = null;
+            _host?.Dispose();
+            _host = null;
+            Shutdown(1);
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)
@@ -92,6 +206,34 @@ public partial class App : System.Windows.Application
         MessageBox.Show("Thao tác không thành công. Vui lòng kiểm tra nhật ký hệ thống.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
+    private static void OnComboBoxHeaderClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not ComboBox comboBox ||
+            !comboBox.IsEnabled ||
+            comboBox.IsEditable ||
+            comboBox.IsDropDownOpen)
+        {
+            return;
+        }
+
+        comboBox.Focus();
+        SizeDropDownToOwner(comboBox);
+        comboBox.IsDropDownOpen = true;
+        e.Handled = true;
+    }
+
+    private static void SizeDropDownToOwner(ComboBox comboBox)
+    {
+        // Both the shared Fluent template and older module templates expose
+        // their drop-down as "Popup". Size it from the owner at open time so
+        // the menu always lines up exactly with the input box.
+        if (comboBox.ActualWidth > 0 &&
+            comboBox.Template.FindName("Popup", comboBox) is Popup popup)
+        {
+            popup.Width = comboBox.ActualWidth;
+        }
+    }
+
     private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
     {
         var currentView = ResolveCurrentViewContext();
@@ -108,7 +250,7 @@ public partial class App : System.Windows.Application
 
         try
         {
-            var diagnosticPath = Path.Combine(AppContext.BaseDirectory, "logs", "ui-exceptions.log");
+            var diagnosticPath = Path.Combine(ApplicationDataPaths.UserLogsDirectory, "ui-exceptions.log");
             Directory.CreateDirectory(Path.GetDirectoryName(diagnosticPath)!);
             File.AppendAllText(
                 diagnosticPath,

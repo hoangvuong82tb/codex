@@ -40,4 +40,10 @@ public sealed class PersonRepository : EfRepository<Person>, IPersonRepository
 
     public Task<bool> ExistsCodeAsync(string personCode, int excludingId = 0, CancellationToken cancellationToken = default)
         => DbSet.AnyAsync(x => x.PersonCode == personCode && x.Id != excludingId, cancellationToken);
+
+    public async Task<IReadOnlyList<string>> GetCodesStartingWithAsync(string prefix, CancellationToken cancellationToken = default)
+        => await DbSet.AsNoTracking()
+            .Where(x => x.PersonCode.StartsWith(prefix))
+            .Select(x => x.PersonCode)
+            .ToListAsync(cancellationToken);
 }

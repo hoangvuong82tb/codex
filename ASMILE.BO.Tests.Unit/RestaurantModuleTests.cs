@@ -1978,9 +1978,9 @@ public sealed class RestaurantModuleTests
     }
 
     [Fact]
-    public void P0A_H1_CaseB_HasSentLines_ShouldThrowNotSupportedException()
+    public void P0A_H1_CaseB_HasSentLines_IsDetectedForAdjustmentPlan()
     {
-        // Case B is deferred — verify the guard condition logic
+        // Sent lines must take the adjustment-ticket path instead of a full rebuild.
         var lines = new List<AlacarteOrderLine>
         {
             new() { KitchenStatus = "Sent", MenuItemName = "Tôm hùm" },
@@ -2032,7 +2032,8 @@ public sealed class RestaurantModuleTests
         var reservationId = Guid.NewGuid();
 
         var oldOrder = new AlacarteOrder { ReservationId = reservationId };
-        var newOrder = new AlacarteOrder { ReservationId = oldOrder.ReservationId };
+        var capturedReservationId = oldOrder.ReservationId;
+        var newOrder = new AlacarteOrder { ReservationId = capturedReservationId };
 
         // Cleanup
         oldOrder.ReservationId = null;

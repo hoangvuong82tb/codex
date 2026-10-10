@@ -453,6 +453,7 @@ public sealed partial class BanquetRestaurantViewModel
     public double SnapRoomLayoutCoordinate(double value)
         => RoomLayoutSnapToGrid ? Math.Round(value / Math.Max(2, RoomLayoutGridSize)) * Math.Max(2, RoomLayoutGridSize) : value;
     private bool _suppressSelectedEventChanged;
+    private int _selectedEventDetailLoadVersion;
     private bool _restoringEventSnapshot;
     private bool _isSavingEvent;
     private bool _isAddingDeposit;
@@ -1959,8 +1960,10 @@ public sealed partial class BanquetRestaurantViewModel
 
     private async Task LoadSelectedEventDetailAsync(Guid eventId)
     {
+        var loadVersion = Interlocked.Increment(ref _selectedEventDetailLoadVersion);
         var detail = await _service.GetEventDetailAsync(eventId);
-        if (SelectedEvent?.Id != eventId)
+        if (loadVersion != Volatile.Read(ref _selectedEventDetailLoadVersion)
+            || SelectedEvent?.Id != eventId)
         {
             return;
         }
@@ -4289,8 +4292,6 @@ public sealed partial class BanquetRestaurantViewModel
             try
             {
                 var services = await _alacarteService.GetExtraServicesAsync();
-                if (services.Count == 0)
-                    services = await _alacarteService.SeedDefaultExtraServicesAsync();
 
                 BanquetServiceItems.Clear();
                 BanquetServiceTypes.Clear();

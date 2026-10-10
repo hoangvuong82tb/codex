@@ -327,6 +327,24 @@ public sealed class HotelStay : IHasFrontOfficeDomainEvents
         Touch(nowUtc, actorId);
     }
 
+    public void ReconcileGuestCounts(int adults, int children, DateTime nowUtc, ActorId? actorId)
+    {
+        if (adults < 1 || children < 0) throw new ArgumentException("STAY_GUEST_COUNT_INVALID");
+        Adults = Math.Max(Adults, adults);
+        Children = Math.Max(Children, children);
+        Touch(nowUtc, actorId);
+        AddEvent("StayGuestCountsReconciled", Status, Status, nowUtc, $"Adults={Adults};Children={Children}");
+    }
+
+    public void ReconcileGuestCountsAfterOccupantRemoval(int adults, int children, DateTime nowUtc, ActorId? actorId)
+    {
+        if (adults < 1 || children < 0) throw new ArgumentException("STAY_GUEST_COUNT_INVALID");
+        Adults = adults;
+        Children = children;
+        Touch(nowUtc, actorId);
+        AddEvent("StayGuestCountsReconciled", Status, Status, nowUtc, $"Adults={Adults};Children={Children}");
+    }
+
     public void UpdateNotes(string? notes, DateTime nowUtc, ActorId? actorId)
     {
         InternalNotes = Normalize(notes);

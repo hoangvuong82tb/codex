@@ -6,20 +6,73 @@ using ASMILE.BO.Application.DTOs.Security;
 using ASMILE.BO.Application.Interfaces;
 using CommunityToolkit.Mvvm.Input;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ASMILE.BO.Tests.Unit;
 
 public sealed class FrontOfficeHubViewModelTests
 {
     [Fact]
-    public void FO_HUB_U_001_renders_eleven_cards_with_two_active_entry_points()
+    public void FO_HUB_U_001_renders_the_current_catalog_with_active_and_pending_entry_points()
     {
         using var hub = CreateHub();
 
-        hub.Cards.Should().HaveCount(11);
+        hub.Cards.Should().HaveCount(13);
         hub.Cards.Single(x => x.Id == "reservation").StatusText.Should().Be("Đang hoạt động");
         hub.Cards.Single(x => x.Id == "reception").StatusText.Should().Be("Đang hoạt động");
-        hub.Cards.Count(x => x.StatusText == "Sắp có").Should().Be(9);
+        hub.Cards.Single(x => x.Id == "group").StatusText.Should().Be("Đang hoạt động");
+        hub.Cards.Where(x => x.IsActive).Select(x => x.Id).Should().BeEquivalentTo(
+            ["reservation", "reception", "cashier", "key-management", "hotel-settings",
+             "group", "housekeeping", "telephone", "receivable", "inquiry", "marketing", "reports", "night-audit"]);
+        hub.Cards.Where(x => x.IsActive).Should().OnlyContain(x => x.IsEnabled);
+        hub.Cards.Single(x => x.Id == "group").IsEnabled.Should().BeTrue();
+        hub.Cards.Should().NotContain(x => x.Id == "folio" || x.Id == "fo-log");
+    }
+
+    [Fact]
+    public async Task FO_HUB_U_002_cashier_contains_the_canonical_folio_entry()
+    {
+        using var hub = CreateHub();
+
+        await ((IAsyncRelayCommand)hub.Cards.Single(x => x.Id == "cashier").Command).ExecuteAsync(null);
+
+        var cashier = hub.ActiveWorkspace.Should().BeOfType<ModuleHubViewModel>().Subject;
+        cashier.Cards.Select(x => x.Id).Should().Contain(["folio", "split-folio", "merge-folio"]);
+    }
+
+    [Fact]
+    public async Task FO_HUB_U_002_hotel_settings_exposes_the_required_master_data_entry_points()
+    {
+        var navigation = new FakeNavigationService();
+        using var hub = CreateHub(navigation: navigation);
+
+        await ((IAsyncRelayCommand)hub.Cards.Single(x => x.Id == "hotel-settings").Command).ExecuteAsync(null);
+
+        navigation.OpenedRoutes.Should().ContainSingle().Which.Should().Be("hotel-settings");
+        hub.ActiveWorkspace.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task FO_HUB_U_002_hotel_settings_keeps_rate_and_minibar_setup_as_real_entry_points()
+    {
+        var navigation = new FakeNavigationService();
+        using var hub = CreateHub(navigation: navigation);
+
+        await ((IAsyncRelayCommand)hub.Cards.Single(x => x.Id == "hotel-settings").Command).ExecuteAsync(null);
+
+        navigation.OpenedRoutes.Should().ContainSingle().Which.Should().Be("hotel-settings");
+    }
+
+    [Fact]
+    public void FO_HUB_DI_U_003_rate_and_minibar_workspaces_are_registered_in_presentation_di()
+    {
+        var services = new ServiceCollection();
+
+        ASMILE.BO.App.DependencyInjection.AddPresentation(services);
+
+        services.Should().Contain(descriptor => descriptor.ServiceType == typeof(RateEngineViewModel));
+        services.Should().Contain(descriptor => descriptor.ServiceType == typeof(ItemsViewModel));
+        services.Should().Contain(descriptor => descriptor.ServiceType == typeof(MinibarViewModel));
     }
 
     [Fact]
@@ -39,7 +92,7 @@ public sealed class FrontOfficeHubViewModelTests
         var navigation = new FakeNavigationService();
         var propertyContext = new FakePropertyContextHost();
         var windows = new WindowManagerService();
-        using var reservation = new ReservationHubViewModel(new FakePermissions(), propertyContext, new FakeModalService(), navigation);
+        using var reservation = new ReservationHubViewModel(new FakePermissions(), propertyContext, new FakeModalService(), null!, navigation);
         using var hub = new FrontOfficeHubViewModel(
             new FakePermissions(),
             propertyContext,
@@ -75,8 +128,8 @@ public sealed class FrontOfficeHubViewModelTests
         var navigation = new FakeNavigationService();
         var propertyContext = new FakePropertyContextHost();
         var windows = new WindowManagerService();
-        using var reservation = new ReservationHubViewModel(new FakePermissions(), propertyContext, new FakeModalService(), navigation);
-        using var reception = new ReceptionHubViewModel(new FakeReceptionPermissions(), propertyContext, new FakeReceptionModalService(), navigation);
+        using var reservation = new ReservationHubViewModel(new FakePermissions(), propertyContext, new FakeModalService(), null!, navigation);
+        using var reception = new ReceptionHubViewModel(new FakeReceptionPermissions(), propertyContext, new FakeReceptionModalService(), null!, null!, navigation);
         using var hub = new FrontOfficeHubViewModel(
             new FakePermissions(),
             propertyContext,
@@ -102,42 +155,96 @@ public sealed class FrontOfficeHubViewModelTests
     }
 
     [Fact]
-    public void FO_HUB_U_003_coming_soon_card_opens_inline_dialog()
+    public void FO_HUB_U_003_group_card_opens_the_group_workspace()
     {
         using var hub = CreateHub();
 
-        hub.Cards.Single(x => x.Id == "cashier").Command.Execute(null);
+        hub.Cards.Single(x => x.Id == "group").Command.Execute(null);
 
-        hub.IsComingSoonDialogOpen.Should().BeTrue();
-        hub.ComingSoonTitle.Should().Be("Thu ngân");
+        hub.IsComingSoonDialogOpen.Should().BeFalse();
+        hub.ActiveWorkspace.Should().NotBeNull();
+    }
+
+    [Theory]
+    [InlineData("group", "Đoàn")]
+    [InlineData("housekeeping", "Nhà buồng")]
+    [InlineData("receivable", "Kế toán phải thu")]
+    [InlineData("inquiry", "Tìm kiếm toàn hệ thống")]
+    [InlineData("marketing", "Marketing")]
+    [InlineData("reports", "Báo cáo")]
+    [InlineData("night-audit", "Night Audit")]
+    public void FO_HUB_U_003_all_available_module_cards_open_their_hub(string cardId, string expectedTitle)
+    {
+        using var hub = CreateHub();
+
+        hub.Cards.Single(x => x.Id == cardId).Command.Execute(null);
+
+        hub.IsComingSoonDialogOpen.Should().BeFalse();
+        var workspace = hub.ActiveWorkspace.Should().BeOfType<ModuleHubViewModel>().Subject;
+        workspace.Title.Should().Be(expectedTitle);
+    }
+
+    [Theory]
+    [InlineData("cashier")]
+    [InlineData("group")]
+    [InlineData("housekeeping")]
+    [InlineData("telephone")]
+    [InlineData("receivable")]
+    [InlineData("marketing")]
+    public void FO_HUB_U_004_operational_hubs_do_not_duplicate_report_navigation(string cardId)
+    {
+        using var hub = CreateHub();
+
+        hub.Cards.Single(x => x.Id == cardId).Command.Execute(null);
+
+        var workspace = hub.ActiveWorkspace.Should().BeOfType<ModuleHubViewModel>().Subject;
+        workspace.Cards.Should().NotContain(card =>
+            card.Id.Contains("report", StringComparison.OrdinalIgnoreCase)
+            || card.Title.Contains("báo cáo", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
-    public void FO_MAIN_U_007_008_coming_soon_does_not_navigate_and_opens_the_safe_overlay()
+    public void FO_HUB_U_005_reports_hub_keeps_the_central_report_catalog()
+    {
+        using var hub = CreateHub();
+
+        hub.Cards.Single(x => x.Id == "reports").Command.Execute(null);
+
+        var workspace = hub.ActiveWorkspace.Should().BeOfType<ModuleHubViewModel>().Subject;
+        workspace.Cards.Should().HaveCount(3);
+        workspace.Cards.Should().OnlyContain(card => card.Id.StartsWith("rpt-", StringComparison.OrdinalIgnoreCase));
+        workspace.Cards.Select(card => card.Id).Should().BeEquivalentTo(
+            ["rpt-operations", "rpt-finance", "rpt-folio-gaps"]);
+    }
+
+    [Fact]
+    public void FO_MAIN_U_007_008_group_does_not_navigate_and_opens_the_workspace()
     {
         var navigation = new FakeNavigationService();
         using var hub = CreateHub(navigation: navigation);
 
-        hub.Cards.Single(x => x.Id == "cashier").Command.Execute(null);
+        hub.Cards.Single(x => x.Id == "group").Command.Execute(null);
 
         navigation.OpenedRoutes.Should().BeEmpty();
-        hub.IsComingSoonDialogOpen.Should().BeTrue();
+        hub.IsComingSoonDialogOpen.Should().BeFalse();
+        hub.ActiveWorkspace.Should().NotBeNull();
     }
 
     [Fact]
-    public void FO_HUB_U_004_reservation_permission_disables_only_the_active_card()
+    public void FO_HUB_U_004_missing_reservation_permission_disables_all_front_office_modules()
     {
         using var hub = CreateHub(permissions: new FakePermissions { CanViewValue = false });
 
         hub.Cards.Single(x => x.Id == "reservation").IsEnabled.Should().BeFalse();
         hub.Cards.Single(x => x.Id == "reception").IsEnabled.Should().BeFalse();
+        hub.Cards.Should().OnlyContain(x => !x.IsEnabled);
     }
 
     [Fact]
     public async Task FO_HUB_U_005_back_from_reservation_returns_to_navigation_history()
     {
         var navigation = new FakeNavigationService();
-        using var reservation = new ReservationHubViewModel(new FakePermissions(), new FakePropertyContextHost(), new FakeModalService(), navigation);
+        using var reservation = new ReservationHubViewModel(new FakePermissions(), new FakePropertyContextHost(), new FakeModalService(), null!, navigation);
 
         await reservation.BackCommand.ExecuteAsync(null);
 
@@ -153,8 +260,8 @@ public sealed class FrontOfficeHubViewModelTests
         typeof(FrontOfficeHubViewModel).GetProperties().Select(x => x.Name).Should().NotContain("PropertyId");
     }
 
-    private static FrontOfficeHubViewModel CreateHub(FakePermissions? permissions = null, FakeNavigationService? navigation = null)
-        => new(permissions ?? new FakePermissions(), new FakePropertyContextHost(), navigation ?? new FakeNavigationService(), new FakeCurrentUserService());
+    private static FrontOfficeHubViewModel CreateHub(FakePermissions? permissions = null, FakeNavigationService? navigation = null, IServiceProvider? serviceProvider = null)
+        => new(permissions ?? new FakePermissions(), new FakePropertyContextHost(), navigation ?? new FakeNavigationService(), new FakeCurrentUserService(), serviceProvider!);
 
     private sealed class FakePermissions : IReservationHubPermissionReader
     {

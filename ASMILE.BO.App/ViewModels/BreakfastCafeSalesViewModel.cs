@@ -1,6 +1,7 @@
 ﻿using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
 using ASMILE.BO.App.Services;
+using ASMILE.BO.Shared.Storage;
 using ClosedXML.Excel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -101,7 +102,19 @@ public sealed partial class BreakfastCafeSalesViewModel : ViewModelBase
     public decimal ClosedOrderDiscountTotal => ClosedOrders.Sum(x => x.DiscountAmount);
     public int CancelledOrderCount => ClosedOrders.Count(x => x.Status == "Cancelled");
     public decimal AverageOrderValue => ClosedOrderCount > 0 ? ClosedOrderRevenue / ClosedOrderCount : 0;
-    public int AverageServiceMinutes => 12; // Placeholder until timeline data available
+    public int AverageServiceMinutes
+    {
+        get
+        {
+            var durations = ClosedOrders
+                .Where(x => string.Equals(x.Status, "Paid", StringComparison.OrdinalIgnoreCase))
+                .Select(CalculateServiceMinutes)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .ToList();
+            return durations.Count == 0 ? 0 : (int)Math.Round(durations.Average(), MidpointRounding.AwayFromZero);
+        }
+    }
 
     // Timeline entries for selected closed order
     public ObservableCollection<ClosedOrderTimelineEntry> ClosedOrderTimeline { get; } = new();
@@ -2685,6 +2698,11 @@ public sealed partial class BreakfastCafeSalesViewModel : ViewModelBase
             var path = GetSalesPolicySettingsPath();
             if (!File.Exists(path))
             {
+                var legacyPath = GetLegacySalesPolicySettingsPath();
+                if (File.Exists(legacyPath)) path = legacyPath;
+            }
+            if (!File.Exists(path))
+            {
                 return;
             }
 
@@ -2793,6 +2811,9 @@ public sealed partial class BreakfastCafeSalesViewModel : ViewModelBase
     }
 
     private static string GetSalesPolicySettingsPath()
+        => ApplicationDataPaths.GetUserSettingsFile("breakfast-cafe-sales-policy.json");
+
+    private static string GetLegacySalesPolicySettingsPath()
         => Path.Combine(AppContext.BaseDirectory, "Data", "Settings", "breakfast-cafe-sales-policy.json");
 
     private void UpdatePaymentMethodsFromSettings()
@@ -3427,10 +3448,37 @@ public sealed partial class BreakfastCafeSalesViewModel : ViewModelBase
         ClosedOrderTimeline.Add(new("Tạo đơn", detail.OrderDate, "Thu ngân"));
         if (detail.KitchenSentAt.HasValue)
             ClosedOrderTimeline.Add(new("Gửi bếp", detail.KitchenSentAt.Value, "Thu ngân"));
-        if (detail.Status == "Paid")
-            ClosedOrderTimeline.Add(new("Thanh toán", detail.OrderDate.AddMinutes(20), "Thu ngân"));
+        var paymentAt = detail.Payments
+            .Select(x => ToLocalTimestamp(x.CreatedAt))
+            .OrderByDescending(x => x)
+            .FirstOrDefault();
+        if (detail.Status == "Paid" && paymentAt != default && paymentAt >= detail.OrderDate)
+            ClosedOrderTimeline.Add(new("Thanh toán", paymentAt, "Thu ngân"));
         if (detail.Status is "Paid" or "Cancelled")
-            ClosedOrderTimeline.Add(new(detail.Status == "Paid" ? "Đơn đã đóng" : "Đơn đã hủy", DateTime.UtcNow, "Hệ thống"));
+            ClosedOrderTimeline.Add(new(
+                detail.Status == "Paid" ? "Đơn đã đóng" : "Đơn đã hủy",
+                detail.Status == "Paid" && paymentAt != default ? paymentAt : ToLocalTimestamp(detail.UpdatedAt),
+                "Hệ thống"));
+    }
+
+    private static double? CalculateServiceMinutes(BreakfastCafeOrderDto order)
+    {
+        var payment = order.Payments
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefault();
+        if (payment is null)
+            return null;
+
+        var startedAtUtc = DateTime.SpecifyKind(order.OrderDate, DateTimeKind.Local).ToUniversalTime();
+        var completedAtUtc = DateTime.SpecifyKind(payment.CreatedAt, DateTimeKind.Utc);
+        var minutes = (completedAtUtc - startedAtUtc).TotalMinutes;
+        return minutes is >= 0 and <= 7 * 24 * 60 ? minutes : null;
+    }
+
+    private static DateTime ToLocalTimestamp(DateTime timestamp)
+    {
+        var utc = DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
+        return utc.ToLocalTime();
     }
 
     [RelayCommand]

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using ASMILE.BO.Application.FrontOffice.Folio;
 using ASMILE.BO.Application.FrontOffice.Foundation.Contexts;
@@ -38,15 +39,18 @@ public sealed class SettlementApplicationService(
         var now = clock.UtcNow;
         var running = folio.RunningBalance;
         var outstandingBefore = running;
+        var discount = c.DiscountAmount > 0 ? c.DiscountAmount : 0m;
+        var tax = c.TaxAmount > 0 ? c.TaxAmount : 0m;
+        var projectedOutstanding = running - discount + tax;
+        if (projectedOutstanding != 0 && !c.ManagerOverride)
+            return Result<SettlementResultDto>.Failure(Error.Business("SETTLEMENT_OUTSTANDING_NOT_ZERO", $"Outstanding balance is {projectedOutstanding:N0}. Manager override required."));
 
         try
         {
-            folio.AddDiscount(c.DiscountAmount > 0 ? c.DiscountAmount : 0, "Settlement discount", now, cx.Actor.ActorId);
-            if (c.TaxAmount > 0) folio.AddTax(c.TaxAmount, "Settlement tax", now, cx.Actor.ActorId);
+            if (discount > 0) folio.AddDiscount(discount, "Settlement discount", now, cx.Actor.ActorId, cx.BusinessDate.BusinessDate);
+            if (tax > 0) folio.AddTax(tax, "Settlement tax", now, cx.Actor.ActorId, cx.BusinessDate.BusinessDate);
 
             var outstandingAfter = folio.RunningBalance;
-            if (outstandingAfter != 0 && !c.ManagerOverride)
-                return Result<SettlementResultDto>.Failure(Error.Business("SETTLEMENT_OUTSTANDING_NOT_ZERO", $"Outstanding balance is {outstandingAfter:N0}. Manager override required."));
 
             var commit = await persistence.CommitAsync(ct);
             if (commit.IsFailure) return Result<SettlementResultDto>.Failure(commit.Error!);
@@ -84,17 +88,40 @@ public sealed class SettlementApplicationService(
         var pid = cx.Property.PropertyId.Value;
         var ledger = await folioRepo.GetLedgerAsync(pid, c.HotelFolioId, ct);
         if (ledger is null) return Result<HotelInvoiceDto>.Failure(Error.Business("FOLIO_NOT_FOUND", ""));
+        if (c.FolioExpectedRowVersion is not { Length: 8 } || ledger.RowVersion is not { Length: 8 } || !ledger.RowVersion.SequenceEqual(c.FolioExpectedRowVersion))
+            return Result<HotelInvoiceDto>.Failure(Error.Concurrency("INVOICE_CONCURRENCY_CONFLICT", "Folio đã thay đổi, vui lòng tải lại trước khi phát hành hóa đơn."));
+        var existing = await invoiceRepo.GetByFolioAsync(pid, c.HotelFolioId, ct);
+        if (existing is not null) return Result<HotelInvoiceDto>.Failure(Error.Business("INVOICE_ALREADY_EXISTS", $"Folio đã có hóa đơn {existing.InvoiceNumber}."));
         var stay = await stayRepo.GetDtoAsync(pid, ledger.HotelStayId, ct);
         var now = clock.UtcNow;
         var number = await invoiceNumberGen.GenerateAsync(pid, cx.BusinessDate.BusinessDate, ct);
 
-        var charges = ledger.Entries.Where(e => e.EntryType == HotelFolioEntryType.RoomCharge).Sum(e => e.Amount);
-        var payments = Math.Abs(ledger.Entries.Where(e => e.EntryType == HotelFolioEntryType.Payment).Sum(e => e.Amount));
-        var deposits = Math.Abs(ledger.Entries.Where(e => e.EntryType == HotelFolioEntryType.Deposit).Sum(e => e.Amount));
-        var subtotal = charges;
+        var entriesById = ledger.Entries.ToDictionary(e => e.HotelFolioEntryId);
+        var voidedFinancialReversalIds = ledger.Entries
+            .Where(e => e.EntryType == HotelFolioEntryType.Correction
+                && e.ReversesEntryId is Guid reversedEntryId
+                && entriesById.TryGetValue(reversedEntryId, out var reversedEntry)
+                && (reversedEntry.EntryType is HotelFolioEntryType.Payment
+                    or HotelFolioEntryType.Deposit
+                    or HotelFolioEntryType.Refund))
+            .Select(e => e.HotelFolioEntryId)
+            .ToHashSet();
+        var subtotal = ledger.Entries
+            .Where(e => IsInvoiceSubtotalEntry(e.EntryType)
+                && !voidedFinancialReversalIds.Contains(e.HotelFolioEntryId))
+            .Sum(e => e.Amount);
+        var payments = Math.Abs(ledger.Entries
+            .Where(e => e.EntryType == HotelFolioEntryType.Payment && e.ReversedByEntryId is null)
+            .Sum(e => e.Amount));
+        var deposits = Math.Abs(ledger.Entries
+            .Where(e => e.EntryType == HotelFolioEntryType.Deposit && e.ReversedByEntryId is null)
+            .Sum(e => e.Amount));
+        var refunds = ledger.Entries
+            .Where(e => e.EntryType == HotelFolioEntryType.Refund && e.ReversedByEntryId is null)
+            .Sum(e => e.Amount);
         var tax = ledger.Entries.Where(e => e.EntryType == HotelFolioEntryType.Tax).Sum(e => e.Amount);
         var total = subtotal + tax;
-        var paid = payments + deposits;
+        var paid = payments + deposits - refunds;
         var outstanding = ledger.RunningBalance;
 
         var data = JsonSerializer.Serialize(new { subtotal, tax, total, paid, outstanding, entries = ledger.Entries.Select(e => new { e.SequenceNumber, e.EntryType, e.Amount, e.Description }) });
@@ -105,6 +132,14 @@ public sealed class SettlementApplicationService(
         if (commit.IsFailure) return Result<HotelInvoiceDto>.Failure(commit.Error!);
         return Result<HotelInvoiceDto>.Success(MapInvoice(invoice));
     }
+
+    private static bool IsInvoiceSubtotalEntry(HotelFolioEntryType entryType) => entryType is
+        HotelFolioEntryType.RoomCharge or HotelFolioEntryType.Restaurant or HotelFolioEntryType.Laundry or
+        HotelFolioEntryType.MiniBar or HotelFolioEntryType.Spa or HotelFolioEntryType.Telephone or
+        HotelFolioEntryType.OtherCharge or HotelFolioEntryType.ServiceCharge or HotelFolioEntryType.Discount or
+        HotelFolioEntryType.Package or HotelFolioEntryType.Adjustment or HotelFolioEntryType.Correction or
+        HotelFolioEntryType.Transfer or HotelFolioEntryType.ManualCharge or HotelFolioEntryType.ManualCredit or
+        HotelFolioEntryType.OpeningBalance;
 
     public async Task<Result<HotelInvoiceDto>> PrintAsync(PrintInvoiceCommand c, CancellationToken ct)
     {

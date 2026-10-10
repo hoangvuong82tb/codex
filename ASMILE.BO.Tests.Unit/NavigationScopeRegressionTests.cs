@@ -160,6 +160,7 @@ public sealed class NavigationScopeRegressionTests
         public Task AddRecentReportAsync(string reportCode, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task AddRecentDrilldownAsync(string drilldownKey, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SaveLastOpenedTabsAsync(IReadOnlyList<string> moduleKeys, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SaveStartupModulesAsync(IReadOnlyList<string> moduleKeys, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SaveShellLayoutAsync(string layoutJson, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<WorkspaceSettingsDto> LoadSettingsAsync(CancellationToken cancellationToken = default) => Task.FromResult<WorkspaceSettingsDto>(null!);
         public Task SaveSettingsAsync(WorkspaceSettingsDto settings, CancellationToken cancellationToken = default) => Task.CompletedTask;

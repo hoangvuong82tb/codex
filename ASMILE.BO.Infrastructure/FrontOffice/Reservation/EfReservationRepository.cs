@@ -26,8 +26,10 @@ public sealed class EfReservationRepository(AppDbContext dbContext) : IReservati
         if (f.RoomTypeId is not null) query = query.Where(x => x.RoomTypeId == f.RoomTypeId);
         if (f.RoomId is not null) query = query.Where(x => x.AssignedRoomId == f.RoomId);
         if (!string.IsNullOrWhiteSpace(f.Source)) query = query.Where(x => x.Source == f.Source);
-        // Filters below reference columns not yet in the database (guarded):
-        // MarketSegment, IsVip, CompanyName, TravelAgentName — skip silently
+        if (!string.IsNullOrWhiteSpace(f.MarketSegment)) query = query.Where(x => x.MarketSegment == f.MarketSegment);
+        if (f.IsVip is not null) query = query.Where(x => x.IsVip == f.IsVip);
+        if (!string.IsNullOrWhiteSpace(f.CompanyName)) query = query.Where(x => x.CompanyName != null && x.CompanyName.Contains(f.CompanyName));
+        if (!string.IsNullOrWhiteSpace(f.TravelAgentName)) query = query.Where(x => x.TravelAgentName != null && x.TravelAgentName.Contains(f.TravelAgentName));
         query = sort?.ToLowerInvariant() switch { "number" => query.OrderBy(x => x.ReservationNumber), "arrival" => query.OrderBy(x => x.ArrivalDate), "departure" => query.OrderBy(x => x.DepartureDate), "guest" => query.OrderBy(x => x.GuestNameSnapshot), "status" => query.OrderBy(x => x.Status), _ => query.OrderByDescending(x => x.UpdatedAtUtc) };
         var total = await query.CountAsync(cancellationToken); var items = await query.Skip(page.Skip).Take(Math.Clamp(page.PageSize, 1, 200)).Select(ToDto).ToListAsync(cancellationToken);
         return new(items, total, page.Page, page.PageSize);
@@ -44,10 +46,7 @@ public sealed class EfReservationRepository(AppDbContext dbContext) : IReservati
         var conflict = await dbContext.FrontOfficeReservations.AsNoTracking().Where(x => x.PropertyId == propertyId && x.AssignedRoomId == roomId && (x.Status == ReservationStatus.Tentative || x.Status == ReservationStatus.Confirmed || x.Status == ReservationStatus.Guaranteed || x.Status == ReservationStatus.CheckedIn) && (excludedReservationId == null || x.ReservationId != excludedReservationId) && x.ArrivalDate < departure && x.DepartureDate > arrival).Select(x => (Guid?)x.ReservationId).FirstOrDefaultAsync(cancellationToken);
         return new(conflict is not null, conflict);
     }
-    // ToDto uses default values for fields not yet in the database schema:
-    // IsVip, MarketSegment, CompanyName, TravelAgentName, GuaranteedAtUtc, GuaranteeType,
-    // GuaranteeExpiryDate, DepositAmount, DepositDueDate, DepositStatus, CheckedInAtUtc, CompletedAtUtc
-    private static readonly System.Linq.Expressions.Expression<Func<ReservationAggregate, ReservationDto>> ToDto = x => new ReservationDto(x.ReservationId, x.ReservationNumber, x.PropertyId, x.GuestNameSnapshot, x.GuestPhoneSnapshot, x.GuestEmailSnapshot, x.ArrivalDate, x.DepartureDate, x.AdultCount, x.ChildCount, x.RoomTypeId, x.AssignedRoomId, x.RatePlanId, x.Status, x.Source, x.SpecialRequests, x.InternalNotes, x.CancellationReason, false, null, null, null, null, GuaranteeType.None, null, 0m, null, DepositStatus.NotRequired, null, null, x.CreatedAtUtc, x.UpdatedAtUtc, x.RowVersion);
+    private static readonly System.Linq.Expressions.Expression<Func<ReservationAggregate, ReservationDto>> ToDto = x => new ReservationDto(x.ReservationId, x.ReservationNumber, x.PropertyId, x.GuestNameSnapshot, x.GuestPhoneSnapshot, x.GuestEmailSnapshot, x.ArrivalDate, x.DepartureDate, x.AdultCount, x.ChildCount, x.RoomTypeId, x.AssignedRoomId, x.RatePlanId, x.Status, x.Source, x.SpecialRequests, x.InternalNotes, x.CancellationReason, x.IsVip, x.MarketSegment, x.CompanyName, x.TravelAgentName, x.GuaranteedAtUtc, x.GuaranteeType, x.GuaranteeExpiryDate, x.DepositAmount, x.DepositDueDate, x.DepositStatus, x.CheckedInAtUtc, x.CompletedAtUtc, x.CreatedAtUtc, x.UpdatedAtUtc, x.RowVersion) { BookingSourceProfileId = x.BookingSourceProfileId, BookingChannelProfileId = x.BookingChannelProfileId, MarketSegmentProfileId = x.MarketSegmentProfileId, CompanyProfileId = x.CompanyProfileId, TravelAgentProfileId = x.TravelAgentProfileId, CommissionRuleProfileId = x.CommissionRuleProfileId };
     public async Task<bool> IsOverbookingLimitReachedAsync(Guid propertyId, Guid roomTypeId, DateOnly arrival, DateOnly departure, Guid? excludedReservationId, CancellationToken ct)
     {
         var count = await dbContext.FrontOfficeReservations.CountAsync(x => x.PropertyId == propertyId && x.RoomTypeId == roomTypeId && x.Status != ReservationStatus.Cancelled && x.Status != ReservationStatus.NoShow && x.Status != ReservationStatus.Completed && x.ArrivalDate < departure && x.DepartureDate > arrival && (excludedReservationId == null || x.ReservationId != excludedReservationId), ct);

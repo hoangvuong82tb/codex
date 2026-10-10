@@ -19,4 +19,10 @@ public sealed class ReceptionHubCard
 }
 
 /// <summary>Read-only row projected from existing Front Office queries for the Reception workspace.</summary>
-public sealed record ReceptionReadOnlyRow(string PrimaryText, string SecondaryText, string StatusText);
+public sealed record ReceptionReadOnlyRow(
+    string PrimaryText,
+    string SecondaryText,
+    string StatusText,
+    DateTime? OperationalStatusChangedAtUtc = null,
+    DateTime? OperationalStatusExpiresAtUtc = null,
+    string? OperationalStatusReason = null);

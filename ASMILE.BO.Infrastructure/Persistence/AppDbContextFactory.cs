@@ -11,7 +11,8 @@ public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
         var connectionString = Environment.GetEnvironmentVariable("ASMILE_BO_DESIGNTIME_CONNECTION");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            connectionString = "Server=(localdb)\\MSSQLLocalDB;Database=ASMILE_BO_DesignTime;Integrated Security=True;TrustServerCertificate=True;Connect Timeout=1;";
+            throw new InvalidOperationException(
+                "Design-time database connection is not configured. Set ASMILE_BO_DESIGNTIME_CONNECTION explicitly before running EF commands; refusing to target an implicit database.");
         }
 
         builder.UseSqlServer(connectionString);

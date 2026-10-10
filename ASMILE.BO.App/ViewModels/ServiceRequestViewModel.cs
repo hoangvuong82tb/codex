@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ASMILE.BO.Application.FrontOffice.Concierge;
+using ASMILE.BO.Application.FrontOffice.Foundation.Contexts;
 
 namespace ASMILE.BO.App.ViewModels;
 
@@ -26,6 +28,17 @@ public sealed class ServiceRequestDto
 
 public sealed partial class ServiceRequestViewModel : ViewModelBase
 {
+    private readonly IServiceRequestService? _service;
+    private readonly IFrontOfficeExecutionContextAccessor? _executionContext;
+
+    public ServiceRequestViewModel(
+        IServiceRequestService? service = null,
+        IFrontOfficeExecutionContextAccessor? executionContext = null)
+    {
+        _service = service;
+        _executionContext = executionContext;
+    }
+
     public ObservableCollection<ServiceRequestDto> Requests { get; } = new();
     [ObservableProperty] private ServiceRequestDto? _selectedRequest;
     [ObservableProperty] private bool _isLoading;
@@ -57,16 +70,25 @@ public sealed partial class ServiceRequestViewModel : ViewModelBase
     [RelayCommand] private async Task LoadAsync(CancellationToken ct)
     {
         IsLoading = true;
+        ErrorMessage = string.Empty;
         try
         {
             Requests.Clear();
-            var r1 = new ServiceRequestDto { ServiceRequestId = Guid.NewGuid(), RequestNumber = "SRV-202607-000001", RoomNumber = "101", GuestName = "Nguyen Van A", ServiceType = "Extra Pillow", Category = "Housekeeping", Priority = "Normal", Status = "Completed", AssignedDepartment = "Housekeeping", EstimatedCost = 0, ActualCost = 0, ChargeType = "Complimentary", RequestedAt = DateTime.UtcNow.AddHours(-2), CompletedAt = DateTime.UtcNow.AddHours(-1) }; r1.History.Add("Created"); r1.History.Add("Assigned → Housekeeping"); r1.History.Add("Completed");
-            var r2 = new ServiceRequestDto { ServiceRequestId = Guid.NewGuid(), RequestNumber = "SRV-202607-000002", RoomNumber = "103", GuestName = "Le Van C", ServiceType = "Airport Pickup", Category = "Transportation", Priority = "High", Status = "InProgress", AssignedDepartment = "Transportation", EstimatedCost = 300000, ChargeType = "ImmediateCharge", RequestedAt = DateTime.UtcNow.AddHours(-1) }; r2.History.Add("Created"); r2.History.Add("Assigned → Transportation"); r2.History.Add("InProgress");
-            var r3 = new ServiceRequestDto { ServiceRequestId = Guid.NewGuid(), RequestNumber = "SRV-202607-000003", RoomNumber = "201", GuestName = "Pham Thi D", ServiceType = "Room Cleaning", Category = "Housekeeping", Priority = "Urgent", Status = "Open", RequestedAt = DateTime.UtcNow }; r3.History.Add("Created");
-            Requests.Add(r1); Requests.Add(r2); Requests.Add(r3);
+            if (_service is null || _executionContext?.Current is null)
+            {
+                ErrorMessage = "Chưa cấu hình Service Request và property context dữ liệu thật.";
+                return;
+            }
+
+            var propertyId = _executionContext.Current.Property.PropertyId.Value;
+            var persisted = await _service.GetAllAsync(propertyId, ct);
+            foreach (var request in persisted)
+                Requests.Add(Map(request));
+
             TotalOpen = Requests.Count(r => r.Status is "Open" or "Assigned");
             TotalInProgress = Requests.Count(r => r.Status == "InProgress");
             TotalCompleted = Requests.Count(r => r.Status == "Completed");
+            InfoMessage = $"Đã tải {Requests.Count:N0} yêu cầu từ dữ liệu thật.";
         }
         catch (Exception ex) { ErrorMessage = $"Loi: {ex.Message}"; }
         finally { IsLoading = false; }
@@ -76,20 +98,124 @@ public sealed partial class ServiceRequestViewModel : ViewModelBase
     [RelayCommand] private void SelectRequest(ServiceRequestDto? r) => SelectedRequest = r;
 
     [RelayCommand]
-    private void CreateRequest()
+    private async Task CreateRequest(CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(NewServiceType)) { ErrorMessage = "Vui long chon loai dich vu."; return; }
-        var nr = new ServiceRequestDto { ServiceRequestId = Guid.NewGuid(), RequestNumber = $"SRV-202607-{Requests.Count + 1:D6}", RoomNumber = NewRoomNumber, GuestName = NewGuestName, ServiceType = NewServiceType, Category = NewCategory, Priority = NewPriority, Status = "Open", ChargeType = NewChargeType, EstimatedCost = NewCost, RequestedAt = DateTime.UtcNow }; nr.History.Add("Created");
-        Requests.Insert(0, nr); TotalOpen++;
-        InfoMessage = $"Da tao yeu cau: {nr.RequestNumber} - {nr.ServiceType} cho phong {nr.RoomNumber}.";
+        if (_service is null || _executionContext?.Current is null) { ErrorMessage = "Chưa cấu hình Service Request dữ liệu thật."; return; }
+
+        var result = await _service.CreateAsync(new CreateServiceRequestRequest(
+            null,
+            null,
+            null,
+            string.IsNullOrWhiteSpace(NewRoomNumber) ? null : NewRoomNumber.Trim(),
+            string.IsNullOrWhiteSpace(NewGuestName) ? null : NewGuestName.Trim(),
+            ParseServiceType(NewServiceType),
+            ParsePriority(NewPriority),
+            $"{NewCategory}: {NewServiceType}",
+            null,
+            NewCost,
+            NewChargeType), ct);
+        InfoMessage = $"Đã tạo yêu cầu {result.RequestNumber} từ dữ liệu thật.";
         NewServiceType = ""; NewRoomNumber = ""; NewGuestName = "";
+        await LoadAsync(ct);
     }
 
-    [RelayCommand] private void AssignRequest() { if (SelectedRequest is null) return; SelectedRequest.Status = "Assigned"; SelectedRequest.AssignedDepartment = "Housekeeping"; SelectedRequest.History.Add($"Assigned → Housekeeping"); InfoMessage = $"Da phan cong {SelectedRequest.RequestNumber}."; }
-    [RelayCommand] private void StartRequest() { if (SelectedRequest is null) return; SelectedRequest.Status = "InProgress"; SelectedRequest.History.Add("InProgress"); TotalInProgress++; InfoMessage = $"Dang thuc hien {SelectedRequest.RequestNumber}."; }
-    [RelayCommand] private void CompleteRequest() { if (SelectedRequest is null) return; SelectedRequest.Status = "Completed"; SelectedRequest.CompletedAt = DateTime.UtcNow; SelectedRequest.History.Add("Completed"); TotalCompleted++; InfoMessage = $"Da hoan thanh {SelectedRequest.RequestNumber}."; }
-    [RelayCommand] private void CancelRequest() { if (SelectedRequest is null) return; SelectedRequest.Status = "Cancelled"; SelectedRequest.History.Add("Cancelled"); InfoMessage = $"Da huy {SelectedRequest.RequestNumber}."; }
+    [RelayCommand]
+    private async Task AssignRequest(CancellationToken ct)
+    {
+        await TransitionWithActorAsync(ServiceStatus.Assigned, ct);
+    }
 
-    partial void OnSelectedRequestChanged(ServiceRequestDto? v) => OnPropertyChanged(nameof(HasSelection));
-    partial void OnErrorMessageChanged(string v) => OnPropertyChanged(nameof(HasError));
+    [RelayCommand]
+    private async Task StartRequest(CancellationToken ct)
+    {
+        await TransitionAsync(ServiceStatus.InProgress, ct);
+    }
+
+    [RelayCommand]
+    private async Task CompleteRequest(CancellationToken ct)
+    {
+        await TransitionAsync(ServiceStatus.Completed, ct);
+    }
+
+    [RelayCommand]
+    private async Task CancelRequest(CancellationToken ct)
+    {
+        await TransitionAsync(ServiceStatus.Cancelled, ct);
+    }
+
+    private async Task TransitionWithActorAsync(ServiceStatus status, CancellationToken ct)
+    {
+        if (_executionContext?.Current?.Actor.ActorId is not { } actorId)
+        {
+            ErrorMessage = "Chưa có người dùng hiện tại để phân công.";
+            return;
+        }
+
+        if (_service is null || SelectedRequest is null)
+        {
+            ErrorMessage = "Chọn một yêu cầu từ dữ liệu thật trước.";
+            return;
+        }
+
+        await _service.AssignAsync(SelectedRequest.ServiceRequestId, actorId.Value, ct);
+        InfoMessage = $"Đã phân công {SelectedRequest.RequestNumber} cho người dùng hiện tại.";
+        await LoadAsync(ct);
+    }
+
+    private async Task TransitionAsync(ServiceStatus status, CancellationToken ct)
+    {
+        if (_service is null || SelectedRequest is null)
+        {
+            ErrorMessage = "Chọn một yêu cầu từ dữ liệu thật trước.";
+            return;
+        }
+
+        await _service.TransitionAsync(SelectedRequest.ServiceRequestId, status, null, ct);
+        InfoMessage = $"Đã cập nhật {SelectedRequest.RequestNumber}.";
+        await LoadAsync(ct);
+    }
+
+    private static ServiceType ParseServiceType(string value)
+        => value switch
+        {
+            "Wake-up Call" => ServiceType.WakeUpCall,
+            "Airport Pickup" => ServiceType.AirportTransfer,
+            "Taxi" => ServiceType.Taxi,
+            "Laundry" => ServiceType.Other,
+            "Food Delivery" => ServiceType.RestaurantBooking,
+            _ => Enum.TryParse<ServiceType>(value, true, out var parsed) ? parsed : ServiceType.Other
+        };
+
+    private static ServicePriority ParsePriority(string value)
+        => value switch
+        {
+            "High" => ServicePriority.High,
+            "Urgent" => ServicePriority.Urgent,
+            "Emergency" => ServicePriority.Vip,
+            _ => ServicePriority.Normal
+        };
+
+    private static ServiceRequestDto Map(ASMILE.BO.Application.FrontOffice.Concierge.ServiceRequestDto request)
+        => new()
+        {
+            ServiceRequestId = request.RequestId,
+            RequestNumber = request.RequestNumber,
+            RoomNumber = request.RoomNumber,
+            GuestName = request.GuestName,
+            ServiceType = request.Type.ToString(),
+            Category = request.Category ?? string.Empty,
+            Priority = request.Priority == ServicePriority.Vip ? "Emergency" : request.Priority.ToString(),
+            Status = request.Status == ServiceStatus.Requested ? "Open" : request.Status.ToString(),
+            AssignedDepartment = request.AssignedDepartment,
+            EstimatedCost = request.EstimatedCost,
+            ActualCost = request.ActualCost,
+            ChargeType = request.ChargeType ?? "ChargeAtCheckout",
+            Description = request.Description,
+            RequestedAt = request.RequestedAtUtc,
+            CompletedAt = request.CompletedAtUtc
+        };
+
+    partial void OnSelectedRequestChanged(ServiceRequestDto? value) => OnPropertyChanged(nameof(HasSelection));
+    partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
 }

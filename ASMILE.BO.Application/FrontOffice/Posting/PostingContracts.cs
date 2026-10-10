@@ -10,7 +10,8 @@ public sealed record PostingRequest(
     HotelFolioEntryType EntryType, decimal Amount, string Description,
     DateOnly BusinessDate, string? ReferenceType = null, Guid? ReferenceId = null,
     decimal TaxRate = 0, decimal ServiceChargeRate = 0, decimal DiscountRate = 0,
-    PaymentCurrency Currency = PaymentCurrency.VND, decimal ExchangeRate = 1
+    PaymentCurrency Currency = PaymentCurrency.VND, decimal ExchangeRate = 1,
+    Guid? RatePlanId = null
 );
 
 public sealed record PostingResult(

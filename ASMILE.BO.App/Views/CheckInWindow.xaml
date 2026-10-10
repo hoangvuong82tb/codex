@@ -1,6 +1,7 @@
 <Window x:Class="ASMILE.BO.App.Views.CheckInWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ASMILE.BO.App.Controls"
         Title="Check-in"
         Width="1240" Height="760"
         MinWidth="1050" MinHeight="640"
@@ -120,7 +121,7 @@
                         </StackPanel>
                     </ScrollViewer>
                     <Border Grid.Row="1" Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
-                        <Button Content="Tiếp tục Check-in" Click="OnContinueClick" Style="{StaticResource BlueBtn}" IsEnabled="{Binding HasSelection}"/>
+                        <Button Content="Tiếp tục Check-in" Click="OnContinueClick" Style="{StaticResource BlueBtn}" IsEnabled="{Binding CanCheckInSelection}"/>
                     </Border>
                 </Grid>
             </Border>
@@ -132,11 +133,9 @@
                 <StackPanel Orientation="Horizontal">
                     <TextBlock VerticalAlignment="Center" Foreground="#64748B" FontSize="13"><Run Text="Tổng: "/><Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="#17365D"/><Run Text=" kết quả"/></TextBlock>
                     <TextBlock VerticalAlignment="Center" Foreground="#DC2626" FontSize="12" Margin="16,0,0,0" Text="{Binding ErrorMessage, Mode=OneWay}" Visibility="{Binding HasError, Converter={StaticResource BoolVis}}"/>
+                    <TextBlock VerticalAlignment="Center" Foreground="#15803D" FontSize="12" Margin="16,0,0,0" Text="{Binding InfoMessage, Mode=OneWay}" Visibility="{Binding HasInfo, Converter={StaticResource BoolVis}}"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="← Trước" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}" Style="{StaticResource GrayBtn}"/>
-                    <Button Content="Sau →" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Style="{StaticResource GrayBtn}" Margin="8,0,0,0"/>
-                </StackPanel>
+                <controls:ServerPagerControl Grid.Column="1" DataContext="{Binding}"/>
             </Grid>
         </Border>
     </Grid>

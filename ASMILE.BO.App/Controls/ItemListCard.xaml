@@ -85,6 +85,22 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
+                        <DataGridTextColumn Header="Giá bán" Binding="{Binding RetailPrice, StringFormat={}{0:N0}}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource ItemCellTextStyle}" />
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTemplateColumn Header="Minibar" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Background="#FFF7ED" CornerRadius="10" Padding="8,3" Visibility="{Binding IsMinibarItem, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="Minibar" Foreground="#C2410C" FontSize="12" HorizontalAlignment="Center" />
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
                         <DataGridTemplateColumn Header="Trạng thái" Width="148">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>

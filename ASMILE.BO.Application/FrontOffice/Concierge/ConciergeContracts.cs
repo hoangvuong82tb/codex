@@ -15,7 +15,23 @@ public sealed record ServiceRequestDto(
     Guid? StayId, string? RoomNumber, ServiceType Type, ServiceStatus Status,
     ServicePriority Priority, string Description, Guid? AssignedTo,
     string? AssignedName, DateTime RequestedAtUtc, DateTime? CompletedAtUtc,
-    DateTime? SlaDeadlineAtUtc, SlaStatus SlaStatus, bool IsVip
+    DateTime? SlaDeadlineAtUtc, SlaStatus SlaStatus, bool IsVip,
+    string? Category = null, decimal? EstimatedCost = null, decimal? ActualCost = null,
+    string? ChargeType = null, string? AssignedDepartment = null
+);
+
+public sealed record CreateServiceRequestRequest(
+    Guid? GuestId,
+    Guid? StayId,
+    Guid? RoomId,
+    string? RoomNumber,
+    string? GuestName,
+    ServiceType Type,
+    ServicePriority Priority,
+    string Description,
+    DateTime? SlaDeadlineAtUtc,
+    decimal? EstimatedCost,
+    string? ChargeType
 );
 
 public sealed record ServiceSlaDto(
@@ -92,9 +108,11 @@ public sealed record ServicePerformanceDto(
 public interface IServiceRequestService
 {
     Task<ServiceRequestDto> CreateAsync(Guid? guestId, Guid? stayId, ServiceType type, ServicePriority priority, string description, DateTime? slaDeadline, CancellationToken ct);
+    Task<ServiceRequestDto> CreateAsync(CreateServiceRequestRequest request, CancellationToken ct);
     Task<ServiceRequestDto> AssignAsync(Guid requestId, Guid staffId, CancellationToken ct);
     Task<ServiceRequestDto> TransitionAsync(Guid requestId, ServiceStatus to, string? note, CancellationToken ct);
     Task<IReadOnlyList<ServiceRequestDto>> GetOpenAsync(Guid propertyId, CancellationToken ct);
+    Task<IReadOnlyList<ServiceRequestDto>> GetAllAsync(Guid propertyId, CancellationToken ct);
     Task<IReadOnlyList<ServiceSlaDto>> GetSlaReportAsync(Guid propertyId, CancellationToken ct);
 }
 
@@ -127,6 +145,30 @@ public interface IConciergeDashboardService
 {
     Task<ConciergeDashboardDto> GetDashboardAsync(Guid propertyId, CancellationToken ct);
     Task<IReadOnlyList<ServicePerformanceDto>> GetPerformanceAsync(Guid propertyId, CancellationToken ct);
+}
+
+// =============================================================================
+// TELEPHONE
+// =============================================================================
+
+public enum TelephoneCallDirection { Incoming, Outgoing }
+
+public sealed record TelephoneCallDto(
+    Guid CallId, TelephoneCallDirection Direction, string PhoneNumber,
+    string? GuestName, string? RoomNumber, string? Subject, string? Notes,
+    DateTime StartedAtUtc, int DurationSeconds, string Status, DateTime CreatedAtUtc);
+
+public sealed record TelephoneContactDto(
+    Guid ContactId, string DisplayName, string PhoneNumber, string? RoomNumber,
+    string Category, string? Notes, bool IsActive, DateTime UpdatedAtUtc);
+
+public interface ITelephoneService
+{
+    Task<IReadOnlyList<TelephoneCallDto>> GetCallsAsync(Guid propertyId, TelephoneCallDirection? direction, string? keyword, CancellationToken ct);
+    Task<TelephoneCallDto> LogCallAsync(TelephoneCallDirection direction, string phoneNumber, string? guestName, string? roomNumber, string? subject, string? notes, DateTime startedAtUtc, int durationSeconds, CancellationToken ct);
+    Task<IReadOnlyList<TelephoneContactDto>> GetContactsAsync(Guid propertyId, string? keyword, CancellationToken ct);
+    Task<TelephoneContactDto> SaveContactAsync(Guid? contactId, string displayName, string phoneNumber, string? roomNumber, string? category, string? notes, CancellationToken ct);
+    Task DeactivateContactAsync(Guid contactId, CancellationToken ct);
 }
 
 // =============================================================================

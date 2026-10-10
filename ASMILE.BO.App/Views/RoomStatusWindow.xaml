@@ -43,7 +43,10 @@
                 </WrapPanel>
 
                 <!-- Room count -->
-                <TextBlock Grid.Row="1" Margin="0,0,0,10" FontSize="12" Foreground="#94A3B8"><Run Text="Hiển thị "/><Run x:Name="RoomCount" Text="0" FontWeight="SemiBold" Foreground="#64748B"/><Run Text=" phòng"/></TextBlock>
+                <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                    <TextBlock FontSize="12" Foreground="#94A3B8"><Run Text="Hiển thị "/><Run x:Name="RoomCount" Text="0" FontWeight="SemiBold" Foreground="#64748B"/><Run Text=" phòng"/></TextBlock>
+                    <TextBlock x:Name="LoadError" FontSize="12" Foreground="#B91C1C" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,4,0,0"/>
+                </StackPanel>
 
                 <!-- Room Cards -->
                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">

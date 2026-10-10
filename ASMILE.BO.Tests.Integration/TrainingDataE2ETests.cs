@@ -159,6 +159,29 @@ public sealed class TrainingDataE2ETests
         (await db.Items.CountAsync(x => x.ItemCode.StartsWith("HOTEL-"))).Should().BeGreaterThan(0);
         (await db.JournalHeaders.CountAsync(x => x.SourceType == "TrainingDataHotel")).Should().BeGreaterThan(0);
         (await db.ReceivableTransactions.CountAsync()).Should().BeGreaterThan(0);
+        (await db.HotelRoomTypes.CountAsync(x => x.Code == "STD")).Should().Be(1);
+        (await db.HotelRooms.CountAsync()).Should().Be(6);
+        var seededRooms = await db.HotelRooms.AsNoTracking().ToListAsync();
+        seededRooms.Should().OnlyContain(x => !string.IsNullOrWhiteSpace(x.RoomCondition));
+        seededRooms.Should().OnlyContain(x => !string.IsNullOrWhiteSpace(x.View));
+        seededRooms.Should().OnlyContain(x => !string.IsNullOrWhiteSpace(x.BedType));
+        seededRooms.Single(x => x.RoomNumber == "102").IsConnecting.Should().BeTrue();
+        seededRooms.Single(x => x.RoomNumber == "202").IsSmoking.Should().BeTrue();
+        (await db.GuestProfiles.CountAsync()).Should().Be(3);
+        (await db.FrontOfficeReservations.CountAsync()).Should().Be(2);
+        (await db.HotelStays.CountAsync()).Should().Be(2);
+        (await db.HotelFolios.CountAsync()).Should().Be(1);
+        (await db.HotelFolioEntries.CountAsync()).Should().Be(4);
+
+        var roomCount = await db.HotelRooms.CountAsync();
+        var secondHotel = await training.ExecuteAsync(new TrainingDataOperationRequest
+        {
+            OperationType = TrainingDataOperationType.SeedFullTraining,
+            SeedProfile = TrainingDataSeedProfile.HotelDemo,
+            ConfirmationText = "RESET DATA"
+        });
+        secondHotel.Success.Should().BeTrue();
+        (await db.HotelRooms.CountAsync()).Should().Be(roomCount);
     }
 
     [Fact]

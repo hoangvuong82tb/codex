@@ -9,19 +9,23 @@ namespace ASMILE.BO.Tests.Unit;
 public sealed class ReceptionHubViewModelTests
 {
     [Fact]
-    public void REC_HUB_U_001_catalog_has_twelve_cards_and_only_real_queries_are_read_only()
+    public void REC_HUB_U_001_catalog_contains_the_current_reception_operations()
     {
         using var hub = CreateHub();
 
-        hub.Cards.Should().HaveCount(14);
-        hub.Cards.Where(card => card.IsReadOnly).Select(card => card.Id)
-            .Should().BeEquivalentTo(["locked-room", "arrivals", "departures", "stay-profile", "current-guests"]);
-        hub.Cards.Where(card => card.IsComingSoon).Should().HaveCount(4);
+        hub.Cards.Should().HaveCount(13);
+        hub.Cards.Where(card => card.IsReadOnly).Should().BeEmpty();
+        hub.Cards.Where(card => card.IsComingSoon).Should().BeEmpty();
+        hub.Cards.Select(card => card.Id).Should().Contain([
+            "room-status", "check-in", "walk-in", "stay-adjustment", "checkout",
+            "stay-profile", "locked-room", "current-guests", "arrivals", "departures",
+            "housekeeping-message", "exchange-rate", "group-check-in"]);
         hub.Cards.Select(card => card.Id).Should().NotContain("room-key-reader");
+        hub.Cards.Should().NotContain(card => card.Id.Contains("report", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
-    public async Task REC_HUB_U_002_to_004_read_only_cards_open_matching_modal_and_coming_soon_calls_no_service()
+    public async Task REC_HUB_U_002_to_004_read_only_cards_open_matching_modal_and_active_cards_remain_enabled()
     {
         var modal = new FakeModalService();
         using var hub = CreateHub(modal: modal);
@@ -33,9 +37,33 @@ public sealed class ReceptionHubViewModelTests
         await ((IAsyncRelayCommand)hub.Cards.Single(card => card.Id == "stay-profile").Command).ExecuteAsync(null);
         modal.OpenCalls.Should().Contain((ReceptionWorkspaceKind.StayProfiles, "stay-profile"));
 
-        hub.Cards.Single(card => card.Id == "walk-in").Command.Execute(null);
-        hub.IsComingSoonDialogOpen.Should().BeTrue();
+        hub.Cards.Single(card => card.Id == "walk-in").IsComingSoon.Should().BeFalse();
+        hub.Cards.Single(card => card.Id == "walk-in").IsEnabled.Should().BeTrue();
+        hub.IsComingSoonDialogOpen.Should().BeFalse();
         modal.OpenCalls.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task REC_HUB_U_003_read_only_cards_use_the_real_query_workspace_when_di_is_available()
+    {
+        var modal = new FakeModalService();
+        using var hub = CreateHub(modal: modal, serviceProvider: new EmptyServiceProvider());
+
+        await ((IAsyncRelayCommand)hub.Cards.Single(card => card.Id == "arrivals").Command).ExecuteAsync(null);
+
+        modal.OpenCalls.Should().ContainSingle().Which.Should().Be((ReceptionWorkspaceKind.ArrivalsToday, "arrivals"));
+    }
+
+    [Fact]
+    public async Task REC_HUB_U_004_checkout_card_uses_the_real_checkout_modal()
+    {
+        var checkout = new FakeCheckOutModalService();
+        using var hub = CreateHub(checkOutModalService: checkout);
+
+        await ((IAsyncRelayCommand)hub.Cards.Single(card => card.Id == "checkout").Command).ExecuteAsync(null);
+
+        checkout.OpenCalls.Should().ContainSingle().Which.Should().Be("checkout");
+        hub.ActiveWorkspace.Should().BeNull();
     }
 
     [Fact]
@@ -71,8 +99,30 @@ public sealed class ReceptionHubViewModelTests
             .Should().NotContain(name => name.Contains("Repository", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static ReceptionHubViewModel CreateHub(FakePermissions? permissions = null, FakePropertyContextHost? host = null, FakeModalService? modal = null)
-        => new(permissions ?? new FakePermissions(), host ?? new FakePropertyContextHost(), modal ?? new FakeModalService());
+    private static ReceptionHubViewModel CreateHub(FakePermissions? permissions = null, FakePropertyContextHost? host = null, FakeModalService? modal = null, IServiceProvider? serviceProvider = null, ILockedRoomWindowService? lockedRoomWindowService = null, ICheckOutStayModalService? checkOutModalService = null)
+        => new(permissions ?? new FakePermissions(), host ?? new FakePropertyContextHost(), modal ?? new FakeModalService(), serviceProvider!, lockedRoomWindowService!, checkOutModalService: checkOutModalService);
+
+    private sealed class EmptyServiceProvider : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => null;
+    }
+
+    private sealed class FakeCheckOutModalService : ICheckOutStayModalService
+    {
+        public CheckOutStayModalViewModel? ActiveModal => null;
+        public bool IsOpen { get; private set; }
+        public List<string> OpenCalls { get; } = [];
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public Task<bool> OpenAsync(string sourceCardId, CancellationToken cancellationToken = default)
+        {
+            IsOpen = true;
+            OpenCalls.Add(sourceCardId);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsOpen)));
+            return Task.FromResult(true);
+        }
+        public void Close() => IsOpen = false;
+        public void Dispose() { }
+    }
 
     private sealed class FakePermissions : IReceptionHubPermissionReader
     {

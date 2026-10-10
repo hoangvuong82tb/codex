@@ -163,6 +163,14 @@ public sealed class BusinessDateRecord
 
     public static BusinessDateRecord Open(Guid propertyId, DateOnly date, DateTime nowUtc, ActorId? actorId) => new() { BusinessDateId = Uuid7.NewGuid(), PropertyId = propertyId, BusinessDate = date, Status = BusinessDateStatus.Open, OpenedAtUtc = nowUtc, OpenedBy = actorId?.Value };
     public void BeginClosing(Guid nightAuditId, DateTime nowUtc) { Status = BusinessDateStatus.Closing; NightAuditId = nightAuditId; }
+    public void Reopen()
+    {
+        if (Status != BusinessDateStatus.Closing)
+            return;
+
+        Status = BusinessDateStatus.Open;
+        NightAuditId = null;
+    }
     public void MarkClosed(DateTime nowUtc, ActorId? actorId) { Status = BusinessDateStatus.Closed; ClosedAtUtc = nowUtc; ClosedBy = actorId?.Value; }
     public void Archive(DateTime nowUtc) { Status = BusinessDateStatus.Archived; }
 }

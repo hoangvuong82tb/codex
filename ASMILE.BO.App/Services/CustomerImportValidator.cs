@@ -1,5 +1,6 @@
 using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.App.Models;
+using System.Net.Mail;
 using System.Text.RegularExpressions;
 
 namespace ASMILE.BO.App.Services;
@@ -59,6 +60,18 @@ public sealed class CustomerImportValidator : ICustomerImportValidator
             if (existingCustomers.Any(x => Normalize(x.Phone) == normalizedPhone))
             {
                 issues.Add(Create("dup_db_phone", "Số điện thoại đã tồn tại trong hệ thống.", SupplierImportIssueSeverity.Warning));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(row.Email))
+        {
+            try
+            {
+                _ = new MailAddress(row.Email.Trim());
+            }
+            catch (FormatException)
+            {
+                issues.Add(Create("invalid_email", "Sai định dạng email.", SupplierImportIssueSeverity.Error));
             }
         }
 
@@ -122,4 +135,3 @@ public sealed class CustomerImportValidator : ICustomerImportValidator
         return false;
     }
 }
-

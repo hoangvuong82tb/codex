@@ -130,4 +130,19 @@ public interface IGuestProfileRepository
     Task<VipDashboardDto> GetVipDashboardAsync(Guid propertyId, CancellationToken ct);
 }
 
-public sealed record GuestProfileDto(Guid GuestProfileId, string GuestNumber, string FullName, string? Phone, string? Email, VipLevel VipLevel, int TotalStays, decimal TotalRevenue, DateTime CreatedAtUtc, bool IsBlacklisted, string? Nationality, string? CompanyName);
+public sealed record GuestProfileDto(
+    Guid GuestProfileId,
+    string GuestNumber,
+    string FullName,
+    string? Phone,
+    string? Email,
+    VipLevel VipLevel,
+    int TotalStays,
+    decimal TotalRevenue,
+    DateTime CreatedAtUtc,
+    bool IsBlacklisted,
+    string? Nationality,
+    string? CompanyName,
+    string? Notes = null,
+    string? Gender = null,
+    DateOnly? DateOfBirth = null);

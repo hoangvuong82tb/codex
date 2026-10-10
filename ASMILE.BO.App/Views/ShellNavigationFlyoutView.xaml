@@ -24,6 +24,8 @@
                      Grid.Row="0"
                      Style="{StaticResource StartSearchBoxStyle}"
                      Text="{Binding GlobalSearchText, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Tìm kiếm module, báo cáo và dữ liệu"
+                     AutomationProperties.AutomationId="ShellNavigationSearchBox"
                      ToolTip="Ctrl+P" />
 
             <DockPanel Grid.Row="1"
@@ -191,6 +193,8 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type dto:GlobalSearchResultDto}">
                                             <Button Style="{StaticResource ShellNavigationListButtonStyle}"
+                                                    AutomationProperties.Name="{Binding Title}"
+                                                    AutomationProperties.AutomationId="{Binding TargetRoute}"
                                                     Command="{Binding DataContext.OpenGlobalSearchResultCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}">
                                                 <Grid>

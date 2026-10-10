@@ -4,6 +4,8 @@ namespace ASMILE.BO.Application.Interfaces;
 
 public interface IArchiveService
 {
+    Task<IReadOnlyList<DataRetentionPolicyDto>> GetRetentionPoliciesAsync(CancellationToken cancellationToken = default);
+    Task<DataRetentionPolicyDto> SaveRetentionPolicyAsync(DataRetentionPolicyDto policy, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<RetentionPreviewDto>> PreviewRetentionAsync(CancellationToken cancellationToken = default);
     Task<ArchiveBatchDto> RunArchiveAsync(string? module = null, bool compressArchivedPayload = true, IProgress<int>? progress = null, CancellationToken cancellationToken = default);
     Task<ArchiveBatchDto> RestoreArchiveAsync(Guid archiveBatchId, CancellationToken cancellationToken = default);

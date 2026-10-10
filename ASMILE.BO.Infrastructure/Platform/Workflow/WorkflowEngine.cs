@@ -102,11 +102,15 @@ public sealed class WorkflowQueryService(AppDbContext db) : IWorkflowQueryServic
         if (f.ProcessKey is not null) q = q.Where(p => p.ProcessKey.Contains(f.ProcessKey));
         q = q.OrderByDescending(p => p.UpdatedAtUtc);
         var total = await q.CountAsync(ct);
-        var items = await q.Skip(page.Skip).Take(Math.Clamp(page.PageSize, 1, 200)).Select(p => Map(p)).ToListAsync(ct);
+        var items = (await q.Skip(page.Skip).Take(Math.Clamp(page.PageSize, 1, 200)).ToListAsync(ct)).Select(Map).ToList();
         return new PageResult<WorkflowInstanceDto>(items, total, page.Page, page.PageSize);
     }
 
-    public async Task<WorkflowInstanceDto?> GetInstanceAsync(Guid propertyId, Guid processId, CancellationToken ct) => Map(await db.Set<ProcessInstance>().AsNoTracking().FirstOrDefaultAsync(p => p.PropertyId == propertyId && p.ProcessId == processId, ct));
+    public async Task<WorkflowInstanceDto?> GetInstanceAsync(Guid propertyId, Guid processId, CancellationToken ct)
+    {
+        var instance = await db.Set<ProcessInstance>().AsNoTracking().FirstOrDefaultAsync(p => p.PropertyId == propertyId && p.ProcessId == processId, ct);
+        return instance is null ? null : Map(instance);
+    }
     public async Task<IReadOnlyList<ProcessStep>> GetStepsAsync(Guid processId, CancellationToken ct) => await db.Set<ProcessStep>().AsNoTracking().Where(s => s.ProcessId == processId).OrderBy(s => s.Sequence).ToListAsync(ct);
     public async Task<IReadOnlyList<ProcessHistory>> GetHistoryAsync(Guid processId, CancellationToken ct) => await db.Set<ProcessHistory>().AsNoTracking().Where(h => h.ProcessId == processId).OrderBy(h => h.OccurredAtUtc).ToListAsync(ct);
 
