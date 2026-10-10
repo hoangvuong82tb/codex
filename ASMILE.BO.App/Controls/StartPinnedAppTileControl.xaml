@@ -7,6 +7,8 @@
              d:DesignHeight="96"
              d:DesignWidth="106">
     <Button Style="{StaticResource PinnedAppTileButtonStyle}"
+            AutomationProperties.Name="{Binding Module.Title, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            AutomationProperties.AutomationId="{Binding Module.Key, RelativeSource={RelativeSource AncestorType=UserControl}}"
             Command="{Binding OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
             CommandParameter="{Binding Module, RelativeSource={RelativeSource AncestorType=UserControl}}">
         <StackPanel HorizontalAlignment="Center">

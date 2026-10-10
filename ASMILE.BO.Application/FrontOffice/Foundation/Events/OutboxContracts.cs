@@ -7,5 +7,4 @@ namespace ASMILE.BO.Application.FrontOffice.Foundation.Events;
 public sealed record IntegrationEventEnvelope(string EventName, int SchemaVersion, object Payload, string AggregateType, string AggregateId, long AggregateVersion, string PartitionKey, string Sensitivity = "Internal");
 public interface IIntegrationEventMapper { IntegrationEventEnvelope Map(IFrontOfficeDomainEvent domainEvent); }
 public interface IOutboxMessageFactory { FrontOfficeOutboxMessage Create(IFrontOfficeDomainEvent domainEvent, IntegrationEventEnvelope integrationEvent, FrontOfficeExecutionContext context); }
-public interface IOutboxPublisher { Task PublishAsync(FrontOfficeOutboxMessage message, CancellationToken cancellationToken); }
 public interface IRetryClassifier { bool IsRetryable(Exception exception); }

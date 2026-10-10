@@ -17,7 +17,8 @@ public sealed partial class AppModuleInfo : ObservableObject
         string accentHex,
         bool isPinned,
         bool showOnDesktop,
-        string? iconPath = null)
+        string? iconPath = null,
+        string? requiredPermission = null)
     {
         Key = key;
         Title = title;
@@ -27,14 +28,17 @@ public sealed partial class AppModuleInfo : ObservableObject
         IsPinned = isPinned;
         ShowOnDesktop = showOnDesktop;
         IconPath = iconPath;
+        RequiredPermission = requiredPermission;
     }
 
     public string Key { get; }
-    public string Title { get; }
+    [ObservableProperty]
+    private string title;
     public string IconGlyph { get; }
     public string Subtitle { get; }
     public string AccentHex { get; }
     public string? IconPath { get; }
+    public string? RequiredPermission { get; }
 
     public SolidColorBrush AccentBrush => (SolidColorBrush)new BrushConverter().ConvertFromString(AccentHex)!;
 

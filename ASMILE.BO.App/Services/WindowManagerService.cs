@@ -421,7 +421,12 @@ public sealed class WindowManagerService : IWindowManagerService
         var wasActive = window.IsActive;
         window.State = AppWindowState.Closed;
         OpenWindows.Remove(window);
-        if (window.ContentViewModel is IDisposable disposable)
+        // Scoped module windows are owned by their IServiceScope. Disposing the
+        // content first and then the scope disposes the same ViewModel twice,
+        // which can cancel an already-disposed CTS and leave async EF work
+        // running against a closing scope. Content created without a scope is
+        // still owned here and must be disposed explicitly.
+        if (window.ServiceScope is null && window.ContentViewModel is IDisposable disposable)
         {
             disposable.Dispose();
         }

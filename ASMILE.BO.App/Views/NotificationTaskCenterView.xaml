@@ -349,7 +349,12 @@
                         <Button Content="👀" Width="32" Height="28" FontSize="14" Padding="0" Cursor="Hand" Background="#F1F5F9" BorderThickness="0" ToolTip="Đang xem" Command="{Binding AddReactionCommand}" CommandParameter="👀"/>
                       </WrapPanel>
                     </StackPanel>
-                    <Button Grid.Column="2" Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Đánh dấu đã đọc" Command="{Binding MarkReadCommand}" Height="32" FontSize="11" Padding="10,0"/>
+                    <WrapPanel Grid.Column="2" VerticalAlignment="Top">
+                      <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Đánh dấu đã đọc" Command="{Binding MarkReadCommand}" Height="32" FontSize="11" Padding="10,0" Margin="0,0,4,0"/>
+                      <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Xác nhận" Command="{Binding AcknowledgeCommand}" IsEnabled="{Binding SelectedInboxItem.CanAcknowledge}" Height="32" FontSize="11" Padding="10,0" Margin="0,0,4,0"/>
+                      <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Ẩn" Command="{Binding DismissCommand}" IsEnabled="{Binding SelectedInboxItem.CanDismiss}" Height="32" FontSize="11" Padding="10,0" Margin="0,0,4,0"/>
+                      <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Hiện lại" Command="{Binding RestoreCommand}" IsEnabled="{Binding SelectedInboxItem.CanRestore}" Height="32" FontSize="11" Padding="10,0"/>
+                    </WrapPanel>
                   </Grid>
                   <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="220"/></Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Margin="0,0,12,0">
@@ -357,7 +362,7 @@
                       <Border BorderBrush="#DDE7F3" BorderThickness="1" CornerRadius="10" Padding="14"><StackPanel><TextBlock Text="Lịch sử xử lý" FontWeight="SemiBold" FontSize="14" Foreground="#0F172A" Margin="0,0,0,8"/><ItemsControl ItemsSource="{Binding SelectedTimeline}"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,3,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="{Binding Time, StringFormat=dd/MM HH:mm}" FontSize="11" Foreground="#94A3B8"/><Border Grid.Column="1" Width="6" Height="6" CornerRadius="3" Background="#2563EB" Margin="4,4,0,0"/><StackPanel Grid.Column="2"><TextBlock Text="{Binding Action}" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A"/><TextBlock Text="{Binding Actor}" FontSize="10" Foreground="#94A3B8"/></StackPanel></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
                       <!-- Chat Box -->
                       <Border BorderBrush="#DDE7F3" BorderThickness="1" CornerRadius="10" Padding="0" Margin="0,10,0,0" Background="#F9FAFB">
-                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                           <TextBlock Grid.Row="0" Text="Binh luan" FontWeight="SemiBold" FontSize="14" Foreground="#0F172A" Margin="14,12,14,0"/>
                           <Border Grid.Row="1" MaxHeight="160" Margin="14,8,14,8">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -378,10 +383,26 @@
                               </ItemsControl>
                             </ScrollViewer>
                           </Border>
-                          <Border Grid.Row="2" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Background="White" Padding="10,8" CornerRadius="0,0,10,10">
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                          <Border Grid.Row="2" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Background="#F8FAFC" Padding="10,8">
+                            <StackPanel>
+                              <TextBlock Text="Tệp đính kèm đã lưu" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,5"/>
+                              <ItemsControl ItemsSource="{Binding AttachmentList}">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                  <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="8,5" Margin="0,0,0,4">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                      <StackPanel Grid.Column="0"><TextBlock Text="{Binding FileName}" FontSize="11" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding SizeText}" FontSize="9" Foreground="#94A3B8"/></StackPanel>
+                                      <TextBlock Grid.Column="1" Text="{Binding CreatedAtText}" FontSize="9" Foreground="#94A3B8" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                    </Grid>
+                                  </Border>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                              </ItemsControl>
+                            </StackPanel>
+                          </Border>
+                          <Border Grid.Row="3" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Background="White" Padding="10,8" CornerRadius="0,0,10,10">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                               <TextBox Grid.Column="0" Text="{Binding NewCommentText, UpdateSourceTrigger=PropertyChanged}" Height="34" FontSize="12" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" Padding="8,0"/>
-                              <Button Grid.Column="1" Content="Gui" Command="{Binding AddCommentCommand}" Style="{StaticResource EnterpriseModuleCmdPrimary}" Height="34" FontSize="12" Padding="14,0"/>
+                              <Button Grid.Column="1" Content="📎" Command="{Binding AttachFileCommand}" IsEnabled="{Binding CanAttachFile}" Style="{StaticResource EnterpriseModuleCmdSecondary}" Height="34" Width="38" FontSize="14" Padding="0" Margin="4,0,4,0" ToolTip="Lưu tệp đính kèm"/>
+                              <Button Grid.Column="2" Content="Gửi" Command="{Binding AddCommentCommand}" Style="{StaticResource EnterpriseModuleCmdPrimary}" Height="34" FontSize="12" Padding="14,0"/>
                             </Grid>
                           </Border>
                         </Grid>

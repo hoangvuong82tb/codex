@@ -36,8 +36,8 @@ public sealed class NavigationService : INavigationService
 
     public IReadOnlyList<AppModuleInfo> GetModuleCatalog()
     {
-        var iconBase = @"D:\ASMILE-BO\Windows_Icon\Icons\applications\";
-        var logoBase = @"D:\ASMILE-BO\Windows_Icon\Icons\logo\";
+        var iconBase = ApplicationAssetPaths.Directory(@"Icons\applications");
+        var logoBase = ApplicationAssetPaths.Directory(@"Icons\logo");
 
         return
         [
@@ -60,8 +60,6 @@ public sealed class NavigationService : INavigationService
             new AppModuleInfo("receipts", "Phiếu nhập", "\uE8A7", "Nghiệp vụ chứng từ", "#27AE60", true, true, iconBase + "import.ico"),
             new AppModuleInfo("issues", "Phiếu xuất", "\uE8A8", "Nghiệp vụ chứng từ", "#F2994A", true, true, iconBase + "order.ico"),
             new AppModuleInfo("report-center", "Trung tâm báo cáo", "\uE9D2", "ReportEngine persisted, chạy báo cáo và xuất Excel/PDF/CSV", "#2563EB", true, true, iconBase + "insights.ico"),
-            new AppModuleInfo("stock-report", "Báo cáo tồn kho", "\uE9D2", "Báo cáo", "#2D9CDB", true, false, iconBase + "insights.ico"),
-            new AppModuleInfo("debt-report", "Báo cáo công nợ", "\uE9D9", "Báo cáo", "#EB5757", true, false, iconBase + "insights3.ico"),
             new AppModuleInfo("settings", "Cài đặt hệ thống", "\uE713", "Thiết lập", "#9AA5B1", true, true, iconBase + "settings.ico"),
             new AppModuleInfo("security-admin", "Quản trị bảo mật", "\uE72E", "Vai trò và phân quyền", "#34495E", true, true, iconBase + "protection.ico"),
             new AppModuleInfo("workspace-settings", "Thiết lập không gian làm việc", "\uE713", "Tùy biến workspace", "#64748B", true, false, iconBase + "settings.ico"),
@@ -74,7 +72,13 @@ public sealed class NavigationService : INavigationService
             new AppModuleInfo("menu-recipe", "Món ăn & Định lượng", "\uE8D2", "Quản lý món và định lượng nguyên vật liệu", "#0EA5E9", true, true, iconBase + "commerce.ico"),
             new AppModuleInfo("restaurant-alacarte", "Nhà hàng À La Carte", "\uE7BF", "Quản lý phòng ăn, bàn, đặt bàn, gọi món và thanh toán", "#0EA5E9", true, true, iconBase + "commerce.ico"),
             new AppModuleInfo("restaurant-banquet", "Nhà hàng Tiệc", "\uE8D2", "Quản lý phòng tiệc, sự kiện, hợp đồng, đặt cọc và checklist", "#0F766E", true, true, iconBase + "calendar.ico"),
-            new AppModuleInfo("front-office-reservations", "Dat phong", "\uE787", "Quan ly dat phong khach san", "#2563EB", true, true, iconBase + "calendar.ico"),
+            new AppModuleInfo("front-office-reservations", "Quan ly khach san", "\uE787", "Chon phan he de bat dau lam viec", "#2563EB", true, true, iconBase + "calendar.ico"),
+            // Internal destinations used by the central hotel configuration page.
+            // Keep them off the desktop so setup is entered from one hub.
+            new AppModuleInfo("hotel-settings", "Cấu hình khách sạn", "\uE787", "Trung tâm cấu hình Khách sạn & Front Office", "#2563EB", false, false, iconBase + "settings.ico"),
+            new AppModuleInfo("hotel-room-master", "Hạng phòng & phòng", "\uE8FA", "Danh mục phòng và hạng phòng", "#2563EB", false, false, iconBase + "calendar.ico"),
+            new AppModuleInfo("hotel-housekeeping-supplies", "Đồ vải & tiện nghi", "\uE8B7", "Danh mục và tồn kho buồng phòng", "#0EA5A8", false, false, iconBase + "operations.ico"),
+            new AppModuleInfo("hotel-rate-engine", "Khung giá & quy tắc giá", "\uE8C8", "Rate plan và lịch giá khách sạn", "#7C3AED", false, false, iconBase + "pricing.ico"),
             new AppModuleInfo("breakfast-cafe-sales", "Bán đồ ăn sáng & cà phê", "\uEADF", "Bán nhanh cho nhà hàng/khách sạn/café", "#2563EB", true, true, iconBase + "commerce.ico"),
             new AppModuleInfo("breakfast-cafe-settings", "Cài đặt Breakfast & Coffee", "\uE713", "Cấu hình POS nhà hàng và quầy cà phê", "#2563EB", true, false, iconBase + "settings.ico")
         ];
@@ -110,7 +114,7 @@ public sealed class NavigationService : INavigationService
             "menu-recipe" => "menu-recipe.view",
             "restaurant-alacarte" => "restaurant.alacarte.view",
             "restaurant-banquet" => "restaurant.banquet.view",
-            "front-office-reservations" => "FrontOffice.Reservation.View",
+            "front-office-reservations" or "hotel-settings" or "hotel-room-master" or "hotel-housekeeping-supplies" or "hotel-rate-engine" => "FrontOffice.Reservation.View",
             "breakfast-cafe-sales" => "breakfast-cafe.view",
             "breakfast-cafe-settings" => "breakfast-cafe-settings.view",
             _ => "dashboard.view"
@@ -323,21 +327,40 @@ public sealed class NavigationService : INavigationService
             "payment-voucher" => serviceProvider.GetRequiredService<PaymentVouchersViewModel>(),
             "report-center" or "stock-report" or "debt-report" => serviceProvider.GetRequiredService<ReportCenterViewModel>(),
             "settings" => serviceProvider.GetRequiredService<SettingsViewModel>(),
+            "hotel-settings" => ResolveHotelSettings(serviceProvider),
+            "hotel-room-master" => serviceProvider.GetRequiredService<RoomMasterViewModel>(),
+            "hotel-housekeeping-supplies" => serviceProvider.GetRequiredService<HousekeepingSupplyViewModel>(),
+            "hotel-rate-engine" => serviceProvider.GetRequiredService<RateEngineViewModel>(),
             "security-admin" or "authorization" => serviceProvider.GetRequiredService<SecurityAdminViewModel>(),
             "workspace-settings" => serviceProvider.GetRequiredService<WorkspaceSettingsViewModel>(),
             "audit-center" => serviceProvider.GetRequiredService<AuditCenterViewModel>(),
             "operations-center" => serviceProvider.GetRequiredService<OperationsCenterViewModel>(),
             "fiscal-periods" => serviceProvider.GetRequiredService<FiscalPeriodManagementViewModel>(),
             "notification-center" => serviceProvider.GetRequiredService<NotificationTaskCenterViewModel>(),
+            "concierge" or "service-request" or "service-requests" => serviceProvider.GetRequiredService<ConciergeViewModel>(),
             "training-data" => serviceProvider.GetRequiredService<TrainingDataViewModel>(),
             "menu-recipe" => serviceProvider.GetRequiredService<MenuRecipeViewModel>(),
             "restaurant-alacarte" => serviceProvider.GetRequiredService<AlacarteRestaurantViewModel>(),
             "restaurant-banquet" => serviceProvider.GetRequiredService<BanquetRestaurantViewModel>(),
-            "front-office-reservations" => serviceProvider.GetRequiredService<ReservationWorkspaceViewModel>(),
+            "front-office-reservations" => serviceProvider.GetRequiredService<FrontOfficeHubViewModel>(),
             "breakfast-cafe-sales" => serviceProvider.GetRequiredService<BreakfastCafeSalesViewModel>(),
-            "breakfast-cafe-settings" => serviceProvider.GetRequiredService<BreakfastCafeSettingsViewModel>(),
+            "breakfast-cafe-settings" => ResolveBreakfastCafeSettings(serviceProvider),
             _ => new ModulePlaceholderViewModel(request.Target.DisplayTitle ?? route, BuildFallbackDescription(request))
         };
+    }
+
+    private static object ResolveHotelSettings(IServiceProvider serviceProvider)
+    {
+        var settings = serviceProvider.GetRequiredService<SettingsViewModel>();
+        settings.OpenCategory("hotel");
+        return settings;
+    }
+
+    private static BreakfastCafeSalesViewModel ResolveBreakfastCafeSettings(IServiceProvider serviceProvider)
+    {
+        var viewModel = serviceProvider.GetRequiredService<BreakfastCafeSalesViewModel>();
+        viewModel.LeftTabIndex = 3;
+        return viewModel;
     }
 
     private void AddHistory(NavigationRequest request, string correlationId)
@@ -368,24 +391,7 @@ public sealed class NavigationService : INavigationService
     }
 
     private static string ResolveReportRoute(string reportCode)
-    {
-        if (reportCode.StartsWith("VAT_", StringComparison.OrdinalIgnoreCase)
-            || reportCode.Contains("BALANCE", StringComparison.OrdinalIgnoreCase)
-            || reportCode.Contains("INCOME", StringComparison.OrdinalIgnoreCase)
-            || reportCode.Contains("TRIAL", StringComparison.OrdinalIgnoreCase)
-            || reportCode.Contains("LEDGER", StringComparison.OrdinalIgnoreCase))
-        {
-            return "tax-financial";
-        }
-
-        if (reportCode.Contains("STOCK", StringComparison.OrdinalIgnoreCase)
-            || reportCode.Contains("INVENTORY", StringComparison.OrdinalIgnoreCase))
-        {
-            return "stock-report";
-        }
-
-        return "debt-report";
-    }
+        => "report-center";
 
     private static string NormalizeRoute(string route)
     {

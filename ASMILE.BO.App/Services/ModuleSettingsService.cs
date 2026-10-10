@@ -1,4 +1,10 @@
 ﻿using ASMILE.BO.App.Models;
+using ASMILE.BO.Application.DTOs;
+using ASMILE.BO.Application.DTOs.Settings;
+using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Interfaces.Settings;
+using ASMILE.BO.Core.Entities.Settings;
+using ASMILE.BO.Shared.Storage;
 using System.IO;
 using System.Text.Json;
 
@@ -25,6 +31,11 @@ public interface IToastNotificationService
     void Error(string message);
 }
 
+public sealed class ModuleSettingsValidationException(string key, string message) : InvalidOperationException(message)
+{
+    public string Key { get; } = key;
+}
+
 public sealed class ToastNotificationService(INotificationService notificationService) : IToastNotificationService
 {
     public void Success(string message) => notificationService.Show(message);
@@ -39,7 +50,20 @@ public sealed class ModuleSettingsValidationService : ISettingsValidationService
 
         foreach (var item in definition.Sections.SelectMany(x => x.Settings))
         {
+            if (!string.IsNullOrWhiteSpace(item.DisabledDescription))
+            {
+                continue;
+            }
+
             var value = values.TryGetValue(item.Key, out var current) ? current : item.DefaultValue;
+            if (item.Kind == ModuleSettingKind.Select
+                && item.Options is { Count: > 0 }
+                && !item.Options.Contains(value, StringComparer.OrdinalIgnoreCase))
+            {
+                errors[item.Key] = "Giá trị không nằm trong danh sách lựa chọn được hỗ trợ.";
+                continue;
+            }
+
             if (item.IsRequired && string.IsNullOrWhiteSpace(value))
             {
                 errors[item.Key] = "Không được để trống.";
@@ -88,9 +112,24 @@ public sealed class ModuleSettingsValidationService : ISettingsValidationService
         }
 
         var map = new Dictionary<string, string>(values, StringComparer.OrdinalIgnoreCase);
-        if (Bool(map, "requireWarehouse") && string.IsNullOrWhiteSpace(Get(map, "defaultWarehouse")))
+        var masterCodeSettings = definition.AppKey.ToLowerInvariant() switch
         {
-            errors["defaultWarehouse"] = "Kho mặc định không được rỗng khi bắt buộc chọn kho.";
+            "items" => (AutoKey: "autoProductCode", PatternKey: "productCodePattern"),
+            "customers" => (AutoKey: "autoCustomerCode", PatternKey: "customerCodePattern"),
+            "suppliers" => (AutoKey: "autoSupplierCode", PatternKey: "supplierCodePattern"),
+            "departments" => (AutoKey: "autoEmployeeCode", PatternKey: "employeeCodePattern"),
+            _ => (AutoKey: string.Empty, PatternKey: string.Empty)
+        };
+        if (!string.IsNullOrEmpty(masterCodeSettings.AutoKey) && Bool(map, masterCodeSettings.AutoKey))
+        {
+            var codePattern = map.TryGetValue(masterCodeSettings.PatternKey, out var configuredPattern)
+                ? configuredPattern
+                : definition.Sections.SelectMany(x => x.Settings)
+                    .First(x => string.Equals(x.Key, masterCodeSettings.PatternKey, StringComparison.OrdinalIgnoreCase)).DefaultValue;
+            if (!ASMILE.BO.Application.Services.SequenceCodePattern.IsValid(codePattern))
+            {
+                errors[masterCodeSettings.PatternKey] = "Cần đúng một token số dạng {00000}; có thể dùng thêm {yyyyMMdd}, {yyyy}, {MM}, {dd}.";
+            }
         }
 
         if (Bool(map, "allowNegativeStock") || Bool(map, "allowNegativeWarehouse"))
@@ -112,13 +151,21 @@ public sealed class ModuleSettingsValidationService : ISettingsValidationService
 public sealed class ModuleSettingsService : IModuleSettingsService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private readonly ISettingsRepository _repository;
+    private readonly ISettingsService _settingsService;
+    private readonly IWarehouseAppService? _warehouseAppService;
     private readonly string _settingsFolder;
     private readonly IReadOnlyList<ModuleSettingsDefinition> _definitions;
 
-    public ModuleSettingsService()
+    public ModuleSettingsService(
+        ISettingsRepository repository,
+        ISettingsService settingsService,
+        IWarehouseAppService? warehouseAppService = null)
     {
-        _settingsFolder = Path.Combine(AppContext.BaseDirectory, "Data", "Settings");
-        Directory.CreateDirectory(_settingsFolder);
+        _repository = repository;
+        _settingsService = settingsService;
+        _warehouseAppService = warehouseAppService;
+        _settingsFolder = ApplicationDataPaths.UserSettingsDirectory;
         _definitions = BuildDefinitions();
     }
 
@@ -152,59 +199,198 @@ public sealed class ModuleSettingsService : IModuleSettingsService
     public async Task<ModuleSettingsState> LoadAsync(string appKey, CancellationToken cancellationToken = default)
     {
         var definition = GetDefinition(appKey) ?? throw new InvalidOperationException($"Không có cấu hình cho module {appKey}.");
+        await EnsureDefinitionsAsync(definition, cancellationToken);
         var defaults = CreateDefaultState(definition);
-        var path = GetPath(definition.AppKey);
-        if (!File.Exists(path))
+
+        var persistedValues = await _settingsService.GetValuesAsync(SettingScope.App, definition.AppKey);
+        var prefix = GetKeyPrefix(definition.AppKey);
+        var values = persistedValues
+            .Where(x => x.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(x => x.Key[prefix.Length..], x => x.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+
+        // Migrate the legacy local JSON store once. The authoritative store
+        // after migration is Settings Engine/SQL, not the application folder.
+        if (values.Count == 0)
         {
-            return defaults;
+            var legacy = await ReadLegacyValuesAsync(definition, cancellationToken);
+            if (legacy.Count > 0)
+            {
+                await SaveValuesToSettingsEngineAsync(definition, legacy, "Migrate legacy module settings", cancellationToken);
+                values = legacy;
+                persistedValues = await _settingsService.GetValuesAsync(SettingScope.App, definition.AppKey);
+            }
         }
 
-        await using var stream = File.OpenRead(path);
-        var saved = await JsonSerializer.DeserializeAsync<ModuleSettingsState>(stream, JsonOptions, cancellationToken);
-        if (saved is null)
+        foreach (var key in defaults.Values.Keys.ToList())
         {
-            return defaults;
+            if (values.TryGetValue(key, out var value))
+            {
+                defaults.Values[key] = value;
+            }
         }
 
-        foreach (var pair in defaults.Values)
-        {
-            saved.Values.TryAdd(pair.Key, pair.Value);
-        }
-        saved.AppKey = definition.AppKey;
-        return saved;
+        defaults.UpdatedAt = persistedValues.Count == 0 ? DateTime.UtcNow : persistedValues.Max(x => x.UpdatedAt);
+        return defaults;
     }
 
     public async Task SaveAsync(string appKey, IDictionary<string, string> values, CancellationToken cancellationToken = default)
+        => await SaveCoreAsync(appKey, values, "Update module settings", cancellationToken);
+
+    private async Task SaveCoreAsync(
+        string appKey,
+        IDictionary<string, string> values,
+        string reason,
+        CancellationToken cancellationToken)
     {
         var definition = GetDefinition(appKey) ?? throw new InvalidOperationException($"Không có cấu hình cho module {appKey}.");
-        var state = CreateDefaultState(definition);
+        await EnsureDefinitionsAsync(definition, cancellationToken);
+        // Start from the persisted state so settings that are intentionally
+        // unavailable remain unchanged instead of being reset by the editor.
+        var state = await LoadAsync(definition.AppKey, cancellationToken);
         foreach (var item in definition.Sections.SelectMany(x => x.Settings))
         {
-            if (values.TryGetValue(item.Key, out var value))
+            if (string.IsNullOrWhiteSpace(item.DisabledDescription)
+                && values.TryGetValue(item.Key, out var value))
             {
                 state.Values[item.Key] = value ?? string.Empty;
             }
         }
-        foreach (var pair in values)
+
+        if (definition.AppKey is "receipts" or "issues"
+            && state.Values.TryGetValue("defaultWarehouse", out var defaultWarehouseCode)
+            && !string.IsNullOrWhiteSpace(defaultWarehouseCode)
+            && _warehouseAppService is not null)
         {
-            state.Values[pair.Key] = pair.Value ?? string.Empty;
+            var warehouses = await _warehouseAppService.GetLookupAsync(cancellationToken);
+            if (!warehouses.Any(x => string.Equals(
+                    x.Code?.Trim(), defaultWarehouseCode.Trim(), StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new ModuleSettingsValidationException(
+                    "defaultWarehouse",
+                    $"Mã kho mặc định '{defaultWarehouseCode}' không tồn tại hoặc đã ngừng hoạt động. Hãy chọn mã kho đang hoạt động hoặc để trống để dùng kho đầu tiên.");
+            }
         }
         state.UpdatedAt = DateTime.UtcNow;
 
-        Directory.CreateDirectory(_settingsFolder);
-        await using var stream = File.Create(GetPath(definition.AppKey));
-        await JsonSerializer.SerializeAsync(stream, state, JsonOptions, cancellationToken);
+        await SaveValuesToSettingsEngineAsync(definition, state.Values, reason, cancellationToken);
     }
 
     public async Task<ModuleSettingsState> ResetDefaultAsync(string appKey, CancellationToken cancellationToken = default)
     {
         var definition = GetDefinition(appKey) ?? throw new InvalidOperationException($"Không có cấu hình cho module {appKey}.");
         var state = CreateDefaultState(definition);
-        await SaveAsync(definition.AppKey, state.Values, cancellationToken);
-        return state;
+        await SaveCoreAsync(definition.AppKey, state.Values, "Reset module settings", cancellationToken);
+        return await LoadAsync(definition.AppKey, cancellationToken);
     }
 
     private string GetPath(string appKey) => Path.Combine(_settingsFolder, $"{NormalizeAppKey(appKey)}.json");
+
+    private static string GetKeyPrefix(string appKey) => $"Module.{appKey}.";
+
+    private async Task EnsureDefinitionsAsync(ModuleSettingsDefinition definition, CancellationToken cancellationToken)
+    {
+        var prefix = GetKeyPrefix(definition.AppKey);
+        var sortOrder = 0;
+        foreach (var item in definition.Sections.SelectMany(x => x.Settings))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await _repository.UpsertDefinitionAsync(new SettingDefinition
+            {
+                Key = prefix + item.Key,
+                DisplayName = item.Title,
+                Description = item.Description,
+                Category = "Module",
+                Group = definition.AppKey.ToUpperInvariant(),
+                Scope = SettingScope.App,
+                ValueType = ToSettingValueType(item.Kind),
+                DefaultValue = item.DefaultValue,
+                IsRequired = item.IsRequired,
+                RequiredPermission = "Settings.Edit",
+                SortOrder = sortOrder++
+            });
+        }
+    }
+
+    private async Task SaveValuesToSettingsEngineAsync(
+        ModuleSettingsDefinition definition,
+        IReadOnlyDictionary<string, string> values,
+        string reason,
+        CancellationToken cancellationToken)
+    {
+        var prefix = GetKeyPrefix(definition.AppKey);
+        var requests = definition.Sections
+            .SelectMany(x => x.Settings)
+            .Select(item => new SaveSettingValueRequest
+            {
+                Key = prefix + item.Key,
+                Scope = SettingScope.App,
+                ScopeTarget = definition.AppKey,
+                Value = values.TryGetValue(item.Key, out var value) ? value : item.DefaultValue,
+                Reason = reason
+            })
+            .ToList();
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await _settingsService.SaveValuesAsync(requests);
+    }
+
+    private async Task<Dictionary<string, string>> ReadLegacyValuesAsync(
+        ModuleSettingsDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        var path = GetPath(definition.AppKey);
+        if (!File.Exists(path))
+        {
+            var legacyPath = Path.Combine(AppContext.BaseDirectory, "Data", "Settings", $"{NormalizeAppKey(definition.AppKey)}.json");
+            if (File.Exists(legacyPath))
+            {
+                path = legacyPath;
+            }
+        }
+        if (!File.Exists(path))
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        ModuleSettingsState? saved;
+        try
+        {
+            await using var stream = File.OpenRead(path);
+            saved = await JsonSerializer.DeserializeAsync<ModuleSettingsState>(stream, JsonOptions, cancellationToken);
+        }
+        catch (JsonException)
+        {
+            // A damaged legacy file must not prevent the module from opening.
+            // Settings Engine defaults remain authoritative in this case.
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+        catch (IOException)
+        {
+            // A locked or unavailable legacy file is also non-authoritative.
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+        if (saved?.Values is null)
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var allowedKeys = definition.Sections
+            .SelectMany(x => x.Settings)
+            .Select(x => x.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return saved.Values
+            .Where(x => allowedKeys.Contains(x.Key))
+            .ToDictionary(x => x.Key, x => x.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static SettingValueType ToSettingValueType(ModuleSettingKind kind)
+        => kind switch
+        {
+            ModuleSettingKind.Toggle or ModuleSettingKind.Permission => SettingValueType.Boolean,
+            ModuleSettingKind.Number => SettingValueType.Number,
+            ModuleSettingKind.Select => SettingValueType.Enum,
+            _ => SettingValueType.String
+        };
 
     private static ModuleSettingsState CreateDefaultState(ModuleSettingsDefinition definition)
         => new()
@@ -218,12 +404,12 @@ public sealed class ModuleSettingsService : IModuleSettingsService
 
     private static IReadOnlyList<ModuleSettingsDefinition> BuildDefinitions()
     {
-        static ModuleSettingDefinition Toggle(string key, string title, string description, bool value = true, string? dependsOn = null)
-            => new(key, title, description, ModuleSettingKind.Toggle, value ? "true" : "false", DependsOnModuleKey: dependsOn);
-        static ModuleSettingDefinition Text(string key, string title, string description, string value, bool required = false)
-            => new(key, title, description, ModuleSettingKind.Text, value, IsRequired: required);
-        static ModuleSettingDefinition Number(string key, string title, string description, string value, bool required = false)
-            => new(key, title, description, ModuleSettingKind.Number, value, IsRequired: required);
+        static ModuleSettingDefinition Toggle(string key, string title, string description, bool value = true, string? dependsOn = null, string? disabledDescription = null)
+            => new(key, title, description, ModuleSettingKind.Toggle, value ? "true" : "false", DependsOnModuleKey: dependsOn, DisabledDescription: disabledDescription);
+        static ModuleSettingDefinition Text(string key, string title, string description, string value, bool required = false, string? disabledDescription = null)
+            => new(key, title, description, ModuleSettingKind.Text, value, IsRequired: required, DisabledDescription: disabledDescription);
+        static ModuleSettingDefinition Number(string key, string title, string description, string value, bool required = false, string? disabledDescription = null)
+            => new(key, title, description, ModuleSettingKind.Number, value, IsRequired: required, DisabledDescription: disabledDescription);
         static ModuleSettingDefinition Select(string key, string title, string description, string value, params string[] options)
             => new(key, title, description, ModuleSettingKind.Select, value, options);
         static ModuleSettingDefinition Permission(string key, string title, string description, bool value = true)
@@ -231,8 +417,8 @@ public sealed class ModuleSettingsService : IModuleSettingsService
         static ModuleSettingSectionDefinition Section(string key, string title, string description, string icon, params ModuleSettingDefinition[] settings)
             => new(key, title, description, icon, settings);
 
-        return
-        [
+        var definitions = new ModuleSettingsDefinition[]
+        {
             new(ModuleKey.TrainingData, "training-data", "Dữ liệu mẫu", "Bật/tắt chức năng seed, reset và preflight dữ liệu mẫu", "\uE8B8",
             [
                 Section("guards", "Bảo vệ thao tác", "Kiểm soát thao tác destructive và điều kiện an toàn", "\uE7BA",
@@ -255,32 +441,10 @@ public sealed class ModuleSettingsService : IModuleSettingsService
                 Section("alerts", "Kiểm tra & cảnh báo", "Cảnh báo nhanh trên dashboard", "\uE7BA",
                     Toggle("quickAlerts", "Cảnh báo nhanh", "Hiển thị công nợ, tồn kho, chứng từ cần xử lý"))
             ]),
-            new(ModuleKey.VirtualFileCenter, "virtual-file-center", "Trung tâm file ảo", "Quản lý file và thư mục nghiệp vụ", "\uE8B7",
-            [
-                Section("storage", "Dữ liệu mặc định", "Lưu trữ và quy tắc file", "\uE8B7",
-                    Text("defaultFolder", "Thư mục lưu trữ mặc định", "Nơi lưu file nghiệp vụ", @"D:\ACCOUNTING\VirtualFiles", true),
-                    Text("fileNamePattern", "Quy tắc đặt tên file tự động", "Mẫu tên file khi tạo chứng từ", "{Module}-{Code}-{yyyyMMdd}", true),
-                    Number("maxFileSizeMb", "Dung lượng file tối đa", "Đơn vị MB", "50", true)),
-                Section("classify", "Quy tắc thư mục", "Phân loại và tự tạo thư mục", "\uE8EC",
-                    Toggle("classifyByModule", "Phân loại file theo module", "Tự phân file theo nghiệp vụ"),
-                    Toggle("previewFile", "Preview file", "Cho phép xem nhanh file"),
-                    Toggle("folderByYear", "Tạo thư mục theo năm", "Tự tạo thư mục năm"),
-                    Toggle("folderByMonth", "Tạo thư mục theo tháng", "Tự tạo thư mục tháng"),
-                    Toggle("folderByCustomer", "Tạo thư mục theo khách hàng", "Tách file theo khách hàng"),
-                    Toggle("folderBySupplier", "Tạo thư mục theo nhà cung cấp", "Tách file theo nhà cung cấp"),
-                    Toggle("folderByVoucher", "Tạo thư mục theo chứng từ", "Tách file theo số chứng từ")),
-                Section("permission", "Phân quyền", "Quyền file và nhật ký", "\uE72E",
-                    Text("allowedFileTypes", "Loại file cho phép", "Danh sách phần mở rộng", "pdf,docx,xlsx,png,jpg", true),
-                    Toggle("backupFile", "Backup file", "Tự động backup file"),
-                    Permission("canViewFile", "Quyền xem file", "Cho phép xem file"),
-                    Permission("canEditFile", "Quyền sửa file", "Cho phép sửa metadata/file"),
-                    Permission("canDeleteFile", "Quyền xóa file", "Cho phép xóa file"),
-                    Toggle("auditFileActions", "Ghi nhật ký thao tác file", "Lưu lịch sử xem/sửa/xóa"))
-            ]),
             new(ModuleKey.Inventory, "inventory", "Quản lý xuất nhập tồn", "Theo dõi nhập, xuất, tồn kho", "\uE7C3",
             [
                 Section("cost", "Quy tắc tồn kho", "Tính giá và xuất kho", "\uE8A5",
-                    Select("costMethod", "Phương pháp tính giá xuất kho", "Cách tính giá vốn khi xuất", "Bình quân tức thời", "Bình quân cuối kỳ", "Bình quân tức thời", "FIFO", "Đích danh"),
+                    Select("costMethod", "Phương pháp tính giá xuất kho", "Cách tính giá vốn khi xuất", "Bình quân tức thời", "Bình quân tức thời", "FIFO"),
                     Toggle("allowNegativeStock", "Cho phép xuất âm kho", "Chỉ bật khi có quyền quản trị", false),
                     Toggle("syncToLedger", "Đồng bộ dữ liệu với Sổ cái", "Tự động chuyển phát sinh kho sang sổ cái", true, "general-ledger")),
                 Section("code", "Quy tắc mã chứng từ/mã danh mục", "Mã hàng và chứng từ kho", "\uE8EC",
@@ -336,14 +500,14 @@ public sealed class ModuleSettingsService : IModuleSettingsService
             new(ModuleKey.Customer, "customers", "Quản lý khách hàng", "Danh mục khách hàng", "\uE716",
             [
                 Section("code", "Quy tắc mã chứng từ/mã danh mục", "Mã và nhóm khách hàng", "\uE8EC",
-                    Toggle("autoCustomerCode", "Tự động sinh mã khách hàng", "Sinh mã khi thêm khách hàng"),
-                    Text("customerCodePattern", "Quy tắc mã khách hàng", "Mẫu mã khách hàng", "KH-{00000}", true),
+                    Toggle("autoCustomerCode", "Tự động sinh mã khách hàng", "Sinh mã khi thêm khách hàng nếu để trống mã"),
+                    Text("customerCodePattern", "Quy tắc mã khách hàng", "Một token số dạng {00000}; hỗ trợ token ngày {yyyyMMdd}, {yyyy}, {MM}, {dd}.", "KH-{00000}", true),
                     Text("defaultCustomerGroup", "Nhóm khách hàng mặc định", "Nhóm mặc định", "Khách hàng thường", true)),
                 Section("validate", "Kiểm tra & cảnh báo", "Thông tin bắt buộc và kiểm tra trùng", "\uE7BA",
                     Toggle("requirePhone", "Bắt buộc nhập số điện thoại", "Không cho lưu nếu thiếu điện thoại"),
                     Toggle("requireTaxCode", "Bắt buộc nhập mã số thuế", "Không cho lưu nếu thiếu MST", false),
-                    Toggle("checkDuplicatePhone", "Kiểm tra trùng số điện thoại", "Cảnh báo trùng điện thoại"),
-                    Toggle("checkDuplicateTaxCode", "Kiểm tra trùng mã số thuế", "Cảnh báo trùng MST"),
+                    Toggle("checkDuplicatePhone", "Kiểm tra trùng số điện thoại", "Không cho lưu nếu điện thoại đã thuộc khách hàng khác"),
+                    Toggle("checkDuplicateTaxCode", "Kiểm tra trùng mã số thuế", "Không cho lưu nếu MST đã thuộc khách hàng khác"),
                     Toggle("lookupTaxInfo", "Tự động lấy thông tin doanh nghiệp từ mã số thuế", "Dùng service nếu có"),
                     Text("extraFields", "Trường mở rộng khách hàng", "Danh sách trường mở rộng", "Zalo, Người phụ trách")),
                 Section("permission", "Phân quyền", "Quyền dữ liệu khách hàng", "\uE72E",
@@ -355,13 +519,13 @@ public sealed class ModuleSettingsService : IModuleSettingsService
             new(ModuleKey.Supplier, "suppliers", "Quản lý nhà cung cấp", "Danh mục nhà cung cấp", "\uE8F9",
             [
                 Section("code", "Quy tắc mã chứng từ/mã danh mục", "Mã và nhóm nhà cung cấp", "\uE8EC",
-                    Toggle("autoSupplierCode", "Tự động sinh mã nhà cung cấp", "Sinh mã khi thêm NCC"),
-                    Text("supplierCodePattern", "Quy tắc mã nhà cung cấp", "Mẫu mã NCC", "NCC-{00000}", true),
+                    Toggle("autoSupplierCode", "Tự động sinh mã nhà cung cấp", "Sinh mã khi thêm NCC nếu để trống mã"),
+                    Text("supplierCodePattern", "Quy tắc mã nhà cung cấp", "Một token số dạng {00000}; hỗ trợ token ngày {yyyyMMdd}, {yyyy}, {MM}, {dd}.", "NCC-{00000}", true),
                     Text("defaultSupplierGroup", "Nhóm nhà cung cấp mặc định", "Nhóm mặc định", "Nhà cung cấp thường", true)),
                 Section("validate", "Kiểm tra & cảnh báo", "Thông tin bắt buộc và kiểm tra trùng", "\uE7BA",
                     Toggle("requirePhone", "Bắt buộc nhập số điện thoại", "Không cho lưu nếu thiếu điện thoại"),
                     Toggle("requireTaxCode", "Bắt buộc nhập mã số thuế", "Không cho lưu nếu thiếu MST", false),
-                    Toggle("checkDuplicateTaxCode", "Kiểm tra trùng mã số thuế", "Cảnh báo trùng MST"),
+                    Toggle("checkDuplicateTaxCode", "Kiểm tra trùng mã số thuế", "Không cho lưu nếu MST đã thuộc nhà cung cấp khác"),
                     Toggle("lookupTaxInfo", "Tự động lấy thông tin doanh nghiệp từ mã số thuế", "Dùng service nếu có")),
                 Section("permission", "Phân quyền", "Quyền dữ liệu nhà cung cấp", "\uE72E",
                     Permission("canView", "Quyền xem nhà cung cấp", "Cho phép xem"),
@@ -377,7 +541,7 @@ public sealed class ModuleSettingsService : IModuleSettingsService
                     Text("defaultProductGroup", "Nhóm hàng mặc định", "Nhóm mặc định", "Hàng hóa", true)),
                 Section("defaults", "Dữ liệu mặc định", "Đơn vị, thuế và giá", "\uE713",
                     Text("defaultUnit", "Đơn vị tính mặc định", "Đơn vị mặc định", "Cái", true),
-                    Select("defaultVat", "Thuế VAT mặc định", "Thuế suất mặc định", "10%", "0%", "5%", "8%", "10%"),
+                    Select("defaultVat", "Thuế VAT mặc định", "Áp dụng cho hàng mới khi để trống VAT; chọn 0% để giữ mức miễn/không chịu thuế.", "10%", "0%", "5%", "8%", "10%"),
                     Select("defaultPriceMode", "Cấu hình giá bán mặc định", "Nguồn giá bán", "Giá bán lẻ", "Giá bán lẻ", "Giá bán sỉ", "Theo bảng giá")),
                 Section("control", "Kiểm tra & cảnh báo", "Kiểm soát hàng hóa", "\uE7BA",
                     Toggle("trackInventory", "Quản lý tồn kho theo hàng", "Theo dõi tồn kho"),
@@ -424,9 +588,68 @@ public sealed class ModuleSettingsService : IModuleSettingsService
             ]),
             Voucher(ModuleKey.ReceiptVoucher, "payment-receipt", "Phiếu thu", "PT-{yyyyMMdd}-{0000}", "Quỹ/tài khoản tiền mặt mặc định", "111", "Tài khoản ngân hàng mặc định", "112", "Bắt buộc chọn khách hàng/đối tượng", "Bắt buộc lý do thu", "Cho phép thu nhiều hóa đơn/công nợ", "Tự động hạch toán sang Sổ cái", "Mẫu in phiếu thu mặc định", "PT-A5", "Bật duyệt phiếu thu trước khi ghi sổ"),
             Voucher(ModuleKey.PaymentVoucher, "payment-voucher", "Phiếu chi", "PC-{yyyyMMdd}-{0000}", "Quỹ/tài khoản tiền mặt mặc định", "111", "Tài khoản ngân hàng mặc định", "112", "Bắt buộc chọn nhà cung cấp/đối tượng", "Bắt buộc lý do chi", "Cho phép chi nhiều hóa đơn/công nợ", "Tự động hạch toán sang Sổ cái", "Mẫu in phiếu chi mặc định", "PC-A5", "Bật duyệt phiếu chi trước khi ghi sổ"),
-            StockVoucher(ModuleKey.StockInVoucher, "receipts", "Phiếu nhập", "PN-{yyyyMMdd}-{0000}", "Kho nhập mặc định", "KHO-001", "Nhà cung cấp mặc định", "", "Bắt buộc chọn kho", "Bắt buộc chọn nhà cung cấp", "Cho phép nhập giá vốn bằng 0", "Tự động cập nhật giá nhập gần nhất", "Tự động cập nhật tồn kho", "Tự động hạch toán sang Sổ cái", "Mẫu in phiếu nhập mặc định", "PN-A4", "Bật duyệt phiếu nhập"),
-            StockVoucher(ModuleKey.StockOutVoucher, "issues", "Phiếu xuất", "PX-{yyyyMMdd}-{0000}", "Kho xuất mặc định", "KHO-001", "Khách hàng/đối tượng mặc định", "", "Bắt buộc chọn kho", "Bắt buộc chọn khách hàng/đối tượng", "Cho phép xuất âm kho theo quyền", "Tự động tính giá vốn", "Tự động cập nhật tồn kho", "Tự động hạch toán sang Sổ cái", "Mẫu in phiếu xuất mặc định", "PX-A4", "Bật duyệt phiếu xuất")
-        ];
+            StockVoucher(ModuleKey.StockInVoucher, "receipts", "Phiếu nhập", "PN-{yyyyMMdd}-{0000}", "Kho nhập mặc định", "", "Nhà cung cấp mặc định", "", "Bắt buộc chọn kho", "Bắt buộc chọn nhà cung cấp", "Cho phép nhập giá vốn bằng 0", "Tự động cập nhật giá nhập gần nhất", "Tự động cập nhật tồn kho", "Tự động hạch toán sang Sổ cái", "Mẫu in phiếu nhập mặc định", "PN-A4", "Bật duyệt phiếu nhập"),
+            StockVoucher(ModuleKey.StockOutVoucher, "issues", "Phiếu xuất", "PX-{yyyyMMdd}-{0000}", "Kho xuất mặc định", "", "Khách hàng/đối tượng mặc định", "", "Bắt buộc chọn kho", "Bắt buộc chọn khách hàng/đối tượng", "Cho phép xuất âm kho theo quyền", "Tự động tính giá vốn", "Tự động cập nhật tồn kho", "Tự động hạch toán sang Sổ cái", "Mẫu in phiếu xuất mặc định", "PX-A4", "Bật duyệt phiếu xuất")
+        };
+
+        // These module forms currently have no runtime consumer for their
+        // Module.* values. Keep the legacy values intact, but do not present
+        // the editor as if changing them affects operational behavior.
+        var runtimeUnwiredAppKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "warehouses",
+            "dashboard", "receivable", "payable"
+        };
+        var runtimeUnwiredSettingKeysByAppKey = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["items"] = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "defaultPriceMode",
+                "trackInventory", "trackBatchExpiry", "trackSerialImei", "checkDuplicateCodeNameBarcode",
+                "multiUnit", "allowProductImage"
+            },
+            ["customers"] = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "defaultCustomerGroup", "lookupTaxInfo",
+                "extraFields", "canView", "canEdit", "canDelete", "allowLockCustomer"
+            },
+            ["suppliers"] = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "defaultSupplierGroup", "lookupTaxInfo",
+                "canView", "canEdit", "canDelete", "allowLockSupplier"
+            },
+            ["departments"] = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "defaultHrStatus", "requirePhoneEmail", "allowLockInactiveEmployee",
+                "departmentPermission", "departmentApprover"
+            },
+            ["inventory"] = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "allowNegativeStock", "syncToLedger", "autoProductCode", "stockInCodePattern", "stockOutCodePattern",
+                "defaultWarehouse", "defaultUnit", "roundingMode", "minStockAlert", "maxStockAlert",
+                "checkDuplicateProductCode", "requireWarehouse", "requireObject"
+            }
+        };
+        const string runtimeUnwiredReason = "Chưa có luồng nghiệp vụ đọc và áp dụng thiết lập module này; giá trị cũ được giữ nguyên nhưng hiện không thể chỉnh sửa.";
+
+        return definitions.Select(definition => runtimeUnwiredAppKeys.Contains(definition.AppKey)
+            || runtimeUnwiredSettingKeysByAppKey.ContainsKey(definition.AppKey)
+            ? definition with
+            {
+                Sections = definition.Sections.Select(section => section with
+                {
+                    Settings = section.Settings.Select(setting =>
+                    {
+                        var hasNoRuntimeConsumer = runtimeUnwiredAppKeys.Contains(definition.AppKey)
+                            || (runtimeUnwiredSettingKeysByAppKey.TryGetValue(definition.AppKey, out var keys)
+                                && keys.Contains(setting.Key));
+                        return hasNoRuntimeConsumer
+                            ? setting with { DisabledDescription = setting.DisabledDescription ?? runtimeUnwiredReason }
+                            : setting;
+                    }).ToArray()
+                }).ToArray()
+            }
+            : definition).ToArray();
 
         ModuleSettingsDefinition Voucher(ModuleKey key, string appKey, string title, string codePattern, string cashTitle, string cashDefault, string bankTitle, string bankDefault, string requireObjectTitle, string requireReasonTitle, string multiTitle, string syncTitle, string printTitle, string printDefault, string approvalTitle)
             => new(key, appKey, title, $"Thiết lập {title.ToLowerInvariant()}", "\uE8A5",
@@ -434,20 +657,31 @@ public sealed class ModuleSettingsService : IModuleSettingsService
                 Section("code", "Quy tắc mã chứng từ/mã danh mục", $"Quy tắc mã {title.ToLowerInvariant()}", "\uE8EC",
                     Text("voucherCodePattern", $"Quy tắc mã {title.ToLowerInvariant()}", "Mẫu mã chứng từ", codePattern, true)),
                 Section("defaults", "Dữ liệu mặc định", "Tài khoản, người lập và người duyệt", "\uE713",
-                    Text("defaultCashAccount", cashTitle, "Tài khoản tiền mặt", cashDefault, true),
-                    Text("defaultBankAccount", bankTitle, "Tài khoản ngân hàng", bankDefault, true),
-                    Text("defaultCreator", "Người lập mặc định", "Người lập chứng từ", "Kế toán"),
-                    Text("defaultApprover", "Người duyệt mặc định", "Người duyệt chứng từ", "Kế toán trưởng")),
+                    Text("defaultCashAccount", cashTitle, "Tài khoản tiền mặt", cashDefault, true,
+                        "Luồng phiếu chưa đọc thiết lập tài khoản mặc định này; tài khoản hiện được lấy từ cấu hình nghiệp vụ khác."),
+                    Text("defaultBankAccount", bankTitle, "Tài khoản ngân hàng", bankDefault, true,
+                        "Luồng phiếu chưa đọc thiết lập tài khoản mặc định này; tài khoản hiện được lấy từ cấu hình nghiệp vụ khác."),
+                    Text("defaultCreator", "Người lập mặc định", "Người lập chứng từ", "Kế toán",
+                        disabledDescription: "Người lập được xác định theo tài khoản đăng nhập; chưa hỗ trợ ghi đè bằng cấu hình module."),
+                    Text("defaultApprover", "Người duyệt mặc định", "Người duyệt chứng từ", "Kế toán trưởng",
+                        disabledDescription: "Người duyệt được xác định theo quy trình/phân quyền; chưa hỗ trợ chỉ định bằng cấu hình module.")),
                 Section("control", "Kiểm tra & cảnh báo", "Ràng buộc chứng từ", "\uE7BA",
-                    Toggle("requireObject", requireObjectTitle, "Bắt buộc chọn đối tượng"),
-                    Toggle("requireReason", requireReasonTitle, "Bắt buộc nhập lý do"),
-                    Toggle("allowMultipleDebts", multiTitle, "Cho phép xử lý nhiều hóa đơn/công nợ")),
+                    Toggle("requireObject", requireObjectTitle, "Bắt buộc chọn đối tượng",
+                        disabledDescription: "Chưa được áp dụng trong luồng phiếu thu/chi hiện tại; tùy chọn được giữ nguyên nhưng không thể chỉnh sửa."),
+                    Toggle("requireReason", requireReasonTitle, "Bắt buộc nhập lý do",
+                        disabledDescription: "Chưa được áp dụng trong luồng phiếu thu/chi hiện tại; tùy chọn được giữ nguyên nhưng không thể chỉnh sửa."),
+                    Toggle("allowMultipleDebts", multiTitle, "Cho phép xử lý nhiều hóa đơn/công nợ",
+                        disabledDescription: "Chưa có luồng phân bổ nhiều hóa đơn được điều khiển bởi thiết lập này.")),
                 Section("sync", "Đồng bộ & ghi sổ", "Hạch toán sang Sổ cái", "\uE8A5",
-                    Toggle("syncToLedger", syncTitle, "Tạo bút toán tự động", true, "general-ledger"),
-                    Toggle("requireApproval", approvalTitle, "Duyệt trước khi ghi sổ")),
+                    Toggle("syncToLedger", syncTitle, "Tạo bút toán tự động", true, "general-ledger",
+                        "Luồng ghi sổ hiện được điều khiển bởi quy trình chứng từ; tùy chọn này chưa có hành vi bật/tắt an toàn."),
+                    Toggle("requireApproval", approvalTitle, "Duyệt trước khi ghi sổ",
+                        disabledDescription: "Quy trình duyệt hiện chưa được cấu hình theo tùy chọn này; chưa thể tắt hoặc thay đổi bằng thiết lập module.")),
                 Section("print", "In ấn & mẫu biểu", "Mẫu in và số liên", "\uE749",
-                    Text("defaultPrintTemplate", printTitle, "Mẫu in mặc định", printDefault, true),
-                    Number("printCopies", "Số liên in mặc định", "Số liên khi in", "2", true))
+                    Text("defaultPrintTemplate", printTitle, "Mẫu in mặc định", printDefault, true,
+                        "Màn hình in chưa đọc mẫu in từ thiết lập module; mẫu được chọn theo danh mục biểu mẫu hiện hành."),
+                    Number("printCopies", "Số liên in mặc định", "Số liên khi in", "2", true,
+                        "Số liên hiện do màn hình in quyết định; chưa đọc thiết lập này."))
             ]);
 
         ModuleSettingsDefinition StockVoucher(ModuleKey key, string appKey, string title, string codePattern, string warehouseTitle, string warehouseDefault, string objectTitle, string objectDefault, string requireWarehouseTitle, string requireObjectTitle, string allowSpecialTitle, string updatePriceOrCostTitle, string updateStockTitle, string syncTitle, string printTitle, string printDefault, string approvalTitle)
@@ -456,19 +690,21 @@ public sealed class ModuleSettingsService : IModuleSettingsService
                 Section("code", "Quy tắc mã chứng từ/mã danh mục", $"Quy tắc mã {title.ToLowerInvariant()}", "\uE8EC",
                     Text("voucherCodePattern", $"Quy tắc mã {title.ToLowerInvariant()}", "Mẫu mã chứng từ", codePattern, true)),
                 Section("defaults", "Dữ liệu mặc định", "Kho và đối tượng mặc định", "\uE713",
-                    Text("defaultWarehouse", warehouseTitle, "Kho mặc định", warehouseDefault, true),
-                    Text("defaultObject", objectTitle, "Đối tượng mặc định", objectDefault)),
+                    Text("defaultWarehouse", warehouseTitle, "Mã kho thật dùng làm mặc định; để trống sẽ dùng kho đầu tiên trong danh mục.", warehouseDefault),
+                    Text("defaultObject", objectTitle, "Đối tượng mặc định", objectDefault,
+                        disabledDescription: "Chưa được áp dụng trong luồng phiếu nhập/xuất hiện tại; cấu hình này được giữ nguyên nhưng không thể chỉnh sửa.")),
                 Section("control", "Kiểm tra & cảnh báo", "Ràng buộc chứng từ kho", "\uE7BA",
-                    Toggle("requireWarehouse", requireWarehouseTitle, "Bắt buộc chọn kho"),
-                    Toggle("requireObject", requireObjectTitle, "Bắt buộc chọn đối tượng"),
-                    Toggle("allowSpecialStock", allowSpecialTitle, "Cho phép nghiệp vụ đặc biệt", key == ModuleKey.StockInVoucher),
-                    Toggle("updatePriceOrCost", updatePriceOrCostTitle, "Cập nhật giá tự động"),
-                    Toggle("updateStock", updateStockTitle, "Cập nhật tồn kho")),
+                    Toggle("requireWarehouse", requireWarehouseTitle, "Bắt buộc chọn kho", disabledDescription: "Kho hiện vẫn được yêu cầu theo quy tắc nghiệp vụ; tùy chọn này chưa thay đổi được quy tắc."),
+                    Toggle("requireObject", requireObjectTitle, "Bắt buộc chọn đối tượng", disabledDescription: "Chưa được áp dụng trong luồng phiếu hiện tại; cấu hình này được giữ nguyên nhưng không thể chỉnh sửa."),
+                    Toggle("allowSpecialStock", allowSpecialTitle, "Cho phép nghiệp vụ đặc biệt", key == ModuleKey.StockInVoucher, disabledDescription: "Chưa có kiểm tra quyền và luồng nghiệp vụ tương ứng; tùy chọn đang bị khóa để tránh bật ngoài ý muốn."),
+                    Toggle("updatePriceOrCost", updatePriceOrCostTitle, "Cập nhật giá tự động", disabledDescription: "Chưa được áp dụng trong luồng phiếu hiện tại; cấu hình này được giữ nguyên nhưng không thể chỉnh sửa."),
+                    Toggle("updateStock", updateStockTitle, "Cập nhật tồn kho", disabledDescription: "Việc cập nhật tồn kho hiện do luồng ghi sổ thực hiện; tùy chọn này chưa điều khiển được luồng đó.")),
                 Section("sync", "Đồng bộ & ghi sổ", "Hạch toán sang Sổ cái", "\uE8A5",
-                    Toggle("syncToLedger", syncTitle, "Tạo bút toán tự động", true, "general-ledger"),
-                    Toggle("requireApproval", approvalTitle, "Duyệt chứng từ")),
+                    Toggle("syncToLedger", syncTitle, "Tạo bút toán tự động", true, "general-ledger", "Luồng ghi sổ hiện luôn tạo bút toán khi duyệt; chưa có quy trình ghi sổ/bù trừ an toàn để cho phép tắt."),
+                    Toggle("requireApproval", approvalTitle, "Duyệt chứng từ", disabledDescription: "Quy trình hiện yêu cầu duyệt trước khi ghi sổ; chưa hỗ trợ tắt bước duyệt.")),
                 Section("print", "In ấn & mẫu biểu", "Mẫu in", "\uE749",
-                    Text("defaultPrintTemplate", printTitle, "Mẫu in mặc định", printDefault, true))
+                    Text("defaultPrintTemplate", printTitle, "Mẫu in mặc định", printDefault, true,
+                        "Mẫu in mặc định chưa được đọc bởi màn hình phiếu; cấu hình này được giữ nguyên nhưng chưa thể chỉnh sửa."))
             ]);
     }
 }

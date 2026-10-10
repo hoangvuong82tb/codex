@@ -78,7 +78,14 @@ public sealed class AppUser
     public string UserName { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string? Email { get; set; }
+    public string PasswordHash { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public bool IsLocked { get; set; }
+    public bool MustChangePassword { get; set; } = true;
+    public int FailedLoginCount { get; set; }
+    public DateTime? LastLoginAt { get; set; }
+    public DateTime? LastPasswordChangedAt { get; set; }
+    public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public ICollection<AppUserRole> Roles { get; set; } = new List<AppUserRole>();

@@ -754,12 +754,22 @@ public sealed class BreakfastCafeSalesService : IBreakfastCafeSalesService
 		List<BreakfastCafePayment> payments = await (from x in _dbContext.BreakfastCafePayments.AsNoTracking()
 			where x.PaymentDate >= date && x.PaymentDate < next
 			select x).ToListAsync(cancellationToken);
+		var postedCostIssues = await _dbContext.StockIssues.AsNoTracking()
+			.Where(x => x.IssueDate >= date
+				&& x.IssueDate < next
+				&& x.IsApproved
+				&& x.IssueNo.StartsWith("POS-"))
+			.Select(x => new { x.IssueNo, x.TotalAmount })
+			.ToListAsync(cancellationToken);
+		decimal estimatedCost = orders.Sum(order => postedCostIssues
+			.Where(issue => issue.IssueNo.StartsWith($"POS-{order.OrderNumber}-", StringComparison.Ordinal))
+			.Sum(issue => issue.TotalAmount));
 		return new BreakfastCafeSalesSummaryDto
 		{
 			SummaryDate = date,
 			RevenueAmount = orders.Sum((BreakfastCafeOrder x) => x.TotalAmount),
 			VatOutputAmount = orders.Sum((BreakfastCafeOrder x) => x.VatAmount),
-			EstimatedCostAmount = 0m,
+			EstimatedCostAmount = estimatedCost,
 			OrderCount = orders.Count,
 			TopSellingItems = (from x in lines
 				group x by new { x.MenuItemCode, x.MenuItemName } into g
@@ -1509,6 +1519,7 @@ public sealed class BreakfastCafeSalesService : IBreakfastCafeSalesService
 			PosTableId = x.PosTableId,
 			OrderNumber = x.OrderNumber,
 			OrderDate = x.OrderDate,
+			UpdatedAt = x.UpdatedAt,
 			Status = x.Status,
 			PaymentStatus = x.PaymentStatus,
 			OrderType = x.OrderType,
@@ -1567,6 +1578,7 @@ public sealed class BreakfastCafeSalesService : IBreakfastCafeSalesService
 			{
 				Id = p.Id,
 				PaymentDate = p.PaymentDate,
+				CreatedAt = p.CreatedAt,
 				PaymentMethod = p.PaymentMethod,
 				Amount = p.Amount,
 				ReferenceNo = p.ReferenceNo,

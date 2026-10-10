@@ -1,0 +1,101 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <DropShadowEffect x:Key="HubCardShadow" BlurRadius="16" ShadowDepth="0" Direction="0" Opacity="0.08" Color="#1a3a5c"/>
+
+    <Style x:Key="HubCardStyle" TargetType="Border">
+        <Setter Property="Width" Value="236"/>
+        <Setter Property="Height" Value="92"/>
+        <Setter Property="Margin" Value="9,10"/>
+        <Setter Property="Padding" Value="16,0,14,0"/>
+        <Setter Property="Background" Value="#FFFFFFF2"/>
+        <Setter Property="BorderBrush" Value="#D5E3F5"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="Effect" Value="{StaticResource HubCardShadow}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Effect">
+                    <Setter.Value><DropShadowEffect BlurRadius="22" ShadowDepth="0" Opacity="0.12" Color="#1a3a5c"/></Setter.Value>
+                </Setter>
+                <Setter Property="RenderTransform">
+                    <Setter.Value><TranslateTransform Y="-3"/></Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="HubIconBoxStyle" TargetType="Border">
+        <Setter Property="Width" Value="54"/>
+        <Setter Property="Height" Value="54"/>
+        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#4A8EFF" Offset="0"/>
+                    <GradientStop Color="#1765F2" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Effect">
+            <Setter.Value><DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.24" Color="#000000"/></Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="HubCardTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="#16325C"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="16,0,0,0"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+
+    <Style x:Key="HubHeaderStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="38"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="#102e5a"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="HubSubtitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="Foreground" Value="#5E6E82"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,8,0,0"/>
+    </Style>
+
+    <Style x:Key="HubGridStyle" TargetType="ItemsControl">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="MaxWidth" Value="1060"/>
+        <Setter Property="ItemsPanel">
+            <Setter.Value>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" ItemWidth="256" ItemHeight="118"/>
+                </ItemsPanelTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="HubContainerStyle" TargetType="Grid">
+        <Setter Property="MaxWidth" Value="1060"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,40,0,32"/>
+    </Style>
+
+    <Style x:Key="HubBackButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="#64748B"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="Margin" Value="0,0,0,12"/>
+    </Style>
+
+</ResourceDictionary>

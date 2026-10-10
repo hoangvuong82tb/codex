@@ -7,6 +7,7 @@
     <Color x:Key="SurfaceColor">#F2F4F8</Color>
     <Color x:Key="CardColor">#FFFFFF</Color>
     <Color x:Key="CardSoftColor">#ECF1F8</Color>
+    <Color x:Key="BorderSoftColor">#CCD8EA</Color>
     <Color x:Key="TaskbarColor">#DDE5F1</Color>
     <Color x:Key="StartMenuColor">#E8EEF8</Color>
 

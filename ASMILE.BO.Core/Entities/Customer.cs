@@ -16,6 +16,12 @@ public sealed class Customer
     [MaxLength(30)]
     public string Phone { get; set; } = string.Empty;
 
+    [MaxLength(320)]
+    public string Email { get; set; } = string.Empty;
+
+    [MaxLength(50)]
+    public string TaxCode { get; set; } = string.Empty;
+
     [MaxLength(80)]
     public string BankAccountNo { get; set; } = string.Empty;
 
@@ -40,12 +46,6 @@ public sealed class Customer
         get => CustomerName;
         set => CustomerName = value;
     }
-
-    [NotMapped]
-    public string TaxCode { get; set; } = string.Empty;
-
-    [NotMapped]
-    public string Email { get; set; } = string.Empty;
 
     [NotMapped]
     public string Status

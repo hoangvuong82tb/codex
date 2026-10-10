@@ -229,6 +229,7 @@ public sealed class BreakfastCafePaymentDto
 {
     public Guid Id { get; set; }
     public DateTime PaymentDate { get; set; }
+    public DateTime CreatedAt { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string? ReferenceNo { get; set; }
@@ -244,6 +245,7 @@ public sealed class BreakfastCafeOrderDto
     public string Status { get; set; } = string.Empty;
     public string PaymentStatus { get; set; } = string.Empty;
     public string OrderType { get; set; } = string.Empty;
+    public DateTime UpdatedAt { get; set; }
     public string ServiceStatus { get; set; } = string.Empty;
     public string ServiceStatusText { get; set; } = string.Empty;
     public string? AreaName { get; set; }

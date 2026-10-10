@@ -1,6 +1,6 @@
-﻿using ASMILE.BO.Core.Entities;
-using ASMILE.BO.Core.Enums;
-using ASMILE.BO.Tests.Unit.TestSupport;
+using ASMILE.BO.Core.FrontOffice.Folio;
+using ASMILE.BO.Core.FrontOffice.Foundation.Identifiers;
+using ASMILE.BO.Core.FrontOffice.Posting;
 using FluentAssertions;
 
 namespace ASMILE.BO.Tests.Unit;
@@ -8,83 +8,137 @@ namespace ASMILE.BO.Tests.Unit;
 public sealed class PostingEngineTests
 {
     [Fact]
-    public async Task PostDraftAsync_PostsBalancedManualJournal()
+    public void POSTING_U_001_valid_posting_succeeds()
     {
-        await using var db = TestDbContextFactory.CreateContext();
-        var journalService = TestDbContextFactory.JournalService(db);
-        var journal = CreateManualJournal("JV-TEST-001", new DateTime(2026, 5, 10), 100m);
+        var pipeline = new PostingPipeline();
+        var request = PostingRequest.Create(
+            new PostingSource(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null),
+            Guid.NewGuid(), 500000, "Room night 2026-07-18", RevenueBucket.Rooms,
+            new DateOnly(2026, 7, 18), DateTime.UtcNow, null, 10, 5);
 
-        var draft = await journalService.CreateDraftAsync(journal);
-        var posted = await journalService.PostDraftAsync(draft.Id, "tester");
+        Guid capturedEntry = Guid.Empty;
+        var result = pipeline.Process(request, (r, tax, sc, net) => capturedEntry = r.RequestId);
 
-        posted.Status.Should().Be(JournalStatus.Posted);
-        posted.TotalDebit.Should().Be(100m);
-        posted.TotalCredit.Should().Be(100m);
-        db.AuditLogs.Should().Contain(x => x.EntityName == "JournalHeader" && x.Action == "Post");
+        result.IsSuccess.Should().BeTrue();
+        result.TaxAmount.Should().Be(50000);
+        result.ServiceChargeAmount.Should().Be(25000);
+        result.NetAmount.Should().Be(575000);
     }
 
     [Fact]
-    public async Task PostDraftAsync_RejectsDuplicatePosting()
+    public void POSTING_U_002_duplicate_is_rejected()
     {
-        await using var db = TestDbContextFactory.CreateContext();
-        var journalService = TestDbContextFactory.JournalService(db);
-        var journal = await journalService.CreateDraftAsync(CreateManualJournal("JV-TEST-002", new DateTime(2026, 5, 10), 50m));
-        await journalService.PostDraftAsync(journal.Id, "tester");
+        var pipeline = new PostingPipeline();
+        var request = PostingRequest.Create(
+            new PostingSource(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null),
+            Guid.NewGuid(), 100000, "Test", RevenueBucket.Rooms,
+            new DateOnly(2026, 7, 18), DateTime.UtcNow, null);
 
-        var act = () => journalService.PostDraftAsync(journal.Id, "tester");
+        pipeline.Process(request, (_, _, _, _) => { });
+        var duplicate = pipeline.Process(request, (_, _, _, _) => { });
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        duplicate.IsSuccess.Should().BeFalse();
+        duplicate.ErrorCode.Should().Be("POSTING_DUPLICATE");
     }
 
     [Fact]
-    public async Task PostDraftAsync_RejectsLockedPeriod()
+    public void POSTING_U_003_zero_amount_is_rejected()
     {
-        await using var db = TestDbContextFactory.CreateContext();
-        var period = db.AccountingPeriods.Single(x => x.PeriodCode == "2026-05");
-        period.Status = AccountingPeriodStatus.Locked;
-        await db.SaveChangesAsync();
-        var journalService = TestDbContextFactory.JournalService(db);
+        var pipeline = new PostingPipeline();
+        var request = PostingRequest.Create(
+            new PostingSource(Guid.NewGuid(), PostingSourceType.Manual, null, null),
+            Guid.NewGuid(), 0, "Zero test", RevenueBucket.Rooms,
+            new DateOnly(2026, 7, 18), DateTime.UtcNow, null);
 
-        var act = () => journalService.CreateDraftAsync(CreateManualJournal("JV-TEST-003", new DateTime(2026, 5, 10), 50m));
-
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        var result = pipeline.Process(request, (_, _, _, _) => { });
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("POSTING_AMOUNT_INVALID");
     }
 
     [Fact]
-    public async Task ReverseAsync_CreatesReversalJournal()
+    public void POSTING_U_004_custom_rule_blocks_posting()
     {
-        await using var db = TestDbContextFactory.CreateContext();
-        var journalService = TestDbContextFactory.JournalService(db);
-        var journal = await journalService.CreateDraftAsync(CreateManualJournal("JV-TEST-004", new DateTime(2026, 5, 10), 80m));
-        var posted = await journalService.PostDraftAsync(journal.Id, "tester");
+        var pipeline = new PostingPipeline();
+        pipeline.AddRule(new PostingRule
+        {
+            RuleName = "NoMiniBar",
+            Priority = 1,
+            Validate = r => r.Source.SourceType == PostingSourceType.MiniBar
+                ? "MiniBar postings not allowed" : null
+        });
 
-        var reversal = await journalService.ReverseAsync(posted.Id, "test reversal", "tester");
+        var request = PostingRequest.Create(
+            new PostingSource(Guid.NewGuid(), PostingSourceType.MiniBar, null, null),
+            Guid.NewGuid(), 50000, "Minibar drink", RevenueBucket.MiniBar,
+            new DateOnly(2026, 7, 18), new DateTime(2026, 7, 18, 23, 0, 0, DateTimeKind.Utc), null);
 
-        reversal.Status.Should().Be(JournalStatus.Posted);
-        reversal.SourceType.Should().Be("Reversal");
-        reversal.Lines.Sum(x => x.DebitAmount).Should().Be(80m);
-        reversal.Lines.Sum(x => x.CreditAmount).Should().Be(80m);
-        (await journalService.GetJournalAsync(posted.Id))!.Status.Should().Be(JournalStatus.Reversed);
+        var result = pipeline.Process(request, (_, _, _, _) => { });
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("POSTING_RULE_VIOLATION");
     }
 
-    private static JournalHeader CreateManualJournal(string no, DateTime date, decimal amount) => new()
+    [Fact]
+    public void POSTING_U_005_source_maps_to_correct_bucket()
     {
-        Id = Guid.NewGuid(),
-        JournalNo = no,
-        JournalDate = date,
-        PostingDate = date,
-        SourceType = "ManualJournal",
-        SourceNo = no,
-        Description = "Manual test journal",
-        PeriodCode = "2026-05",
-        Status = JournalStatus.Draft,
-        CreatedBy = "tester",
-        CreatedAt = DateTime.UtcNow,
-        Lines =
-        [
-            new JournalLine { Id = Guid.NewGuid(), LineNo = 1, AccountCode = "1111", AccountName = "Tiền mặt", DebitAmount = amount, CreditAmount = 0m, CurrencyCode = "VND", ExchangeRate = 1m, Description = "Debit" },
-            new JournalLine { Id = Guid.NewGuid(), LineNo = 2, AccountCode = "421", AccountName = "Lợi nhuận", DebitAmount = 0m, CreditAmount = amount, CurrencyCode = "VND", ExchangeRate = 1m, Description = "Credit" }
-        ]
-    };
+        PostingPolicies.MapSourceToBucket(PostingSourceType.Restaurant).Should().Be(RevenueBucket.FoodAndBeverage);
+        PostingPolicies.MapSourceToBucket(PostingSourceType.Banquet).Should().Be(RevenueBucket.FoodAndBeverage);
+        PostingPolicies.MapSourceToBucket(PostingSourceType.Spa).Should().Be(RevenueBucket.SpaAndWellness);
+        PostingPolicies.MapSourceToBucket(PostingSourceType.RoomCharge).Should().Be(RevenueBucket.Rooms);
+        PostingPolicies.MapSourceToBucket(PostingSourceType.Manual).Should().Be(RevenueBucket.OtherRevenue);
+    }
+
+    [Fact]
+    public void POSTING_U_006_tax_rates_are_explicit_on_the_request()
+    {
+        var request = PostingRequest.Create(
+            new PostingSource(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null),
+            Guid.NewGuid(), 500000, "Room", RevenueBucket.Rooms,
+            new DateOnly(2026, 7, 18), DateTime.UtcNow, null, 10, 5);
+
+        request.TaxRate.Should().Be(10);
+        request.ServiceChargeRate.Should().Be(5);
+    }
+
+    [Fact]
+    public void POSTING_U_007_batch_processing_counts_results()
+    {
+        var pipeline = new PostingPipeline();
+        var requests = new[]
+        {
+            PostingRequest.Create(new(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null), Guid.NewGuid(), 500000, "Room 1", RevenueBucket.Rooms, new(2026,7,18), DateTime.UtcNow, null),
+            PostingRequest.Create(new(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null), Guid.NewGuid(), 0, "Invalid", RevenueBucket.Rooms, new(2026,7,18), DateTime.UtcNow, null),
+            PostingRequest.Create(new(Guid.NewGuid(), PostingSourceType.Restaurant, null, null), Guid.NewGuid(), 200000, "Dinner", RevenueBucket.FoodAndBeverage, new(2026,7,18), DateTime.UtcNow, null),
+        };
+
+        var batch = pipeline.ProcessBatch(requests, (_, _, _, _) => { });
+        batch.SuccessCount.Should().Be(2);
+        batch.FailureCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void POSTING_U_008_idempotent_posting_same_request_id()
+    {
+        var pipeline = new PostingPipeline();
+        var request = PostingRequest.Create(
+            new PostingSource(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null),
+            Guid.NewGuid(), 300000, "Room night", RevenueBucket.Rooms,
+            new DateOnly(2026, 7, 18), DateTime.UtcNow, null);
+
+        var r1 = pipeline.Process(request, (_, _, _, _) => { });
+        var r2 = pipeline.Process(request, (_, _, _, _) => { });
+        r1.IsSuccess.Should().BeTrue();
+        r2.ErrorCode.Should().Be("POSTING_DUPLICATE");
+    }
+
+    [Fact]
+    public void POSTING_U_009_service_charge_is_explicit_not_defaulted()
+    {
+        var request = PostingRequest.Create(
+            new PostingSource(Guid.NewGuid(), PostingSourceType.RoomCharge, null, null),
+            Guid.NewGuid(), 500000, "Room", RevenueBucket.Rooms,
+            new DateOnly(2026, 7, 18), DateTime.UtcNow, null, 0, 5);
+
+        request.TaxRate.Should().Be(0);
+        request.ServiceChargeRate.Should().Be(5);
+    }
 }
-

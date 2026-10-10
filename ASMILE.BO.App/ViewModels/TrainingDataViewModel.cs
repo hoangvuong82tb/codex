@@ -1,5 +1,6 @@
 using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.App.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -14,6 +15,7 @@ public sealed partial class TrainingDataViewModel : ViewModelBase, IDisposable
     private readonly ITrainingDataService _trainingDataService;
     private readonly CancellationTokenSource _disposeCts = new();
     private CancellationTokenSource? _runCts;
+    private int _disposeState;
     private TrainingDataOperationResult? _lastOperationResult;
 
     public ObservableCollection<TrainingDataStepResult> StepLogs { get; } = new();
@@ -408,9 +410,9 @@ public sealed partial class TrainingDataViewModel : ViewModelBase, IDisposable
 
     private static string ResolveProfileIcon(TrainingDataSeedProfile profile) => profile switch
     {
-        TrainingDataSeedProfile.RestaurantDemo => @"D:\ASMILE-BO\Windows_Icon\Icons\applications\commerce.ico",
-        TrainingDataSeedProfile.HotelDemo => @"D:\ASMILE-BO\Windows_Icon\Icons\applications\office.ico",
-        _ => @"D:\ASMILE-BO\Windows_Icon\Icons\applications\dataverse.ico"
+        TrainingDataSeedProfile.RestaurantDemo => ApplicationAssetPaths.Icon(@"Icons\applications\commerce.ico"),
+        TrainingDataSeedProfile.HotelDemo => ApplicationAssetPaths.Icon(@"Icons\applications\office.ico"),
+        _ => ApplicationAssetPaths.Icon(@"Icons\applications\dataverse.ico")
     };
 
     private static StatusBadgeItem CreateStatusBadge(string text, string kind)
@@ -495,6 +497,11 @@ public sealed partial class TrainingDataViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0)
+        {
+            return;
+        }
+
         _runCts?.Cancel();
         _runCts?.Dispose();
         _disposeCts.Cancel();

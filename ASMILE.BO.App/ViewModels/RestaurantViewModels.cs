@@ -831,14 +831,6 @@ public sealed partial class AlacarteRestaurantViewModel : ViewModelBase
     {
         await RefreshAsync();
         await LoadSavedQuotesAsync();
-        // Nếu DB trống, tự động tạo dữ liệu mẫu
-        if (Rooms.Count == 0 && Tables.Count == 0)
-        {
-            var services = await _service.SeedDefaultExtraServicesAsync();
-            Reset(AlacarteServices, services.Select(x => new AlacarteServiceItem(x.Id, x.Name, x.DefaultPrice, "lần", x.Code, x.VatRate)));
-            Reset(SettingExtServices, AlacarteServices.Select(x => new AlacarteServiceItem(x.Id, x.Name, x.Price, x.Unit, x.Code, x.VatRate)));
-            NotifyCollectionState();
-        }
         await LoadMenuItemsAsync();
         await LoadMenuPackagesAsync();
     }
@@ -897,7 +889,11 @@ public sealed partial class AlacarteRestaurantViewModel : ViewModelBase
             SyncSettingMenuItems(items);
             ResetFilteredMenu(items);
         }
-        catch { /* Fallback to sample if DB not available */ }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Load restaurant menu catalog failed");
+            StatusText = $"Không thể tải thực đơn thật: {ex.Message}";
+        }
     }
 
     private void ResetFilteredMenu(IEnumerable<MenuItemDto> items)
@@ -3925,141 +3921,6 @@ public sealed partial class AlacarteRestaurantViewModel : ViewModelBase
         }
     }
 
-    private void PopulateSampleDataInMemory()
-    {
-        if (Floors.Count == 0) { Floors.Add("Tầng 1"); Floors.Add("Tầng 2"); Floors.Add("Tầng 3"); Floors.Add("Tầng 4"); }
-
-        if (Rooms.Count == 0)
-        {
-            var sampleRooms = new (string Floor, string Code, string Name, int MaxTables, int SeatPerTable)[]
-            {
-                ("Tầng 1", "T1-KA", "Khoang A",  6, 10),
-                ("Tầng 1", "T1-KB", "Khoang B",  4, 10),
-                ("Tầng 1", "T1-KC", "Khoang C",  8, 10),
-                ("Tầng 2", "T2-V1", "VIP 1",     3, 10),
-                ("Tầng 2", "T2-V2", "VIP 2",     3, 10),
-                ("Tầng 2", "T2-V3", "VIP 3",     3, 10),
-                ("Tầng 2", "T2-V4", "VIP 4",     3, 10),
-                ("Tầng 2", "T2-V5", "VIP 5",     3, 10),
-                ("Tầng 2", "T2-V6", "VIP 6",     3, 10),
-                ("Tầng 2", "T2-V7", "VIP 7",     3, 10),
-                ("Tầng 2", "T2-V8", "VIP 8",     3, 10),
-                ("Tầng 3", "T3-V9", "VIP 9",     3, 10),
-                ("Tầng 3", "T3-V10","VIP 10",    3, 10),
-                ("Tầng 3", "T3-V11","VIP 11",    3, 10),
-                ("Tầng 3", "T3-V12","VIP 12",    3, 10),
-                ("Tầng 4", "T4-V1", "VIP 4-1",  10, 10),
-                ("Tầng 4", "T4-V2", "VIP 4-2",  40, 10),
-            };
-            foreach (var (floor, code, name, maxTables, seats) in sampleRooms)
-                Rooms.Add(new DiningRoomDto { Id = Guid.NewGuid(), Code = code, Name = name,
-                    Capacity = maxTables * seats, RoomType = floor, Status = "Available", TableCount = maxTables });
-        }
-
-        if (Tables.Count == 0)
-        {
-            foreach (var room in Rooms)
-            {
-                for (int i = 1; i <= room.TableCount; i++)
-                {
-                    var status = room.Code == "T1-KA" ? "Serving" : "Empty";
-                    Tables.Add(new DiningTableDto
-                    {
-                        Id = Guid.NewGuid(), DiningRoomId = room.Id, RoomName = room.Name,
-                        Code = $"B{i:00}", Name = $"Bàn {i:00}", SeatCount = 10, Status = status
-                    });
-                }
-            }
-        }
-
-        // Đặt bàn mẫu
-        if (Reservations.Count == 0)
-        {
-            var a03 = Tables.FirstOrDefault(t => t.Name == "A03");
-            var b04 = Tables.FirstOrDefault(t => t.Name == "B04");
-            var a05 = Tables.FirstOrDefault(t => t.Name == "A05");
-
-            Reservations.Add(new TableReservationDto
-            {
-                Id = Guid.NewGuid(), ReservationNo = "DB-2026-001",
-                CustomerName = "Nguyễn Văn An", Phone = "0912 345 678",
-                ReservationDateTime = DateTime.Today.AddHours(18), GuestCount = 6,
-                DiningRoomId = a03?.DiningRoomId, RoomName = a03?.RoomName,
-                DiningTableId = a03?.Id, TableName = a03?.Name, Status = "Confirmed"
-            });
-            Reservations.Add(new TableReservationDto
-            {
-                Id = Guid.NewGuid(), ReservationNo = "DB-2026-002",
-                CustomerName = "Trần Thị Bích", Phone = "0987 654 321",
-                ReservationDateTime = DateTime.Today.AddHours(19), GuestCount = 4,
-                DiningRoomId = b04?.DiningRoomId, RoomName = b04?.RoomName,
-                DiningTableId = b04?.Id, TableName = b04?.Name, Status = "Confirmed"
-            });
-            Reservations.Add(new TableReservationDto
-            {
-                Id = Guid.NewGuid(), ReservationNo = "DB-2026-003",
-                CustomerName = "Hoàng Văn Nam", Phone = "0903 111 222",
-                ReservationDateTime = DateTime.Today.AddHours(20), GuestCount = 6,
-                DiningRoomId = a05?.DiningRoomId, RoomName = a05?.RoomName,
-                DiningTableId = a05?.Id, TableName = a05?.Name, Status = "Confirmed"
-            });
-        }
-
-        // Đơn mở mẫu
-        if (OpenOrders.Count == 0)
-        {
-            var a04 = Tables.FirstOrDefault(t => t.Name == "A04");
-            var order = new AlacarteOrderDto
-            {
-                Id = Guid.NewGuid(), OrderNo = "ALC-2026-001",
-                DiningTableId = a04?.Id, TableName = "A04", RoomName = "VIP 1",
-                OrderDate = DateTime.Now.AddHours(-2), Status = "Serving", PaymentStatus = "Unpaid",
-                SubtotalAmount = 2230000, DiscountAmount = 100000, VatAmount = 170400,
-                ServiceChargeAmount = 106500, TotalAmount = 2406900,
-                PaidAmount = 0, RemainingAmount = 2406900,
-                Note = "Không cay",
-                Lines = new List<AlacarteOrderLineDto>
-                {
-                    new() { Id = Guid.NewGuid(), LineNo = 1, MenuItemCode = "M01", MenuItemName = "Tôm hùm nướng bơ tỏi", UnitName = "suất", Qty = 2, UnitPrice = 550000, Amount = 1100000 },
-                    new() { Id = Guid.NewGuid(), LineNo = 2, MenuItemCode = "M02", MenuItemName = "Bò Úc nướng đá", UnitName = "suất", Qty = 2, UnitPrice = 450000, Amount = 900000 },
-                    new() { Id = Guid.NewGuid(), LineNo = 3, MenuItemCode = "M03", MenuItemName = "Súp hải sản", UnitName = "suất", Qty = 1, UnitPrice = 120000, Amount = 120000 },
-                    new() { Id = Guid.NewGuid(), LineNo = 4, MenuItemCode = "M04", MenuItemName = "Salad dầu giấm", UnitName = "suất", Qty = 1, UnitPrice = 80000, Amount = 80000 },
-                    new() { Id = Guid.NewGuid(), LineNo = 5, MenuItemCode = "M05", MenuItemName = "Nước suối", UnitName = "chai", Qty = 2, UnitPrice = 15000, Amount = 30000 },
-                }
-            };
-            OpenOrders.Add(order);
-        }
-
-        PopulateSampleContracts();
-        ApplyTableFilter();
-    }
-
-    private void PopulateSampleContracts()
-    {
-        if (Contracts.Count > 0) return;
-        Contracts.Add(new RestaurantContractDto
-        {
-            Id = Guid.NewGuid(), ContractNo = "HD-ALC-0001",
-            EventDescription = "Tiệc sinh nhật - VIP 1 - Nguyễn Văn An",
-            TotalAmount = 8500000, DepositAmount = 3000000, RemainingAmount = 5500000,
-            Status = "Active"
-        });
-        Contracts.Add(new RestaurantContractDto
-        {
-            Id = Guid.NewGuid(), ContractNo = "HD-ALC-0002",
-            EventDescription = "Họp mặt đối tác - Tầng 1 - Trần Thị Bích",
-            TotalAmount = 12000000, DepositAmount = 5000000, RemainingAmount = 7000000,
-            Status = "Draft"
-        });
-        Contracts.Add(new RestaurantContractDto
-        {
-            Id = Guid.NewGuid(), ContractNo = "HD-ALC-0003",
-            EventDescription = "Tiệc cưới - Sân vườn - Hoàng Văn Nam",
-            TotalAmount = 45000000, DepositAmount = 15000000, RemainingAmount = 30000000,
-            Status = "Active"
-        });
-    }
-
     [RelayCommand]
     private async Task PayOrder()
     {
@@ -6661,10 +6522,6 @@ public sealed partial class AlacarteRestaurantViewModel : ViewModelBase
     private async Task LoadExtraServicesAsync()
     {
         var services = await _service.GetExtraServicesAsync();
-        if (services.Count == 0)
-        {
-            services = await _service.SeedDefaultExtraServicesAsync();
-        }
 
         Reset(AlacarteServices, services.Select(x => new AlacarteServiceItem(x.Id, x.Name, x.DefaultPrice, "lần", x.Code, x.VatRate)
         {
@@ -6680,6 +6537,8 @@ public sealed partial class AlacarteRestaurantViewModel : ViewModelBase
         }));
         ApplyOrderItemPickerFilters();
         NotifyCollectionState();
+        if (services.Count == 0)
+            StatusText = "Chưa có dịch vụ bổ sung thật trong phạm vi hiện tại.";
     }
 
     private void InitDefaultServices()
@@ -6958,26 +6817,12 @@ public sealed partial class AlacarteRestaurantViewModel : ViewModelBase
             {
                 SettingDiningAreas.Add(new AlacarteSettingDiningArea(area, Rooms.Count(r => string.Equals(r.RoomType, area, StringComparison.OrdinalIgnoreCase)), Tables.Count(t => string.Equals(Rooms.FirstOrDefault(r => r.Id == t.DiningRoomId)?.RoomType, area, StringComparison.OrdinalIgnoreCase))));
             }
-            if (SettingDiningAreas.Count == 0)
-            {
-                SettingDiningAreas.Add(new AlacarteSettingDiningArea("Tầng 1", 0, 0));
-                SettingDiningAreas.Add(new AlacarteSettingDiningArea("Tầng 2", 0, 0));
-            }
         }
 
         if (SettingAreas.Count == 0)
         {
             foreach (var r in Rooms)
                 SettingAreas.Add(new AlacarteSettingArea(r.Id, r.Code, r.Name, r.RoomType, r.Capacity, r.IsActive));
-            if (SettingAreas.Count == 0)
-            {
-                SettingAreas.Add(new AlacarteSettingArea(Guid.Empty, "VIP1", "VIP 1", "Vip", 40, true));
-                SettingAreas.Add(new AlacarteSettingArea(Guid.Empty, "VIP2", "VIP 2", "Vip", 30, true));
-                SettingAreas.Add(new AlacarteSettingArea(Guid.Empty, "TANG1", "Tầng 1", "Standard", 60, true));
-                SettingAreas.Add(new AlacarteSettingArea(Guid.Empty, "TANG2", "Tầng 2", "Standard", 50, true));
-                SettingAreas.Add(new AlacarteSettingArea(Guid.Empty, "SANVUON", "Sân vườn", "Outdoor", 30, true));
-                SettingAreas.Add(new AlacarteSettingArea(Guid.Empty, "NGOAITROI", "Ngoài trời", "Outdoor", 20, true));
-            }
         }
 
         // 2. Bàn ăn
@@ -6985,15 +6830,6 @@ public sealed partial class AlacarteRestaurantViewModel : ViewModelBase
         {
             foreach (var t in Tables)
                 SettingTables.Add(new AlacarteSettingTable(t.Id, t.DiningRoomId, t.Code, t.Name, t.SeatCount, t.RoomName, t.Status, Rooms.FirstOrDefault(r => r.Id == t.DiningRoomId)?.RoomType ?? string.Empty));
-            if (SettingTables.Count == 0)
-            {
-                var sampleTables = new[] { ("A01","VIP 1",4,"Empty"),("A02","VIP 1",4,"Empty"),("A03","VIP 1",6,"Reserved"),
-                    ("A04","VIP 1",8,"Serving"),("A05","VIP 1",6,"Empty"),("B01","Tầng 1",6,"Serving"),
-                    ("B02","Tầng 1",4,"Empty"),("B03","Tầng 1",4,"Empty"),("B04","Tầng 1",4,"Reserved"),
-                    ("B05","Tầng 1",4,"Locked"),("B06","Tầng 1",8,"Empty") };
-                foreach (var (code, room, seats, status) in sampleTables)
-                    SettingTables.Add(new AlacarteSettingTable(Guid.Empty, Guid.Empty, code, code, seats, room, status, room));
-            }
         }
 
         // 3. Máy in
@@ -9691,6 +9527,7 @@ public sealed partial class BanquetRestaurantViewModel : ViewModelBase
 
     partial void OnSelectedEventChanged(BanquetEventDto? value)
     {
+        Interlocked.Increment(ref _selectedEventDetailLoadVersion);
         ResetChecklistEditor();
         ResetTimelineEditor();
         if (value is null)

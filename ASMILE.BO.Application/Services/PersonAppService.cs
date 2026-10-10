@@ -1,9 +1,14 @@
 using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.DTOs.Settings;
+using ASMILE.BO.Application.Interfaces.Settings;
+using ASMILE.BO.Application.Services;
 using ASMILE.BO.Core.Entities;
+using ASMILE.BO.Core.Entities.Settings;
 using ASMILE.BO.Core.Interfaces.Repositories;
 using ASMILE.BO.Core.Interfaces.Services;
 using ASMILE.BO.Shared.Exceptions;
+using System.Data;
 
 namespace ASMILE.BO.Application.Services;
 
@@ -13,17 +18,20 @@ public sealed class PersonAppService : IPersonAppService
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuditLogService _auditLogService;
+    private readonly ISettingsService _settingsService;
 
     public PersonAppService(
         IPersonRepository personRepository,
         IDepartmentRepository departmentRepository,
         IUnitOfWork unitOfWork,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        ISettingsService settingsService)
     {
         _personRepository = personRepository;
         _departmentRepository = departmentRepository;
         _unitOfWork = unitOfWork;
         _auditLogService = auditLogService;
+        _settingsService = settingsService;
     }
 
     public async Task<IReadOnlyList<PersonDto>> SearchAsync(int? departmentId, string keyword, bool? isActive = null, CancellationToken cancellationToken = default)
@@ -37,53 +45,100 @@ public sealed class PersonAppService : IPersonAppService
 
     public async Task<PersonDto> SaveAsync(PersonDto dto, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(dto.PersonCode))
+        Person? savedEntity = null;
+        string? auditAction = null;
+        string? auditDetails = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(async transactionToken =>
         {
-            throw new AppValidationException("Mã nhân sự không được rỗng.");
+            var personCode = dto.PersonCode?.Trim() ?? string.Empty;
+            if (dto.Id <= 0
+                && string.IsNullOrWhiteSpace(personCode)
+                && await IsEmployeeCodeGenerationEnabledAsync(transactionToken))
+            {
+                var patternSetting = await _settingsService.GetValueAsync(
+                    "Module.departments.employeeCodePattern", SettingScope.App, "departments");
+                personCode = await GeneratePersonCodeAsync(patternSetting?.Value ?? "NV-{00000}", transactionToken);
+            }
+
+            if (string.IsNullOrWhiteSpace(personCode))
+            {
+                throw new AppValidationException("Mã nhân sự không được rỗng.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                throw new AppValidationException("Tên nhân sự không được rỗng.");
+            }
+
+            if (dto.DepartmentId <= 0)
+            {
+                throw new AppValidationException("Vui lòng chọn bộ phận.");
+            }
+
+            if (await _personRepository.ExistsCodeAsync(personCode, dto.Id, transactionToken))
+            {
+                throw new AppValidationException("Mã nhân sự đã tồn tại.");
+            }
+
+            if (dto.Id <= 0)
+            {
+                savedEntity = MapToEntity(dto, personCode);
+                savedEntity.CreatedAt = DateTime.UtcNow;
+                await _personRepository.AddAsync(savedEntity, transactionToken);
+                await _unitOfWork.SaveChangesAsync(transactionToken);
+                auditAction = "ADD_PERSON";
+                auditDetails = $"Thêm {savedEntity.PersonCode}";
+                return;
+            }
+
+            savedEntity = await _personRepository.GetByIdAsync(dto.Id, transactionToken)
+                ?? throw new AppValidationException("Không tìm thấy nhân sự.");
+
+            savedEntity.PersonCode = personCode;
+            savedEntity.FullName = dto.FullName.Trim();
+            savedEntity.DepartmentId = dto.DepartmentId;
+            savedEntity.Position = dto.Position?.Trim() ?? string.Empty;
+            savedEntity.Phone = dto.Phone?.Trim() ?? string.Empty;
+            savedEntity.Email = dto.Email?.Trim() ?? string.Empty;
+            savedEntity.Note = dto.Note?.Trim() ?? string.Empty;
+            savedEntity.IsActive = dto.IsActive;
+
+            _personRepository.Update(savedEntity);
+            await _unitOfWork.SaveChangesAsync(transactionToken);
+            auditAction = "UPDATE_PERSON";
+            auditDetails = $"Sửa {savedEntity.PersonCode}";
+        }, IsolationLevel.Serializable, cancellationToken);
+
+        await _auditLogService.LogAsync(auditAction!, auditDetails!, cancellationToken: cancellationToken);
+        return await BuildDtoAsync(savedEntity!, cancellationToken);
+    }
+
+    private async Task<bool> IsEmployeeCodeGenerationEnabledAsync(CancellationToken cancellationToken)
+    {
+        var setting = await _settingsService.GetValueAsync(
+            "Module.departments.autoEmployeeCode", SettingScope.App, "departments");
+        return bool.TryParse(setting?.Value, out var enabled) && enabled;
+    }
+
+    private async Task<string> GeneratePersonCodeAsync(string pattern, CancellationToken cancellationToken)
+    {
+        if (!SequenceCodePattern.IsValid(pattern))
+        {
+            throw new AppValidationException("Quy tắc tự sinh mã nhân sự không hợp lệ; cần đúng một token số dạng {00000}.");
         }
 
-        if (string.IsNullOrWhiteSpace(dto.FullName))
+        var now = DateTime.Now;
+        var existingCodes = await _personRepository.GetCodesStartingWithAsync(
+            SequenceCodePattern.GetPrefix(pattern, now), cancellationToken);
+        var nextSequence = SequenceCodePattern.GetNextSequence(pattern, now, existingCodes);
+        var generatedCode = SequenceCodePattern.Render(pattern, now, nextSequence);
+        if (generatedCode.Length > 50)
         {
-            throw new AppValidationException("Tên nhân sự không được rỗng.");
+            throw new AppValidationException("Mã nhân sự được sinh vượt quá giới hạn 50 ký tự.");
         }
 
-        if (dto.DepartmentId <= 0)
-        {
-            throw new AppValidationException("Vui lòng chọn bộ phận.");
-        }
-
-        var normalizedCode = dto.PersonCode.Trim();
-        if (await _personRepository.ExistsCodeAsync(normalizedCode, dto.Id, cancellationToken))
-        {
-            throw new AppValidationException("Mã nhân sự đã tồn tại.");
-        }
-
-        if (dto.Id <= 0)
-        {
-            var entity = MapToEntity(dto);
-            entity.CreatedAt = DateTime.UtcNow;
-            await _personRepository.AddAsync(entity, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            await _auditLogService.LogAsync("ADD_PERSON", $"Thêm {entity.PersonCode}", cancellationToken: cancellationToken);
-            return await BuildDtoAsync(entity, cancellationToken);
-        }
-
-        var existing = await _personRepository.GetByIdAsync(dto.Id, cancellationToken)
-            ?? throw new AppValidationException("Không tìm thấy nhân sự.");
-
-        existing.PersonCode = normalizedCode;
-        existing.FullName = dto.FullName.Trim();
-        existing.DepartmentId = dto.DepartmentId;
-        existing.Position = dto.Position?.Trim() ?? string.Empty;
-        existing.Phone = dto.Phone?.Trim() ?? string.Empty;
-        existing.Email = dto.Email?.Trim() ?? string.Empty;
-        existing.Note = dto.Note?.Trim() ?? string.Empty;
-        existing.IsActive = dto.IsActive;
-
-        _personRepository.Update(existing);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        await _auditLogService.LogAsync("UPDATE_PERSON", $"Sửa {existing.PersonCode}", cancellationToken: cancellationToken);
-        return await BuildDtoAsync(existing, cancellationToken);
+        return generatedCode;
     }
 
     public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
@@ -118,10 +173,10 @@ public sealed class PersonAppService : IPersonAppService
         CreatedAt = entity.CreatedAt
     };
 
-    private static Person MapToEntity(PersonDto dto) => new()
+    private static Person MapToEntity(PersonDto dto, string personCode) => new()
     {
         Id = dto.Id,
-        PersonCode = dto.PersonCode.Trim(),
+        PersonCode = personCode,
         FullName = dto.FullName.Trim(),
         DepartmentId = dto.DepartmentId,
         Position = dto.Position?.Trim() ?? string.Empty,

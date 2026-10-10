@@ -84,6 +84,103 @@ public sealed class AuditEnterpriseTests
     }
 
     [Fact]
+    public async Task ReplayExport_RequiresLogsExportPermissionBeforeCreatingFile()
+    {
+        await using var fixture = await SqliteFixture.CreateAsync();
+        var replay = fixture.CreateReplayService(new TestCurrentUserService([]));
+        var exportPath = Path.Combine(Path.GetTempPath(), $"audit-export-denied-{Guid.NewGuid():N}.json");
+
+        var act = () => replay.ExportAsync(new AuditExportRequestDto
+        {
+            ExportType = "json",
+            FilePath = exportPath
+        });
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("Permission denied: Logs.Export");
+        File.Exists(exportPath).Should().BeFalse();
+        (await replay.GetExportHistoryAsync()).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ReplayExport_AppliesAuditCenterFiltersToExportedRows()
+    {
+        await using var fixture = await SqliteFixture.CreateAsync();
+        var correlation = fixture.CreateCorrelationService();
+        var audit = fixture.CreateAuditService(correlation);
+        var replay = fixture.CreateReplayService();
+
+        using (correlation.BeginScope("corr-export-filter-match"))
+        {
+            await audit.LogAsync("Invoice", "INV-1", "Exported", null, new { Status = "Done" }, "alice", correlationId: correlation.CurrentCorrelationId);
+            await audit.LogAsync("Invoice", "INV-2", "Viewed", null, new { Status = "Read" }, "alice", correlationId: correlation.CurrentCorrelationId);
+        }
+
+        using (correlation.BeginScope("corr-export-filter-user"))
+        {
+            await audit.LogAsync("Invoice", "INV-3", "Exported", null, new { Status = "Done" }, "bob", correlationId: correlation.CurrentCorrelationId);
+        }
+
+        var exportPath = Path.Combine(Path.GetTempPath(), $"audit-export-filter-{Guid.NewGuid():N}.json");
+        var result = await replay.ExportAsync(new AuditExportRequestDto
+        {
+            ExportType = "json",
+            ModuleFilter = "Invoice",
+            ActionFilter = "Exported",
+            UserFilter = "alice",
+            FromDate = DateTime.UtcNow.AddMinutes(-5),
+            ToDate = DateTime.UtcNow.AddMinutes(5),
+            FilePath = exportPath
+        });
+
+        result.RecordCount.Should().Be(1);
+        var json = await File.ReadAllTextAsync(result.FilePath);
+        json.Should().Contain("corr-export-filter-match");
+        json.Should().Contain("Exported");
+        json.Should().NotContain("Viewed");
+        json.Should().NotContain("corr-export-filter-user");
+        (await replay.GetExportHistoryAsync()).Single(x => x.Id == result.ExportHistoryId)
+            .FilterJson.Should().Contain("userFilter");
+    }
+
+    [Fact]
+    public async Task ReplayExport_AlwaysRestrictsRowsToPersistedAuditLogScope()
+    {
+        await using var fixture = await SqliteFixture.CreateAsync();
+        var correlation = fixture.CreateCorrelationService();
+        var audit = fixture.CreateAuditService(correlation);
+        var replay = fixture.CreateReplayService();
+
+        using (correlation.BeginScope("corr-export-scoped"))
+        {
+            await audit.LogAsync("Invoice", "INV-1", "Viewed", null, new { Status = "Read" }, "alice", correlationId: correlation.CurrentCorrelationId);
+        }
+
+        fixture.Db.AuditReplayEntries.Add(new AuditReplayEntry
+        {
+            CorrelationId = "corr-orphan-replay",
+            SequenceNo = 1,
+            Route = "Unscoped",
+            Module = "Unscoped",
+            Action = "Viewed",
+            EntityType = "Invoice",
+            EntityId = "INV-ORPHAN",
+            TimestampUtc = DateTime.UtcNow
+        });
+        await fixture.Db.SaveChangesAsync();
+
+        var exportPath = Path.Combine(Path.GetTempPath(), $"audit-export-scope-{Guid.NewGuid():N}.json");
+        var result = await replay.ExportAsync(new AuditExportRequestDto
+        {
+            ExportType = "json",
+            FilePath = exportPath
+        });
+
+        result.RecordCount.Should().Be(1);
+        (await File.ReadAllTextAsync(result.FilePath)).Should().Contain("corr-export-scoped").And.NotContain("corr-orphan-replay");
+    }
+
+    [Fact]
     public async Task JournalPosting_CreatesCorrelationReplayAndSnapshot()
     {
         await using var fixture = await SqliteFixture.CreateAsync(seedAccountingCore: true);
@@ -401,8 +498,8 @@ public sealed class AuditEnterpriseTests
         public AuditService CreateAuditService(IAuditCorrelationService correlationService)
             => new(Db, correlationService, new TestCurrentUserService());
 
-        public AuditReplayService CreateReplayService()
-            => new(Db);
+        public AuditReplayService CreateReplayService(ICurrentUserService? currentUserService = null)
+            => new(Db, currentUserService ?? new TestCurrentUserService(["Logs.Export"]));
 
         public AuditSessionService CreateSessionService(IAuditCorrelationService correlationService)
             => new(Db, correlationService, new TestCurrentUserService());
@@ -479,8 +576,11 @@ public sealed class AuditEnterpriseTests
 
     private sealed class TestCurrentUserService : ICurrentUserService
     {
-        public TestCurrentUserService()
+        private readonly HashSet<string>? _permissions;
+
+        public TestCurrentUserService(IEnumerable<string>? permissions = null)
         {
+            _permissions = permissions is null ? null : new HashSet<string>(permissions, StringComparer.OrdinalIgnoreCase);
             CurrentUser = new UserAccountDto
             {
                 Id = Guid.NewGuid(),
@@ -495,7 +595,7 @@ public sealed class AuditEnterpriseTests
         public UserAccountDto? CurrentUser { get; private set; }
         public Guid? CurrentSessionId { get; private set; }
         public bool IsAuthenticated => CurrentUser is not null;
-        public bool HasPermission(string permissionCode) => true;
+        public bool HasPermission(string permissionCode) => _permissions is null || _permissions.Contains(permissionCode);
         public void SetCurrentUser(LoginResultDto login) { }
         public void Clear()
         {

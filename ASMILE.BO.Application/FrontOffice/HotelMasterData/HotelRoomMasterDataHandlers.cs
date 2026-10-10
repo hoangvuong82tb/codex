@@ -8,7 +8,7 @@ using ASMILE.BO.Shared.Foundation;
 
 namespace ASMILE.BO.Application.FrontOffice.HotelMasterData;
 
-public sealed class HotelRoomMasterDataApplicationService(IHotelRoomMasterDataRepository repository, IFrontOfficePersistenceSession persistence, IFrontOfficeExecutionContextAccessor contextAccessor, IClock clock)
+public sealed class HotelRoomMasterDataApplicationService(IHotelRoomMasterDataRepository repository, IFrontOfficePersistenceSession persistence, IFrontOfficeExecutionContextAccessor contextAccessor, IClock clock, IHotelStructureMasterDataRepository? structureRepository = null)
 {
     public async Task<Result<HotelRoomTypeDto>> CreateRoomTypeAsync(CreateHotelRoomTypeCommand command, CancellationToken ct)
     {
@@ -30,19 +30,61 @@ public sealed class HotelRoomMasterDataApplicationService(IHotelRoomMasterDataRe
         var type = await repository.GetRoomTypeAsync(context.Property.PropertyId.Value, command.HotelRoomTypeId, ct);
         if (type is null) return Result<HotelRoomDto>.Failure(Error.Business("HOTEL_ROOM_TYPE_NOT_FOUND", "Room type was not found."));
         if (!type.IsActive) return Result<HotelRoomDto>.Failure(Error.Business("HOTEL_ROOM_TYPE_INACTIVE", "Room type is inactive."));
+        if (command.HotelAreaId is not null && (structureRepository is null || await structureRepository.GetAreaAsync(context.Property.PropertyId.Value, command.HotelAreaId.Value, ct) is not { IsActive: true }))
+            return Result<HotelRoomDto>.Failure(Error.Business("HOTEL_AREA_NOT_FOUND", "Active area was not found."));
         if (await repository.RoomNumberExistsAsync(context.Property.PropertyId.Value, command.RoomNumber, null, ct)) return Result<HotelRoomDto>.Failure(Error.Business("HOTEL_ROOM_NUMBER_CONFLICT", "Room number already exists."));
-        try { var entity = HotelRoom.Create(context.Property.PropertyId, type.HotelRoomTypeId, command.RoomNumber, command.DisplayName, command.Floor, command.Building, command.Zone, command.Description, clock.UtcNow, context.Actor.ActorId); await repository.AddRoomAsync(entity, ct); return await CommitRoom(entity, "Created", ct); }
+        try { var entity = HotelRoom.Create(context.Property.PropertyId, type.HotelRoomTypeId, command.RoomNumber, command.DisplayName, command.Floor, command.Building, command.Zone, command.Description, clock.UtcNow, context.Actor.ActorId, command.RoomCondition, command.View, command.BedType, command.IsSmoking, command.IsConnecting, command.HotelAreaId); await repository.AddRoomAsync(entity, ct); return await CommitRoom(entity, "Created", ct); }
         catch (ArgumentException ex) { return Result<HotelRoomDto>.Failure(Error.Validation(ex.Message, "Hotel room input is invalid.")); }
     }
-    public Task<Result<HotelRoomDto>> UpdateRoomAsync(UpdateHotelRoomCommand command, CancellationToken ct) => MutateRoom(command.HotelRoomId, command.ExpectedRowVersion, "Updated", async (e, c) => { if (await repository.RoomNumberExistsAsync(c.Property.PropertyId.Value, command.RoomNumber, e.HotelRoomId, ct)) throw new InvalidOperationException("HOTEL_ROOM_NUMBER_CONFLICT"); e.Update(command.RoomNumber, command.DisplayName, command.Floor, command.Building, command.Zone, command.Description, clock.UtcNow, c.Actor.ActorId); }, ct);
+    public Task<Result<HotelRoomDto>> UpdateRoomAsync(UpdateHotelRoomCommand command, CancellationToken ct) => MutateRoom(command.HotelRoomId, command.ExpectedRowVersion, "Updated", async (e, c) => { if (await repository.RoomNumberExistsAsync(c.Property.PropertyId.Value, command.RoomNumber, e.HotelRoomId, ct)) throw new InvalidOperationException("HOTEL_ROOM_NUMBER_CONFLICT"); if (command.HotelAreaId is not null && (structureRepository is null || await structureRepository.GetAreaAsync(c.Property.PropertyId.Value, command.HotelAreaId.Value, ct) is not { IsActive: true })) throw new InvalidOperationException("HOTEL_AREA_NOT_FOUND"); e.Update(command.RoomNumber, command.DisplayName, command.Floor, command.Building, command.Zone, command.Description, clock.UtcNow, c.Actor.ActorId, command.RoomCondition, command.View, command.BedType, command.IsSmoking, command.IsConnecting, command.HotelAreaId); }, ct);
     public Task<Result<HotelRoomDto>> ChangeRoomTypeAsync(ChangeHotelRoomTypeCommand command, CancellationToken ct) => MutateRoom(command.HotelRoomId, command.ExpectedRowVersion, "RoomTypeChanged", async (e, c) => { var type = await repository.GetRoomTypeAsync(c.Property.PropertyId.Value, command.HotelRoomTypeId, ct); if (type is null) throw new InvalidOperationException("HOTEL_ROOM_TYPE_MISMATCH"); if (!type.IsActive) throw new InvalidOperationException("HOTEL_ROOM_TYPE_INACTIVE"); e.ChangeRoomType(type.HotelRoomTypeId, clock.UtcNow, c.Actor.ActorId); }, ct);
-    public Task<Result<HotelRoomDto>> ChangeRoomStatusAsync(ChangeHotelRoomOperationalStatusCommand command, CancellationToken ct) => MutateRoom(command.HotelRoomId, command.ExpectedRowVersion, "OperationalStatusChanged", (e, c) => { e.ChangeOperationalStatus(command.OperationalStatus, clock.UtcNow, c.Actor.ActorId); return Task.CompletedTask; }, ct);
+    public Task<Result<HotelRoomDto>> ChangeRoomStatusAsync(ChangeHotelRoomOperationalStatusCommand command, CancellationToken ct) => MutateRoom(command.HotelRoomId, command.ExpectedRowVersion, "OperationalStatusChanged", async (e, c) =>
+    {
+        await EnsureOperationalStatusTransitionAllowedAsync(e, command.OperationalStatus, c, ct);
+        e.ChangeOperationalStatus(command.OperationalStatus, clock.UtcNow, c.Actor.ActorId);
+    }, ct);
+    public Task<Result<HotelRoomDto>> ExtendRoomLockAsync(ExtendHotelRoomLockCommand command, CancellationToken ct) => MutateRoom(command.HotelRoomId, command.ExpectedRowVersion, "OperationalLockExtended", (e, c) => { e.ExtendOperationalLock(command.NewExpiresAtUtc, command.Reason, clock.UtcNow, c.Actor.ActorId); return Task.CompletedTask; }, ct);
     public Task<Result<HotelRoomDto>> ActivateRoomAsync(ActivateHotelRoomCommand command, CancellationToken ct) => MutateRoom(command.HotelRoomId, command.ExpectedRowVersion, "Activated", (e, c) => { e.Activate(clock.UtcNow, c.Actor.ActorId); return Task.CompletedTask; }, ct);
     public Task<Result<HotelRoomDto>> DeactivateRoomAsync(DeactivateHotelRoomCommand command, CancellationToken ct) => MutateRoom(command.HotelRoomId, command.ExpectedRowVersion, "Deactivated", (e, c) => { e.Deactivate(clock.UtcNow, c.Actor.ActorId); return Task.CompletedTask; }, ct);
     private async Task<Result<HotelRoomTypeDto>> MutateRoomType(Guid id, byte[] token, string action, Func<HotelRoomType, FrontOfficeExecutionContext, Task> mutation, CancellationToken ct)
     { var c = Context(); if (c is null) return ContextFailure<HotelRoomTypeDto>(); if (!ValidToken(token)) return TokenFailure<HotelRoomTypeDto>(); var entity = await repository.GetRoomTypeAsync(c.Property.PropertyId.Value, id, ct); if (entity is null) return Result<HotelRoomTypeDto>.Failure(Error.Business("HOTEL_ROOM_TYPE_NOT_FOUND", "Room type was not found.")); try { repository.UseExpectedRowVersion(entity, token); await mutation(entity, c); return await CommitRoomType(entity, action, ct); } catch (ArgumentException ex) { return Result<HotelRoomTypeDto>.Failure(Error.Validation(ex.Message, "Room type input is invalid.")); } catch (InvalidOperationException ex) { return Result<HotelRoomTypeDto>.Failure(Error.Business(ex.Message, "Room type mutation is invalid.")); } }
     private async Task<Result<HotelRoomDto>> MutateRoom(Guid id, byte[] token, string action, Func<HotelRoom, FrontOfficeExecutionContext, Task> mutation, CancellationToken ct)
     { var c = Context(); if (c is null) return ContextFailure<HotelRoomDto>(); if (!ValidToken(token)) return TokenFailure<HotelRoomDto>(); var entity = await repository.GetRoomAsync(c.Property.PropertyId.Value, id, ct); if (entity is null) return Result<HotelRoomDto>.Failure(Error.Business("HOTEL_ROOM_NOT_FOUND", "Hotel room was not found.")); try { repository.UseExpectedRowVersion(entity, token); await mutation(entity, c); return await CommitRoom(entity, action, ct); } catch (ArgumentException ex) { return Result<HotelRoomDto>.Failure(Error.Validation(ex.Message, "Hotel room input is invalid.")); } catch (InvalidOperationException ex) { return Result<HotelRoomDto>.Failure(Error.Business(ex.Message, "Hotel room mutation is invalid.")); } }
+    private async Task EnsureOperationalStatusTransitionAllowedAsync(HotelRoom room, HotelRoomOperationalStatus targetStatus, FrontOfficeExecutionContext context, CancellationToken ct)
+    {
+        // The operational status field is the OOS policy domain.  Keep the
+        // legacy permissive behavior when a property has not configured any
+        // rule yet; once rules exist, every transition must match one.
+        if (structureRepository is null) return;
+        var rules = await structureRepository.GetActiveRoomStatusRulesAsync(context.Property.PropertyId.Value, "OOS", ct);
+        if (rules.Count == 0) return;
+
+        var from = ToOperationalStatusCode(room.OperationalStatus);
+        var to = ToOperationalStatusCode(targetStatus);
+        var rule = rules.FirstOrDefault(x => StatusMatches(x.FromStatus, from, room.OperationalStatus)
+            && StatusMatches(x.ToStatus, to, targetStatus));
+        if (rule is null)
+            throw new InvalidOperationException("HOTEL_ROOM_STATUS_TRANSITION_NOT_ALLOWED");
+        if (rule.RequiresApproval)
+            throw new InvalidOperationException("HOTEL_ROOM_STATUS_APPROVAL_REQUIRED");
+        if (!string.IsNullOrWhiteSpace(rule.RequiredRole)
+            && !context.Actor.IsSystemActor
+            && !context.Actor.Roles.Contains(rule.RequiredRole, StringComparer.OrdinalIgnoreCase))
+            throw new InvalidOperationException("HOTEL_ROOM_STATUS_ROLE_REQUIRED");
+        if (!string.IsNullOrWhiteSpace(rule.RequiredEvent)
+            && !string.Equals(rule.RequiredEvent, "RoomStatusChange", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("HOTEL_ROOM_STATUS_EVENT_REQUIRED");
+    }
+    private static string ToOperationalStatusCode(HotelRoomOperationalStatus status) => status switch
+    {
+        HotelRoomOperationalStatus.Available => "VC",
+        HotelRoomOperationalStatus.OutOfOrder => "OOO",
+        HotelRoomOperationalStatus.OutOfService => "OOS",
+        _ => status.ToString()
+    };
+    private static bool StatusMatches(string configured, string code, HotelRoomOperationalStatus status) =>
+        string.Equals(configured.Trim(), code, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(configured.Trim(), status.ToString(), StringComparison.OrdinalIgnoreCase);
     private async Task<Result<HotelRoomTypeDto>> CommitRoomType(HotelRoomType entity, string action, CancellationToken ct) { persistence.StageAudit(new FrontOfficeAuditIntent(action, nameof(HotelRoomType), entity.HotelRoomTypeId.ToString(), "Succeeded", Metadata: new Dictionary<string, string> { ["PropertyId"] = entity.PropertyId.ToString("D") })); var result = await persistence.CommitAsync(ct); if (result.IsFailure) return Result<HotelRoomTypeDto>.Failure(ToConcurrency(result.Error!, "HOTEL_ROOM_TYPE_CONCURRENCY_CONFLICT")); return await repository.GetRoomTypeDtoAsync(entity.PropertyId, entity.HotelRoomTypeId, ct) is { } dto ? Result<HotelRoomTypeDto>.Success(dto) : Result<HotelRoomTypeDto>.Failure(Error.System("HOTEL_ROOM_TYPE_READ_AFTER_WRITE_FAILED", "Room type could not be read.")); }
     private async Task<Result<HotelRoomDto>> CommitRoom(HotelRoom entity, string action, CancellationToken ct) { persistence.StageAudit(new FrontOfficeAuditIntent(action, nameof(HotelRoom), entity.HotelRoomId.ToString(), "Succeeded", Metadata: new Dictionary<string, string> { ["PropertyId"] = entity.PropertyId.ToString("D") })); var result = await persistence.CommitAsync(ct); if (result.IsFailure) return Result<HotelRoomDto>.Failure(ToConcurrency(result.Error!, "HOTEL_ROOM_CONCURRENCY_CONFLICT")); return await repository.GetRoomDtoAsync(entity.PropertyId, entity.HotelRoomId, ct) is { } dto ? Result<HotelRoomDto>.Success(dto) : Result<HotelRoomDto>.Failure(Error.System("HOTEL_ROOM_READ_AFTER_WRITE_FAILED", "Hotel room could not be read.")); }
     private FrontOfficeExecutionContext? Context() => contextAccessor.Current;
@@ -60,6 +102,7 @@ public sealed class CreateHotelRoomCommandHandler(HotelRoomMasterDataApplication
 public sealed class UpdateHotelRoomCommandHandler(HotelRoomMasterDataApplicationService s) : ICommandHandler<UpdateHotelRoomCommand, HotelRoomDto> { public Task<Result<HotelRoomDto>> HandleAsync(UpdateHotelRoomCommand c, CancellationToken ct) => s.UpdateRoomAsync(c, ct); }
 public sealed class ChangeHotelRoomTypeCommandHandler(HotelRoomMasterDataApplicationService s) : ICommandHandler<ChangeHotelRoomTypeCommand, HotelRoomDto> { public Task<Result<HotelRoomDto>> HandleAsync(ChangeHotelRoomTypeCommand c, CancellationToken ct) => s.ChangeRoomTypeAsync(c, ct); }
 public sealed class ChangeHotelRoomOperationalStatusCommandHandler(HotelRoomMasterDataApplicationService s) : ICommandHandler<ChangeHotelRoomOperationalStatusCommand, HotelRoomDto> { public Task<Result<HotelRoomDto>> HandleAsync(ChangeHotelRoomOperationalStatusCommand c, CancellationToken ct) => s.ChangeRoomStatusAsync(c, ct); }
+public sealed class ExtendHotelRoomLockCommandHandler(HotelRoomMasterDataApplicationService s) : ICommandHandler<ExtendHotelRoomLockCommand, HotelRoomDto> { public Task<Result<HotelRoomDto>> HandleAsync(ExtendHotelRoomLockCommand c, CancellationToken ct) => s.ExtendRoomLockAsync(c, ct); }
 public sealed class ActivateHotelRoomCommandHandler(HotelRoomMasterDataApplicationService s) : ICommandHandler<ActivateHotelRoomCommand, HotelRoomDto> { public Task<Result<HotelRoomDto>> HandleAsync(ActivateHotelRoomCommand c, CancellationToken ct) => s.ActivateRoomAsync(c, ct); }
 public sealed class DeactivateHotelRoomCommandHandler(HotelRoomMasterDataApplicationService s) : ICommandHandler<DeactivateHotelRoomCommand, HotelRoomDto> { public Task<Result<HotelRoomDto>> HandleAsync(DeactivateHotelRoomCommand c, CancellationToken ct) => s.DeactivateRoomAsync(c, ct); }
 

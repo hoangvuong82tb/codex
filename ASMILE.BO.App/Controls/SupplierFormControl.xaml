@@ -115,6 +115,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -124,9 +125,9 @@
 
                     <StackPanel Grid.Row="0" Grid.Column="0">
                         <TextBlock Style="{StaticResource FormLabelStyle}">
-                            <Run Text="Mã NCC" /><Run Text=" *" Foreground="#D34646" />
+                            <Run Text="Mã NCC" />
                         </TextBlock>
-                        <TextBox Style="{StaticResource FormInputStyle}" Text="{Binding Editing.SupplierCode, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Style="{StaticResource FormInputStyle}" Text="{Binding Editing.SupplierCode, UpdateSourceTrigger=PropertyChanged}" ToolTip="Để trống nếu đã bật tự sinh mã trong Cài đặt hệ thống." />
                     </StackPanel>
 
                     <StackPanel Grid.Row="0" Grid.Column="2">
@@ -155,6 +156,12 @@
                     </StackPanel>
 
                     <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3">
+                        <TextBlock Text="Mã số thuế" Style="{StaticResource FormLabelStyle}" />
+                        <TextBox Style="{StaticResource FormInputStyle}"
+                                 Text="{Binding Editing.TaxCode, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3">
                         <TextBlock Text="Địa chỉ" Style="{StaticResource FormLabelStyle}" />
                         <Grid>
                             <TextBox Style="{StaticResource FormInputStyle}" Padding="10,8,34,8" Text="{Binding Editing.Address, UpdateSourceTrigger=PropertyChanged}" />
@@ -162,7 +169,7 @@
                         </Grid>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3">
+                    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3">
                         <TextBlock Text="Ghi chú" Style="{StaticResource FormLabelStyle}" />
                         <TextBox Style="{StaticResource FormInputStyle}"
                                  Height="88"
@@ -172,7 +179,7 @@
                                  Text="{Binding Editing.Note, UpdateSourceTrigger=PropertyChanged}" />
                     </StackPanel>
 
-                    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,0">
+                    <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,0">
                         <TextBlock Text="Trạng thái" Style="{StaticResource FormLabelStyle}" Margin="0,0,12,0" VerticalAlignment="Center" />
                         <CheckBox IsChecked="{Binding Editing.IsActive}" Style="{StaticResource SwitchStyle}" VerticalAlignment="Center" />
                         <TextBlock Text="Đang kích hoạt" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="#263A54" />

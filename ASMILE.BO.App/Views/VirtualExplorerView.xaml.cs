@@ -19,14 +19,21 @@ public partial class VirtualExplorerView : UserControl
         NavigationTreeView.AddHandler(TreeViewItem.ExpandedEvent, new RoutedEventHandler(NavigationTreeViewItem_Expanded));
     }
 
-    private void CurrentItemsListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void CurrentItemsListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is not VirtualExplorerViewModel viewModel)
+        if (e.ClickCount != 2
+            || sender is not ListBox listBox
+            || DataContext is not VirtualExplorerViewModel viewModel)
         {
             return;
         }
 
-        if (sender is not ListView listView || listView.SelectedItem is not VirtualExplorerNodeDto node)
+        // Handle the preview event so nested item templates/controls cannot consume
+        // the mouse-down before WPF raises MouseDoubleClick. Resolve the clicked
+        // container instead of relying on SelectedItem, which may still refer to
+        // the previously selected row at preview-event time.
+        var container = ItemsControl.ContainerFromElement(listBox, e.OriginalSource as DependencyObject) as ListBoxItem;
+        if (container?.DataContext is not VirtualExplorerNodeDto node)
         {
             return;
         }
@@ -34,6 +41,7 @@ public partial class VirtualExplorerView : UserControl
         if (viewModel.OpenCommand.CanExecute(node))
         {
             viewModel.OpenCommand.Execute(node);
+            e.Handled = true;
         }
     }
 
@@ -101,33 +109,51 @@ public partial class VirtualExplorerView : UserControl
         await viewModel.EnsureNavigationChildrenLoadedAsync(node);
     }
 
-    private void DriveCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    private void DriveCard_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is not VirtualExplorerViewModel viewModel)
+        if (e.ClickCount != 2
+            || DataContext is not VirtualExplorerViewModel viewModel
+            || (sender as FrameworkElement)?.DataContext is not ExplorerDriveItemModel drive)
         {
             return;
         }
 
-        if ((sender as FrameworkElement)?.DataContext is not ExplorerDriveItemModel drive)
+        var node = CreateDriveNode(drive);
+        if (viewModel.OpenCommand.CanExecute(node))
         {
-            return;
-        }
-
-        var pseudoNode = new VirtualExplorerNodeDto
-        {
-            Id = drive.Id,
-            Name = drive.DisplayName,
-            DisplayName = drive.DisplayName,
-            VirtualPath = drive.VirtualPath,
-            NodeType = drive.IsNetworkLocation ? Core.Enums.VirtualNodeType.NetworkItem : Core.Enums.VirtualNodeType.Drive,
-            Module = drive.IsNetworkLocation ? Core.Enums.BusinessModule.Network : Core.Enums.BusinessModule.System
-        };
-
-        if (viewModel.OpenCommand.CanExecute(pseudoNode))
-        {
-            viewModel.OpenCommand.Execute(pseudoNode);
+            viewModel.OpenCommand.Execute(node);
+            e.Handled = true;
         }
     }
+
+    private void DriveCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount > 1
+            || DataContext is not VirtualExplorerViewModel viewModel
+            || (sender as FrameworkElement)?.DataContext is not ExplorerDriveItemModel drive)
+        {
+            return;
+        }
+
+        var pseudoNode = CreateDriveNode(drive);
+        viewModel.SelectedItem = pseudoNode;
+    }
+
+    private static VirtualExplorerNodeDto CreateDriveNode(ExplorerDriveItemModel drive) => new()
+    {
+        Id = drive.Id,
+        Name = drive.DisplayName,
+        DisplayName = drive.DisplayName,
+        VirtualPath = drive.VirtualPath,
+        NodeType = drive.IsNetworkLocation ? Core.Enums.VirtualNodeType.NetworkItem : Core.Enums.VirtualNodeType.Drive,
+        Module = drive.IsNetworkLocation ? Core.Enums.BusinessModule.Network : Core.Enums.BusinessModule.System,
+        PhysicalPath = drive.PhysicalPath,
+        Description = drive.Description,
+        Status = drive.Status,
+        UsedPercent = drive.UsedPercent,
+        HasUsageMetric = drive.HasUsageMetric,
+        IsAlert = drive.IsAlert
+    };
 
     private static void UpdateVirtualPathColumnWidth(ListView? listView)
     {

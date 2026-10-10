@@ -3,6 +3,7 @@ using ASMILE.BO.App.Models;
 using ClosedXML.Excel;
 using System.IO;
 using System.Text;
+using System.Globalization;
 
 namespace ASMILE.BO.App.Services;
 
@@ -16,6 +17,13 @@ public sealed class ItemImportExportService : IItemImportExportService
         "Nhóm hàng",
         "Mã NCC",
         "Tên NCC",
+        "Giá bán",
+        "VAT (%)",
+        "Hàng minibar",
+        "Nhóm minibar",
+        "SL chuẩn minibar",
+        "Tồn tối thiểu",
+        "Tồn tối đa",
         "Kích hoạt"
     ];
 
@@ -26,8 +34,8 @@ public sealed class ItemImportExportService : IItemImportExportService
         var rows = new List<string[]>
         {
             Headers,
-            new[] { "HH-001", "Gạo thơm", "Kg", "Nguyên liệu", "NCC-001", "Nhà cung cấp A", "Có" },
-            new[] { "HH-002", "Dầu ăn", "Chai", "Nguyên liệu", "NCC-002", "Nhà cung cấp B", "Có" }
+            new[] { "HH-001", "Gạo thơm", "Kg", "Nguyên liệu", "NCC-001", "Nhà cung cấp A", "0", "0", "Không", "", "", "", "", "Có" },
+            new[] { "HH-002", "Nước đóng chai", "Chai", "Minibar", "NCC-002", "Nhà cung cấp B", "25000", "8", "Có", "Nước", "2", "1", "4", "Có" }
         };
 
         if (IsExcelFile(filePath))
@@ -60,6 +68,13 @@ public sealed class ItemImportExportService : IItemImportExportService
                 row.GroupName,
                 row.SupplierCode,
                 row.SupplierName,
+                FormatDecimal(row.RetailPrice),
+                FormatDecimal(row.VatRate),
+                row.IsMinibarItem ? "Có" : "Không",
+                row.MinibarCategory,
+                FormatDecimal(row.MinibarStandardQuantity),
+                FormatDecimal(row.MinibarMinStock),
+                FormatDecimal(row.MinibarMaxStock),
                 row.IsActive ? "Có" : "Không"
             ]);
         }
@@ -111,17 +126,7 @@ public sealed class ItemImportExportService : IItemImportExportService
             }
 
             var cols = ParseCsvLine(line);
-            rows.Add(new ItemImportRow
-            {
-                RowNumber = index + 1,
-                ItemCode = GetColumn(cols, 0),
-                ItemName = GetColumn(cols, 1),
-                Unit = GetColumn(cols, 2),
-                GroupName = GetColumn(cols, 3),
-                SupplierCode = GetColumn(cols, 4),
-                SupplierName = GetColumn(cols, 5),
-                IsActiveRaw = GetColumn(cols, 6)
-            });
+            rows.Add(CreateImportRow(cols, index + 1, cols.Count < Headers.Length));
         }
 
         return rows;
@@ -143,6 +148,9 @@ public sealed class ItemImportExportService : IItemImportExportService
 
         var firstRow = usedRange.RangeAddress.FirstAddress.RowNumber;
         var lastRow = usedRange.RangeAddress.LastAddress.RowNumber;
+        var firstColumn = usedRange.RangeAddress.FirstAddress.ColumnNumber;
+        var lastColumn = usedRange.RangeAddress.LastAddress.ColumnNumber;
+        var legacyLayout = lastColumn - firstColumn + 1 < Headers.Length;
         var firstColumns = Enumerable.Range(1, Headers.Length)
             .Select(col => worksheet.Cell(firstRow, col).GetString().Trim())
             .ToList();
@@ -161,17 +169,7 @@ public sealed class ItemImportExportService : IItemImportExportService
                 continue;
             }
 
-            rows.Add(new ItemImportRow
-            {
-                RowNumber = rowIndex,
-                ItemCode = GetColumn(cols, 0),
-                ItemName = GetColumn(cols, 1),
-                Unit = GetColumn(cols, 2),
-                GroupName = GetColumn(cols, 3),
-                SupplierCode = GetColumn(cols, 4),
-                SupplierName = GetColumn(cols, 5),
-                IsActiveRaw = GetColumn(cols, 6)
-            });
+            rows.Add(CreateImportRow(cols, rowIndex, legacyLayout));
         }
 
         return Task.FromResult<IReadOnlyList<ItemImportRow>>(rows);
@@ -263,6 +261,29 @@ public sealed class ItemImportExportService : IItemImportExportService
 
     private static string GetColumn(IReadOnlyList<string> columns, int index)
         => columns.Count > index ? columns[index].Trim() : string.Empty;
+
+    private static ItemImportRow CreateImportRow(IReadOnlyList<string> columns, int rowNumber, bool legacyLayout)
+        => new()
+        {
+            RowNumber = rowNumber,
+            ItemCode = GetColumn(columns, 0),
+            ItemName = GetColumn(columns, 1),
+            Unit = GetColumn(columns, 2),
+            GroupName = GetColumn(columns, 3),
+            SupplierCode = GetColumn(columns, 4),
+            SupplierName = GetColumn(columns, 5),
+            RetailPriceRaw = legacyLayout ? string.Empty : GetColumn(columns, 6),
+            VatRateRaw = legacyLayout ? string.Empty : GetColumn(columns, 7),
+            IsMinibarItemRaw = legacyLayout ? string.Empty : GetColumn(columns, 8),
+            MinibarCategory = legacyLayout ? string.Empty : GetColumn(columns, 9),
+            MinibarStandardQuantityRaw = legacyLayout ? string.Empty : GetColumn(columns, 10),
+            MinibarMinStockRaw = legacyLayout ? string.Empty : GetColumn(columns, 11),
+            MinibarMaxStockRaw = legacyLayout ? string.Empty : GetColumn(columns, 12),
+            IsActiveRaw = GetColumn(columns, legacyLayout ? 6 : 13)
+        };
+
+    private static string FormatDecimal(decimal? value)
+        => value?.ToString("0.################", CultureInfo.InvariantCulture) ?? string.Empty;
 
     private static bool IsExcelFile(string filePath)
         => string.Equals(Path.GetExtension(filePath), ".xlsx", StringComparison.OrdinalIgnoreCase);

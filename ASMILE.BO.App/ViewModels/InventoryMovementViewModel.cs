@@ -3,12 +3,15 @@ using ASMILE.BO.App.Services;
 using ASMILE.BO.App.Views.Dialogs;
 using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Interfaces.Settings;
+using ASMILE.BO.Core.Entities.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
+using System.Net.Mail;
 using System.Text;
 using System.Windows;
 
@@ -19,6 +22,8 @@ public sealed partial class InventoryMovementViewModel : ViewModelBase
     private readonly IInventoryMovementService _service;
     private readonly IReportEngine _reportEngine;
     private readonly IImportEngine _importEngine;
+    private readonly IEmailDispatchService _emailDispatchService;
+    private readonly ISettingsService _settingsService;
     private readonly INotificationService _notification;
     private readonly IDialogService _dialog;
     private readonly SemaphoreSlim _operationGate = new(1, 1);
@@ -136,11 +141,20 @@ public sealed partial class InventoryMovementViewModel : ViewModelBase
         ? "Chưa chọn"
         : SelectedMovementDifference == 0 ? "Khớp tồn" : SelectedMovementDifference > 0 ? "Tăng tồn" : "Giảm tồn";
 
-    public InventoryMovementViewModel(IInventoryMovementService service, IReportEngine reportEngine, IImportEngine importEngine, INotificationService notification, IDialogService dialog)
+    public InventoryMovementViewModel(
+        IInventoryMovementService service,
+        IReportEngine reportEngine,
+        IImportEngine importEngine,
+        INotificationService notification,
+        IDialogService dialog,
+        IEmailDispatchService emailDispatchService,
+        ISettingsService settingsService)
     {
         _service = service;
         _reportEngine = reportEngine;
         _importEngine = importEngine;
+        _emailDispatchService = emailDispatchService;
+        _settingsService = settingsService;
         _notification = notification;
         _dialog = dialog;
         _ = RefreshAsync();
@@ -577,7 +591,7 @@ public sealed partial class InventoryMovementViewModel : ViewModelBase
                 await SyncDocumentsAsync();
                 break;
             case "send-alert":
-                SendAlertEmail();
+                await SendAlertEmailAsync();
                 break;
         }
     }
@@ -757,7 +771,10 @@ public sealed partial class InventoryMovementViewModel : ViewModelBase
             return;
         }
 
-        _dialog.Info($"Đã tạo đề xuất nhập hàng cho {SelectedAlert.ProductCode} - SL gợi ý: {SelectedAlert.SuggestedPurchaseQty:N2}", "Đề xuất nhập hàng");
+        _dialog.Info(
+            $"Chưa thể tạo đề xuất nhập hàng cho {SelectedAlert.ProductCode}. " +
+            "Dịch vụ tồn kho hiện chưa có lệnh lưu đề xuất mua hàng; hệ thống không ghi nhận giả vào dữ liệu.",
+            "Đề xuất nhập hàng");
         await Task.CompletedTask;
     }
 
@@ -943,12 +960,10 @@ public sealed partial class InventoryMovementViewModel : ViewModelBase
     private void LockInventoryPeriod()
     {
         var period = $"{FromDate:MM/yyyy} - {ToDate:MM/yyyy}";
-        if (!_dialog.Confirm($"Xác nhận khóa kỳ tồn kho {period}?", "Khóa kỳ tồn kho"))
-        {
-            return;
-        }
-
-        _dialog.Info($"Đã khóa kỳ tồn kho {period} (mô phỏng runtime).", "Khóa kỳ tồn kho");
+        _dialog.Info(
+            $"Chưa thể khóa kỳ tồn kho {period}: backend hiện chưa có lệnh lưu trạng thái khóa kỳ. " +
+            "Hệ thống không ghi nhận giả thao tác này.",
+            "Khóa kỳ tồn kho");
     }
 
     private async Task SyncDocumentsAsync()
@@ -958,20 +973,80 @@ public sealed partial class InventoryMovementViewModel : ViewModelBase
         _notification.Show("Đã đồng bộ chứng từ và cập nhật số liệu tồn kho.");
     }
 
-    private void SendAlertEmail()
+    private async Task SendAlertEmailAsync()
     {
-        var warningCount = LowStockAlerts.Count;
-        var criticalItems = LowStockAlerts
+        var alerts = LowStockAlerts.Where(x => !x.IsHidden).ToList();
+        if (alerts.Count == 0)
+        {
+            _dialog.Info("Không có cảnh báo tồn kho đang hiển thị để gửi.", "Gửi cảnh báo email");
+            return;
+        }
+
+        var configuredRecipients = await _settingsService.GetValueAsync(
+            "Warehouse.LowStockAlertRecipients",
+            SettingScope.App,
+            "inventory");
+        var rawRecipients = (configuredRecipients?.Value ?? string.Empty)
+            .Split([',', ';', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var invalidRecipients = new List<string>();
+        var recipients = new List<string>();
+        foreach (var recipient in rawRecipients.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var address = new MailAddress(recipient);
+                recipients.Add(address.Address);
+            }
+            catch (FormatException)
+            {
+                invalidRecipients.Add(recipient);
+            }
+        }
+
+        if (recipients.Count == 0)
+        {
+            _dialog.Info(
+                "Chưa cấu hình người nhận cảnh báo tồn kho. Hãy nhập email tại Warehouse.LowStockAlertRecipients trong Thiết lập.",
+                "Gửi cảnh báo email");
+            return;
+        }
+
+        var criticalItems = alerts
             .Where(x => x.Severity.Equals("Critical", StringComparison.OrdinalIgnoreCase))
             .Take(5)
             .Select(x => $"{x.ProductCode} ({x.WarehouseCode}) thiếu {x.MissingQuantity:N0}");
-
-        var body = $"Đã gửi cảnh báo email nội bộ (mô phỏng).\n" +
-                   $"Số cảnh báo tồn thấp: {warningCount}\n" +
+        var body = $"Cảnh báo tồn kho thấp\n" +
+                   $"Số cảnh báo: {alerts.Count}\n" +
                    $"Mục ưu tiên: {(criticalItems.Any() ? string.Join(", ", criticalItems) : "Không có")}.\n" +
                    $"Thời điểm: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+        var queued = 0;
+        var failed = 0;
+        foreach (var recipient in recipients)
+        {
+            try
+            {
+                await _emailDispatchService.QueueAsync(new EmailDispatchRequestDto
+                {
+                    Recipient = recipient,
+                    Subject = $"Cảnh báo tồn kho thấp ({alerts.Count} mục)",
+                    Body = body,
+                    SourceType = "InventoryLowStockAlert"
+                });
+                queued++;
+            }
+            catch (Exception)
+            {
+                // Keep the summary honest: a queue failure is not a sent email.
+                failed++;
+            }
+        }
 
-        _dialog.Info(body, "Gửi cảnh báo email");
+        var message = $"Đã xếp hàng {queued}/{recipients.Count} email vào outbox; bộ gửi nền sẽ xử lý tiếp.\n" +
+                      (failed == 0 ? string.Empty : $"Lỗi xếp hàng: {failed} email.\n") +
+                      (invalidRecipients.Count == 0
+                          ? string.Empty
+                          : $"Bỏ qua email không hợp lệ: {string.Join(", ", invalidRecipients)}");
+        _dialog.Info(message, "Gửi cảnh báo email");
     }
 
     private void QueueFilterRefresh()

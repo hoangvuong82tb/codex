@@ -217,13 +217,14 @@ public sealed class AccountingStandardService : IAccountingStandardService
     private async Task AddMissingRoleMappingsAsync(CancellationToken cancellationToken)
     {
         var existingKeys = await _dbContext.AccountRoleMappings
+            .IgnoreQueryFilters()
             .Select(x => x.AccountingStandardCode + ":" + x.RoleCode + ":" + x.AccountCode)
             .ToListAsync(cancellationToken);
         var existing = existingKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var mapping in AccountingStandardSeedData.RoleMappings)
         {
             var key = $"{mapping.AccountingStandardCode}:{mapping.RoleCode}:{mapping.AccountCode}";
-            if (existing.Contains(key))
+            if (!existing.Add(key))
             {
                 continue;
             }
@@ -243,12 +244,31 @@ public sealed class AccountingStandardService : IAccountingStandardService
     private async Task AddMissingAsync<TEntity>(DbSet<TEntity> dbSet, IReadOnlyList<TEntity> seeds, Func<TEntity, string> keySelector, CancellationToken cancellationToken)
         where TEntity : class
     {
-        var existing = (await dbSet.AsNoTracking().ToListAsync(cancellationToken))
+        IQueryable<TEntity> existingQuery = dbSet.AsNoTracking();
+        if (typeof(ICompanyScoped).IsAssignableFrom(typeof(TEntity)))
+        {
+            existingQuery = existingQuery.IgnoreQueryFilters();
+        }
+
+        var existing = (await existingQuery.ToListAsync(cancellationToken))
             .Select(keySelector)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var seed in seeds)
         {
-            if (!existing.Contains(keySelector(seed)))
+            var key = keySelector(seed);
+            var primaryKey = dbSet.Entry(seed).Metadata.FindPrimaryKey();
+            if (primaryKey?.Properties.Count == 1)
+            {
+                var primaryKeyValue = dbSet.Entry(seed).Property(primaryKey.Properties[0].Name).CurrentValue;
+                if (primaryKeyValue is not null
+                    && await dbSet.FindAsync(new[] { primaryKeyValue }, cancellationToken) is not null)
+                {
+                    existing.Add(key);
+                    continue;
+                }
+            }
+
+            if (existing.Add(key))
             {
                 dbSet.Add(seed);
             }

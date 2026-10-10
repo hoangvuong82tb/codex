@@ -12,7 +12,7 @@ public sealed class StringEqualityConverter : IMultiValueConverter, IValueConver
     }
 
     object[] IMultiValueConverter.ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        => throw new NotSupportedException();
+        => [Binding.DoNothing];
 
     object IValueConverter.Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
@@ -20,5 +20,5 @@ public sealed class StringEqualityConverter : IMultiValueConverter, IValueConver
     }
 
     object IValueConverter.ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotSupportedException();
+        => Binding.DoNothing;
 }

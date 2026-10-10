@@ -1,0 +1,447 @@
+<Window x:Class="ASMILE.BO.App.Views.CreateGroupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tạo đoàn" Width="1460" Height="880"
+        MinWidth="1180" MinHeight="720"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True"
+        KeyDown="OnWindowKeyDown">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis"/>
+
+        <Style x:Key="WizardTabItem" TargetType="TabItem">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Margin" Value="0,0,6,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="18"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#EDE9FE"/>
+                                <Setter Property="BorderBrush" Value="#C4B5FD"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#F5F3FF"/>
+                                <Setter Property="BorderBrush" Value="#7C3AED"/>
+                                <Setter Property="Foreground" Value="#6D28D9"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="WizardTabControl" TargetType="TabControl">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid KeyboardNavigation.TabNavigation="Local">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TabPanel Grid.Row="0"
+                                      IsItemsHost="True"
+                                      Background="Transparent"
+                                      ClipToBounds="False"
+                                      VerticalAlignment="Top"
+                                      Margin="0,0,4,2"/>
+                            <ContentPresenter Grid.Row="1"
+                                              ContentSource="SelectedContent"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Margin="0,2,0,0"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ═══ TEXT STYLES ═══ -->
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Margin" Value="0,0,0,3"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#102E5A"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+        <Style x:Key="SubTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Margin" Value="0,10,0,6"/>
+        </Style>
+
+        <!-- ═══ INPUT STYLES ═══ -->
+        <Style x:Key="ModTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D7E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#7C3AED"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="1.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ModCombo" TargetType="ComboBox">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D7E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0" Margin="12,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}"/>
+                                    <Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7B8DA6" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="6" Stretch="Uniform"/>
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                <Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="9" Margin="0,2">
+                                    <ScrollViewer MaxHeight="220"><ItemsPresenter/></ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#7C3AED"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ModDatePicker" TargetType="DatePicker">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePicker">
+                        <Grid>
+                            <Border x:Name="Root" Background="White" BorderBrush="#D7E2F0" BorderThickness="1" CornerRadius="9" SnapsToDevicePixels="True"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions>
+                                <DatePickerTextBox x:Name="PART_TextBox" Grid.Column="0" BorderThickness="0" Background="Transparent" Padding="12,0" VerticalContentAlignment="Center" FontSize="13" FontFamily="Segoe UI" Foreground="#17365D"/>
+                                <ToggleButton x:Name="PART_Button" Grid.Column="1" Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Focusable="False" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <Border Width="28" Height="28" CornerRadius="7" Background="#F3F0FF">
+                                        <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#7C3AED" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ToggleButton>
+                            </Grid>
+                            <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" StaysOpen="False" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border Background="White" BorderBrush="#DCE5F1" BorderThickness="1" CornerRadius="14" Padding="0">
+                                    <Border.Effect><DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.16" Color="#62748E"/></Border.Effect>
+                                    <Calendar x:Name="PART_Calendar" Language="vi-VN" BorderThickness="0" Background="White" SelectedDate="{Binding SelectedDate, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" DisplayDate="{Binding DisplayDate, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#C4B5FD"/></Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#7C3AED"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ═══ BUTTON STYLES ═══ -->
+        <Style x:Key="PrimaryBtn" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Background" Value="#7C3AED"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="22,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#6D28D9"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.5"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SuccessBtn" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Background" Value="#16A34A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="22,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="GrayBtn" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ActionBtn" TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#7C3AED"/>
+            <Setter Property="Background" Value="#F8F6FF"/>
+            <Setter Property="BorderBrush" Value="#DDD6FE"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#EDE9FE"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ═══ DATA GRID ═══ -->
+        <Style x:Key="ModDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="RowBackground" Value="Transparent"/>
+            <Setter Property="AlternatingRowBackground" Value="#FAFBFD"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="ColumnHeaderHeight" Value="40"/>
+            <Setter Property="RowHeight" Value="38"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F5F3FF"/>
+                        <Setter Property="Foreground" Value="#475569"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="Padding" Value="8,0"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ═══ CARD STYLES ═══ -->
+        <Style x:Key="PanelCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style x:Key="KpiCard" TargetType="Border">
+            <Setter Property="Background" Value="#FAFBFD"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- ═══ CHECKBOX STYLE ═══ -->
+        <Style x:Key="ModCheckBox" TargetType="CheckBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <Border Padding="22,16" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="48" Height="48" CornerRadius="13">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#7C3AED" Offset="0"/>
+                            <GradientStop Color="#5B21B6" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <TextBlock Text="&#xE902;" FontFamily="Segoe MDL2 Assets" FontSize="24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <TextBlock Text="Tạo đoàn" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/>
+                    <TextBlock Text="Tạo hồ sơ đoàn, xác định nhu cầu lưu trú và thiết lập điều kiện thương mại ban đầu." FontSize="12" Foreground="#64748B" Margin="0,3,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="BtnRefresh" Content="Làm mới" Click="OnRefresh" Style="{StaticResource GrayBtn}"/>
+                    <Button x:Name="BtnSaveDraft" Content="Lưu nháp" Click="OnSaveDraft" Style="{StaticResource ActionBtn}" Margin="8,0,0,0" IsEnabled="False"/>
+                    <Button Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}" Margin="8,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ STEPPER ═══ -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="18,8">
+            <StackPanel x:Name="StepBar" Orientation="Horizontal" HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- ═══ CONTEXT SUMMARY ═══ -->
+        <Border x:Name="SummaryStrip" Grid.Row="2" Padding="20,8" Background="#FAFBFD" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <StackPanel x:Name="SummaryPanel" Orientation="Horizontal" HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- ═══ CONTENT AREA ═══ -->
+        <Grid Grid.Row="3" Margin="18,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="67*" MinWidth="440"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="33*" MinWidth="320"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: Step Content -->
+            <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="0">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="14" ShadowDepth="0" Opacity="0.05" Color="#000000"/>
+                </Border.Effect>
+                <ScrollViewer x:Name="ContentScroll"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              CanContentScroll="False"
+                              HorizontalContentAlignment="Stretch"
+                              VerticalContentAlignment="Top">
+                    <StackPanel x:Name="StepContentHost" Margin="22,18" HorizontalAlignment="Stretch"/>
+                </ScrollViewer>
+            </Border>
+
+            <!-- RIGHT: Inspector -->
+            <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="18,16">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="14" ShadowDepth="0" Opacity="0.05" Color="#000000"/>
+                </Border.Effect>
+                <StackPanel x:Name="InspectorPanel">
+                    <TextBlock Text="Thông tin đoàn" FontSize="16" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,14"/>
+                    <StackPanel x:Name="InspectorContent"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ═══ STICKY FOOTER ═══ -->
+        <Border Grid.Row="4" Padding="18,12" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="FooterStepLabel" Text="Bước 1/8 · Thông tin đoàn" FontSize="12" Foreground="#64748B"/>
+                    <TextBlock x:Name="FooterWarningLabel" FontSize="12" Foreground="#D97706" Margin="16,0,0,0" Visibility="Collapsed"/>
+                    <TextBlock x:Name="FooterBlockingLabel" FontSize="12" Foreground="#DC2626" Margin="16,0,0,0" Visibility="Collapsed"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Hủy" Click="OnCancel" Style="{StaticResource GrayBtn}"/>
+                    <Button x:Name="BtnBack" Content="← Quay lại" Click="OnBack" Style="{StaticResource GrayBtn}" Margin="8,0,0,0" IsEnabled="False"/>
+                    <Button x:Name="BtnNext" Content="Tiếp tục →" Click="OnNext" Style="{StaticResource PrimaryBtn}" Margin="8,0,0,0" IsEnabled="False"/>
+                    <Button x:Name="BtnCreate" Content="Tạo đoàn" Click="OnCreate" Style="{StaticResource SuccessBtn}" Margin="8,0,0,0" Visibility="Collapsed" IsEnabled="False"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

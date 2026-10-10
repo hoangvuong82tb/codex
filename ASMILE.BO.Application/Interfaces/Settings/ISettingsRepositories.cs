@@ -8,6 +8,8 @@ public interface ISettingsRepository
     Task<IReadOnlyList<SettingValue>> GetValuesAsync();
     Task<SettingValue?> GetValueAsync(string key, SettingScope scope, string? scopeTarget);
     Task UpsertValueAsync(SettingValue value);
+    Task UpsertValuesAsync(IReadOnlyList<SettingValue> values);
+    Task CommitValuesAndAuditAsync(IReadOnlyList<SettingValue> values, IReadOnlyList<SettingChangeLog> changeLogs);
     Task UpsertDefinitionAsync(SettingDefinition definition);
 }
 

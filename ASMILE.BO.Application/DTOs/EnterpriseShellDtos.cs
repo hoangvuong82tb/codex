@@ -27,11 +27,14 @@ public sealed class BranchContextOptionDto
 public sealed class WorkspaceStateDto
 {
     public IReadOnlyList<string> PinnedModules { get; set; } = [];
+    public bool HasPinnedModulesPreference { get; set; }
     public IReadOnlyList<string> FavoriteReports { get; set; } = [];
     public IReadOnlyList<string> RecentModules { get; set; } = [];
     public IReadOnlyList<string> RecentReports { get; set; } = [];
     public IReadOnlyList<string> RecentDrilldowns { get; set; } = [];
     public IReadOnlyList<string> LastOpenedTabs { get; set; } = [];
+    public IReadOnlyList<string> StartupModules { get; set; } = [];
+    public bool HasStartupModulesPreference { get; set; }
     public string ShellLayoutJson { get; set; } = string.Empty;
 }
 

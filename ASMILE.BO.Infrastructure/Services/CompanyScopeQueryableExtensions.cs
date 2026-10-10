@@ -4,7 +4,7 @@ namespace ASMILE.BO.Infrastructure.Services;
 
 public static class CompanyScopeQueryableExtensions
 {
-    public static IQueryable<T> ApplyCompanyScope<T>(this IQueryable<T> query, Guid? companyId, Guid? branchId = null, bool includeLegacyRows = true)
+    public static IQueryable<T> ApplyCompanyScope<T>(this IQueryable<T> query, Guid? companyId, Guid? branchId = null, bool includeLegacyRows = false)
         where T : class, ICompanyScoped
     {
         if (companyId.HasValue)
@@ -20,7 +20,7 @@ public static class CompanyScopeQueryableExtensions
         return query;
     }
 
-    public static IQueryable<T> ApplyCompanyBranchScope<T>(this IQueryable<T> query, Guid? companyId, Guid? branchId = null, bool includeLegacyRows = true)
+    public static IQueryable<T> ApplyCompanyBranchScope<T>(this IQueryable<T> query, Guid? companyId, Guid? branchId = null, bool includeLegacyRows = false)
         where T : class, ICompanyScoped, IBranchScoped
     {
         if (companyId.HasValue)

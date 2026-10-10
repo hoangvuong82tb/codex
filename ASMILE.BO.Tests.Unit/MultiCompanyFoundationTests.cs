@@ -21,7 +21,7 @@ public sealed class MultiCompanyFoundationTests
     private static readonly Guid UserId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
     [Fact]
-    public async Task CompanyScopedQueries_ReturnCurrentCompanyAndLegacyRowsOnly()
+    public async Task CompanyScopedQueries_DoNotExposeUnassignedLegacyRowsAcrossCompanies()
     {
         var databaseName = NewDatabaseName();
 
@@ -50,8 +50,8 @@ public sealed class MultiCompanyFoundationTests
         var companyAFunds = await companyA.CashFunds.OrderBy(x => x.FundCode).Select(x => x.FundCode).ToListAsync();
         var companyBFunds = await companyB.CashFunds.OrderBy(x => x.FundCode).Select(x => x.FundCode).ToListAsync();
 
-        companyAFunds.Should().Equal("A-FUND", "LEGACY-FUND");
-        companyBFunds.Should().Equal("B-FUND", "LEGACY-FUND");
+        companyAFunds.Should().Equal("A-FUND");
+        companyBFunds.Should().Equal("B-FUND");
     }
 
     [Fact]
@@ -100,6 +100,25 @@ public sealed class MultiCompanyFoundationTests
     }
 
     [Fact]
+    public async Task WorkspaceService_PersistsStartupModulesAndExplicitEmptySelection()
+    {
+        var databaseName = NewDatabaseName();
+        var user = new TestCurrentUserService(UserId, []);
+        await using var db = TestDbContextFactory.CreateContext(new TestCompanyContext(CompanyA), databaseName, seedAccountingCore: false);
+        var service = new WorkspaceService(db, user, new TestCompanyContext(CompanyA));
+
+        await service.SaveStartupModulesAsync(["hotel", "inventory", "hotel"]);
+        var configured = await service.LoadWorkspaceAsync();
+        configured.StartupModules.Should().Equal("hotel", "inventory");
+        configured.HasStartupModulesPreference.Should().BeTrue();
+
+        await service.SaveStartupModulesAsync([]);
+        var explicitlyCleared = await service.LoadWorkspaceAsync();
+        explicitlyCleared.StartupModules.Should().BeEmpty();
+        explicitlyCleared.HasStartupModulesPreference.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task WorkspaceService_IsolatesPinnedModulesByBranch()
     {
         var databaseName = NewDatabaseName();
@@ -125,6 +144,38 @@ public sealed class MultiCompanyFoundationTests
 
         branchAWorkspace.PinnedModules.Should().Equal("dashboard", "cash");
         branchBWorkspace.PinnedModules.Should().Equal("reports");
+    }
+
+    [Fact]
+    public async Task WorkspaceService_distinguishes_unset_pins_from_an_explicitly_empty_list()
+    {
+        var databaseName = NewDatabaseName();
+        var user = new TestCurrentUserService(UserId, []);
+
+        await using (var initialDb = TestDbContextFactory.CreateContext(
+                         new TestCompanyContext(CompanyA), databaseName, seedAccountingCore: false))
+        {
+            var initial = await new WorkspaceService(initialDb, user, new TestCompanyContext(CompanyA))
+                .LoadWorkspaceAsync();
+
+            initial.HasPinnedModulesPreference.Should().BeFalse();
+            initial.PinnedModules.Should().BeEmpty();
+        }
+
+        await using (var saveDb = TestDbContextFactory.CreateContext(
+                         new TestCompanyContext(CompanyA), databaseName, seedAccountingCore: false))
+        {
+            await new WorkspaceService(saveDb, user, new TestCompanyContext(CompanyA))
+                .SavePinnedModulesAsync([]);
+        }
+
+        await using var reloadDb = TestDbContextFactory.CreateContext(
+            new TestCompanyContext(CompanyA), databaseName, seedAccountingCore: false);
+        var savedEmpty = await new WorkspaceService(reloadDb, user, new TestCompanyContext(CompanyA))
+            .LoadWorkspaceAsync();
+
+        savedEmpty.HasPinnedModulesPreference.Should().BeTrue();
+        savedEmpty.PinnedModules.Should().BeEmpty();
     }
 
     [Fact]

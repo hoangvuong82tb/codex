@@ -21,5 +21,13 @@ public enum SecurityEventType
     ExportDocument,
     PermissionDenied,
     SearchExecuted,
-    SecurityError
+    SecurityError,
+    DangerousActionConfirmed,
+    DangerousActionRejected,
+    BackupFailed,
+    BackupVerificationPassed,
+    BackupVerificationFailed,
+    UpdateStagingStarted,
+    UpdateStagingCompleted,
+    UpdateStagingFailed
 }

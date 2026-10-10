@@ -26,6 +26,8 @@ public sealed class SettingValueDto
     public SettingScope Scope { get; set; }
     public string? ScopeTarget { get; set; }
     public string? Value { get; set; }
+    public bool IsPersisted { get; set; }
+    public bool IsRuntimeProvided { get; set; }
     public bool IsEncrypted { get; set; }
     public DateTime UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }

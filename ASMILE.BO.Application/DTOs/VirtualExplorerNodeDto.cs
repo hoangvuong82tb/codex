@@ -20,4 +20,13 @@ public sealed class VirtualExplorerNodeDto
     public bool HasChildren { get; set; }
     public List<VirtualExplorerNodeDto> Children { get; set; } = new();
     public int SortOrder { get; set; }
+    public string? PhysicalPath { get; set; }
+    public long FileSize { get; set; }
+    public string? Description { get; set; }
+    public string? Status { get; set; }
+    public decimal? Amount { get; set; }
+    public string? Currency { get; set; }
+    public double? UsedPercent { get; set; }
+    public bool HasUsageMetric { get; set; }
+    public bool IsAlert { get; set; }
 }

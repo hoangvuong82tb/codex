@@ -1,0 +1,38 @@
+<Window x:Class="ASMILE.BO.App.Views.CreateIncidentWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tạo sự cố" Width="620" Height="660" WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" ShowInTaskbar="False" Background="#F8FAFC">
+    <Window.Resources>
+        <Style x:Key="Label" TargetType="TextBlock"><Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="#475569"/><Setter Property="Margin" Value="0,7,0,3"/></Style>
+        <Style x:Key="Input" TargetType="TextBox"><Setter Property="Height" Value="30"/><Setter Property="Padding" Value="8,0"/><Setter Property="FontSize" Value="12"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/></Style>
+        <Style x:Key="Combo" TargetType="ComboBox"><Setter Property="Height" Value="30"/><Setter Property="FontSize" Value="12"/><Setter Property="Foreground" Value="#17365D"/></Style>
+        <Style x:Key="Secondary" TargetType="Button"><Setter Property="Height" Value="32"/><Setter Property="Padding" Value="12,0"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="Foreground" Value="#475569"/></Style>
+        <Style x:Key="Primary" TargetType="Button"><Setter Property="Height" Value="32"/><Setter Property="Padding" Value="14,0"/><Setter Property="Background" Value="#2F6BFF"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Foreground" Value="White"/></Style>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <StackPanel><TextBlock Text="Tạo sự cố mới" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Thông tin sẽ được lưu vào nhật ký vận hành thật." FontSize="11" Foreground="#64748B" Margin="0,3,0,12"/></StackPanel>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Tiêu đề *" Style="{StaticResource Label}"/><TextBox x:Name="TitleBox" Style="{StaticResource Input}"/>
+                    <TextBlock Text="Danh mục *" Style="{StaticResource Label}"/><ComboBox x:Name="CategoryBox" Style="{StaticResource Combo}"/>
+                    <TextBlock Text="Mức độ *" Style="{StaticResource Label}"/><ComboBox x:Name="PriorityBox" Style="{StaticResource Combo}"/>
+                    <TextBlock Text="Ảnh hưởng *" Style="{StaticResource Label}"/><ComboBox x:Name="ImpactBox" Style="{StaticResource Combo}"/>
+                    <TextBlock Text="Bộ phận" Style="{StaticResource Label}"/><TextBox x:Name="DepartmentBox" Style="{StaticResource Input}"/>
+                    <CheckBox x:Name="VipBox" Content="Khách VIP" Foreground="#475569" Margin="0,12,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Thời điểm xảy ra (UTC)" Style="{StaticResource Label}"/><DatePicker x:Name="OccurredDateBox" Height="30"/>
+                    <TextBlock Text="Phòng" Style="{StaticResource Label}"/><TextBox x:Name="RoomBox" Style="{StaticResource Input}"/>
+                    <TextBlock Text="Khách" Style="{StaticResource Label}"/><TextBox x:Name="GuestBox" Style="{StaticResource Input}"/>
+                    <TextBlock Text="Mã đặt phòng / lưu trú" Style="{StaticResource Label}"/><TextBox x:Name="ReservationBox" Style="{StaticResource Input}"/>
+                    <TextBlock Text="Mô tả *" Style="{StaticResource Label}"/><TextBox x:Name="DescriptionBox" Height="124" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Padding="8" Style="{StaticResource Input}"/>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0"><Button Content="Hủy" Click="OnCancel" Style="{StaticResource Secondary}" Margin="0,0,6,0"/><Button Content="Lưu sự cố" Click="OnSave" Style="{StaticResource Primary}"/></StackPanel>
+    </Grid>
+</Window>

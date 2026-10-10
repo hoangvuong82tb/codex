@@ -26,6 +26,10 @@ public sealed class CurrentUserService : ICurrentUserService
             UserName = login.UserName,
             DisplayName = login.DisplayName,
             Roles = login.Roles,
+            PermissionCodes = login.PermissionCodes
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
             MustChangePassword = login.MustChangePassword,
             IsActive = true
         };

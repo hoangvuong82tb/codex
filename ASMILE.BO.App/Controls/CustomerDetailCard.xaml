@@ -80,11 +80,13 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Grid.Column="0">
-                        <TextBlock Style="{StaticResource FormLabelStyle}"><Run Text="Mã KH" /><Run Text=" *" Foreground="#D04747" /></TextBlock>
-                        <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.CustomerCode, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Style="{StaticResource FormLabelStyle}" Text="Mã KH" />
+                        <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.CustomerCode, UpdateSourceTrigger=PropertyChanged}" ToolTip="Để trống nếu đã bật tự sinh mã trong Cài đặt hệ thống." />
                     </StackPanel>
 
                     <StackPanel Grid.Row="0" Grid.Column="2">
@@ -110,7 +112,17 @@
                         </Grid>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3">
+                    <StackPanel Grid.Row="2" Grid.Column="0">
+                        <TextBlock Style="{StaticResource FormLabelStyle}" Text="Email" />
+                        <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.Email, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Grid.Column="2">
+                        <TextBlock Style="{StaticResource FormLabelStyle}" Text="Mã số thuế" />
+                        <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.TaxCode, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3">
                         <TextBlock Style="{StaticResource FormLabelStyle}" Text="Địa chỉ" />
                         <Grid>
                             <TextBox Style="{StaticResource FluentTextBox}" Padding="12,8,34,8" Text="{Binding Editing.Address, UpdateSourceTrigger=PropertyChanged}" />
@@ -118,7 +130,7 @@
                         </Grid>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3">
+                    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3">
                         <TextBlock Style="{StaticResource FormLabelStyle}" Text="Ghi chú" />
                         <TextBox Style="{StaticResource FluentTextBox}"
                                  Height="104"
@@ -131,7 +143,7 @@
                                  Text="{Binding Editing.Note, UpdateSourceTrigger=PropertyChanged}" />
                     </StackPanel>
 
-                    <Grid Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,2,0,0">
+                    <Grid Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,2,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />

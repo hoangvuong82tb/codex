@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Windows.Threading;
@@ -9,6 +8,7 @@ using ASMILE.BO.Application.Interfaces;
 using ASMILE.BO.Core.Entities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 
 namespace ASMILE.BO.App.ViewModels;
 
@@ -17,6 +17,7 @@ public sealed partial class AuditCenterViewModel : ViewModelBase, IDisposable
     private readonly IAuditService _auditService;
     private readonly IAuditReplayService _auditReplayService;
     private readonly INavigationService _navigationService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly DispatcherTimer _filterTimer;
     private CancellationTokenSource? _loadCancellation;
     private bool _disposed;
@@ -45,11 +46,18 @@ public sealed partial class AuditCenterViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private string selectedSummaryJson = string.Empty;
     [ObservableProperty] private string statusMessage = "Sẵn sàng";
 
-    public AuditCenterViewModel(IAuditService auditService, IAuditReplayService auditReplayService, INavigationService navigationService)
+    public bool CanExport => _currentUserService.HasPermission("Logs.Export");
+
+    public AuditCenterViewModel(
+        IAuditService auditService,
+        IAuditReplayService auditReplayService,
+        INavigationService navigationService,
+        ICurrentUserService currentUserService)
     {
         _auditService = auditService;
         _auditReplayService = auditReplayService;
         _navigationService = navigationService;
+        _currentUserService = currentUserService;
         _filterTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
         _filterTimer.Tick += (_, _) =>
         {
@@ -244,20 +252,64 @@ public sealed partial class AuditCenterViewModel : ViewModelBase, IDisposable
 
     private async Task ExportAsync(string exportType)
     {
-        var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
-            $"asmile-audit-{DateTime.UtcNow:yyyyMMdd-HHmmss}.{exportType}");
-
-        var result = await _auditReplayService.ExportAsync(new AuditExportRequestDto
+        if (!CanExport)
         {
-            ExportType = exportType,
-            CorrelationId = string.IsNullOrWhiteSpace(CorrelationFilter) ? null : CorrelationFilter,
-            EntityType = string.IsNullOrWhiteSpace(EntityFilter) ? null : EntityFilter,
-            FilePath = path
-        });
+            StatusMessage = "Bạn không có quyền xuất nhật ký kiểm toán (Logs.Export).";
+            return;
+        }
 
-        StatusMessage = $"Đã xuất {result.RecordCount} dòng ra {result.FilePath}";
-        await LoadAsync();
+        var normalizedType = string.IsNullOrWhiteSpace(exportType) ? "json" : exportType.Trim().ToLowerInvariant();
+        var extension = normalizedType switch
+        {
+            "csv" => "csv",
+            "zip" => "zip",
+            "ndjson" => "ndjson",
+            _ => "json"
+        };
+        var saveDialog = new SaveFileDialog
+        {
+            Title = "Chọn nơi lưu gói nhật ký kiểm toán",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            FileName = $"asmile-audit-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}",
+            DefaultExt = $".{extension}",
+            AddExtension = true,
+            OverwritePrompt = true,
+            Filter = extension switch
+            {
+                "csv" => "CSV (*.csv)|*.csv",
+                "zip" => "ZIP (*.zip)|*.zip",
+                "ndjson" => "NDJSON (*.ndjson)|*.ndjson",
+                _ => "JSON (*.json)|*.json"
+            }
+        };
+        if (saveDialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await _auditReplayService.ExportAsync(new AuditExportRequestDto
+            {
+                ExportType = normalizedType,
+                CorrelationId = string.IsNullOrWhiteSpace(CorrelationFilter) ? null : CorrelationFilter,
+                EntityType = string.IsNullOrWhiteSpace(EntityFilter) ? null : EntityFilter,
+                ModuleFilter = string.IsNullOrWhiteSpace(ModuleFilter) ? null : ModuleFilter,
+                ActionFilter = string.IsNullOrWhiteSpace(ActionFilter) ? null : ActionFilter,
+                UserFilter = string.IsNullOrWhiteSpace(UserFilter) ? null : UserFilter,
+                FromDate = FromDate,
+                ToDate = ToDate,
+                FilePath = saveDialog.FileName
+            });
+
+            StatusMessage = $"Đã xuất {result.RecordCount} dòng ra {result.FilePath}";
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Audit Center export failed for format {ExportType}", normalizedType);
+            StatusMessage = "Xuất nhật ký thất bại. Kiểm tra quyền ghi thư mục và nhật ký ứng dụng.";
+        }
     }
 
     private bool MatchesClientFilters(AuditLog log)

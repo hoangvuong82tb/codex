@@ -99,6 +99,11 @@ public sealed class AuditExportRequestDto
     public string? CorrelationId { get; set; }
     public string? EntityType { get; set; }
     public string? EntityId { get; set; }
+    public string? ModuleFilter { get; set; }
+    public string? ActionFilter { get; set; }
+    public string? UserFilter { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
     public string? FilterJson { get; set; }
     public string? FilePath { get; set; }
 }

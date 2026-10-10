@@ -1,0 +1,296 @@
+<Window x:Class="ASMILE.BO.App.Views.SplitFolioWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tách Folio" Width="1480" Height="900" MinWidth="1260" MinHeight="760"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis"/>
+        <Style x:Key="FieldLabel" TargetType="TextBlock"><Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="#94A3B8"/><Setter Property="Margin" Value="0,0,0,3"/></Style>
+        <Style x:Key="ModernTextBox" TargetType="TextBox"><Setter Property="Height" Value="34"/><Setter Property="Padding" Value="10,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="FontSize" Value="12"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModernComboBox" TargetType="ComboBox"><Setter Property="Height" Value="34"/><Setter Property="FontSize" Value="12"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions><ContentPresenter Grid.Column="0" Margin="10,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}"/><Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7B8DA6" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="9" Height="5" Stretch="Uniform"/></Grid></Border><Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"><Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="8" Margin="0,2"><ScrollViewer MaxHeight="200"><ItemsPresenter/></ScrollViewer></Border></Popup></Grid></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="PrimaryButton" TargetType="Button"><Setter Property="Height" Value="34"/><Setter Property="Background" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="14,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="SecondaryButton" TargetType="Button"><Setter Property="Height" Value="34"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="12"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="12,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="SmallButton" TargetType="Button"><Setter Property="Height" Value="28"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="11"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="8,0"/><Setter Property="Margin" Value="0,0,4,4"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="PagerButtonStyle" TargetType="Button"><Setter Property="Width" Value="28"/><Setter Property="Height" Value="26"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="11"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="1,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModernDataGrid" TargetType="DataGrid"><Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/><Setter Property="Background" Value="Transparent"/><Setter Property="RowBackground" Value="Transparent"/><Setter Property="AlternatingRowBackground" Value="#FAFBFD"/><Setter Property="BorderThickness" Value="0"/><Setter Property="ColumnHeaderHeight" Value="38"/><Setter Property="RowHeight" Value="34"/><Setter Property="FontSize" Value="12"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/><Setter Property="ColumnHeaderStyle"><Setter.Value><Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="#F2F6FC"/><Setter Property="Foreground" Value="#475569"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="11"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/><Setter Property="Padding" Value="6,0"/></Style></Setter.Value></Setter></Style>
+        <Style x:Key="PanelCard" TargetType="Border"><Setter Property="Background" Value="White"/><Setter Property="CornerRadius" Value="10"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/></Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock"><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#102E5A"/><Setter Property="Margin" Value="0,0,0,6"/></Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Header -->
+            <RowDefinition Height="Auto"/>  <!-- Step Bar -->
+            <RowDefinition Height="Auto"/>  <!-- Summary Strip -->
+            <RowDefinition Height="*"/>     <!-- Body -->
+            <RowDefinition Height="Auto"/>  <!-- Footer -->
+        </Grid.RowDefinitions>
+
+        <!-- ══ HEADER ══ -->
+        <Border Padding="16,10" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="40" Height="40" CornerRadius="10">
+                    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#7C3AED" Offset="0"/><GradientStop Color="#5B21B6" Offset="1"/></LinearGradientBrush></Border.Background>
+                    <TextBlock Text="&#xE8E5;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                    <TextBlock Text="Tách Folio" FontSize="18" FontWeight="SemiBold" Foreground="#102E5A"/>
+                    <TextBlock Text="Phân chia khoản mục và trách nhiệm thanh toán sang các Folio phù hợp." FontSize="12" Foreground="#64748B"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="Làm mới" Click="OnRefresh" Style="{StaticResource SecondaryButton}"/>
+                    <Button Content="Đóng" Click="OnClose" Style="{StaticResource SecondaryButton}" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ══ STEP BAR ══ -->
+        <Border Grid.Row="1" Padding="16,0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <StackPanel x:Name="StepBar" Orientation="Horizontal" HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- ══ SUMMARY STRIP ══ -->
+        <Border Grid.Row="2" Padding="12,6" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <WrapPanel x:Name="SummaryStrip" HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- ══ BODY ══ -->
+        <Grid Grid.Row="3" Margin="14,10">
+            <!-- STEP A: Source Folio -->
+            <Grid x:Name="StepAContent" Visibility="Visible">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="65*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="35*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="0">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Border Padding="12,8" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                            <WrapPanel>
+                                <TextBox x:Name="SourceSearchBox" Width="200" Style="{StaticResource ModernTextBox}" Margin="0,0,6,4"/>
+                                <ComboBox x:Name="FolioTypeFilter" Width="100" Style="{StaticResource ModernComboBox}" Margin="0,0,6,4"/>
+                                <ComboBox x:Name="FolioCurrFilter" Width="70" Style="{StaticResource ModernComboBox}" Margin="0,0,6,4"/>
+                                <ComboBox x:Name="FolioStatusFilter" Width="90" Style="{StaticResource ModernComboBox}" Margin="0,0,6,4"/>
+                                <Button Content="Tìm" Click="OnApplySourceFilter" Style="{StaticResource PrimaryButton}" Margin="0,0,4,4"/>
+                                <Button Content="Xóa lọc" Click="OnClearSourceFilter" Style="{StaticResource SecondaryButton}" Margin="0,0,4,4"/>
+                            </WrapPanel>
+                        </Border>
+                        <DataGrid x:Name="SourceGrid" Grid.Row="1" Style="{StaticResource ModernDataGrid}" SelectionChanged="OnSourceSelected">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Mã Folio" Binding="{Binding Code}" Width="85"/>
+                                <DataGridTextColumn Header="Loại" Binding="{Binding Type}" Width="70"/>
+                                <DataGridTextColumn Header="Khách" Binding="{Binding GuestName}" Width="140"/>
+                                <DataGridTextColumn Header="Phòng" Binding="{Binding Room}" Width="55"/>
+                                <DataGridTextColumn Header="Payer" Binding="{Binding Payer}" Width="65"/>
+                                <DataGridTextColumn Header="Cty/TA" Binding="{Binding Company}" Width="90"/>
+                                <DataGridTextColumn Header="Currency" Binding="{Binding Currency}" Width="55"/>
+                                <DataGridTextColumn Header="Tổng Nợ" Binding="{Binding Total}" Width="95"/>
+                                <DataGridTextColumn Header="Balance" Binding="{Binding BalanceDisplay}" Width="95"/>
+                                <DataGridTextColumn Header="Khoản" Binding="{Binding ItemCount}" Width="55"/>
+                                <DataGridTextColumn Header="T.Thái" Binding="{Binding Status}" Width="75"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Border Grid.Row="2" Padding="10,6" Background="#FBFCFE" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock x:Name="SourcePagerSummary" VerticalAlignment="Center" FontSize="11" Foreground="#64748B"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button x:Name="SourcePrevBtn" Content="←" Click="OnSourcePrevPage" Style="{StaticResource PagerButtonStyle}"/>
+                                    <StackPanel x:Name="SourcePageBtns" Orientation="Horizontal"/>
+                                    <Button x:Name="SourceNextBtn" Content="→" Click="OnSourceNextPage" Style="{StaticResource PagerButtonStyle}"/>
+                                    <ComboBox x:Name="SourcePageSizeBox" Width="100" Margin="4,0,0,0" SelectionChanged="OnSourcePageSizeChanged" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="Chi tiết Folio" Style="{StaticResource SectionTitle}"/>
+                        <Border x:Name="SourceEmptyState" Padding="12" Background="#F8FAFC" CornerRadius="8">
+                            <StackPanel><TextBlock Text="Chọn một Folio để xem khả năng tách." FontSize="12" Foreground="#94A3B8"/></StackPanel>
+                        </Border>
+                        <StackPanel x:Name="SourceDetailPanel" Visibility="Collapsed">
+                            <TextBlock x:Name="SdCode" FontSize="16" FontWeight="SemiBold" Foreground="#17365D"/>
+                            <WrapPanel Margin="0,3,0,8"><TextBlock x:Name="SdType" FontSize="12" Foreground="#64748B"/><TextBlock Text=" · " FontSize="12" Foreground="#CBD5E1"/><TextBlock x:Name="SdGuest" FontSize="12" Foreground="#64748B"/><TextBlock Text=" · " FontSize="12" Foreground="#CBD5E1"/><TextBlock x:Name="SdRoom" FontSize="12" Foreground="#64748B"/></WrapPanel>
+                            <Border Height="1" Margin="0,0,0,8" Background="#E2E8F0"/>
+                            <TextBlock x:Name="SdRes" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdOpen" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdClose" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdPayer" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdCompany" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdTA" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdBilling" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdCurr" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <Border Height="1" Margin="0,4,0,4" Background="#E2E8F0"/>
+                            <TextBlock x:Name="SdTotal" FontSize="13" FontWeight="SemiBold" Foreground="#17365D" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdPaid" FontSize="11" Foreground="#16A34A" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdDeposit" FontSize="11" Foreground="#F59E0B" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdBalance" FontSize="13" FontWeight="SemiBold" Foreground="#DC2626" Margin="0,3,0,0"/>
+                            <Border Height="1" Margin="0,4,0,4" Background="#E2E8F0"/>
+                            <TextBlock x:Name="SdItems" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdLocked" FontSize="11" Foreground="#DC2626" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdDisputed" FontSize="11" Foreground="#F59E0B" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="SdStatus" FontSize="11" FontWeight="SemiBold" Foreground="#2F6BFF" Margin="0,3,0,0"/>
+                            <Button x:Name="BtnSelectSource" Content="Chọn Folio này" Click="OnSelectSource" Style="{StaticResource PrimaryButton}" Margin="0,8,0,0" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- STEP B: Items -->
+            <Grid x:Name="StepBContent" Visibility="Collapsed">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="72*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="28*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="0">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Border Padding="10,6" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                            <WrapPanel>
+                                <ComboBox x:Name="ItemTypeFilter" Width="110" Style="{StaticResource ModernComboBox}" Margin="0,0,4,2"/>
+                                <ComboBox x:Name="ItemDeptFilter" Width="70" Style="{StaticResource ModernComboBox}" Margin="0,0,4,2"/>
+                                <ComboBox x:Name="ItemSplitFilter" Width="120" Style="{StaticResource ModernComboBox}" Margin="0,0,4,2"/>
+                                <Button Content="Lọc" Click="OnApplyItemFilter" Style="{StaticResource PrimaryButton}" Margin="0,0,4,2"/>
+                                <Button Content="Xóa" Click="OnClearItemFilter" Style="{StaticResource SecondaryButton}" Margin="0,0,4,2"/>
+                                <Button Content="Chọn tất cả" Click="OnSelectAllItems" Style="{StaticResource SmallButton}"/>
+                                <Button Content="Bỏ chọn" Click="OnDeselectAll" Style="{StaticResource SmallButton}"/>
+                                <Button Content="Chỉ tiền phòng" Click="OnSelRoomOnly" Style="{StaticResource SmallButton}"/>
+                            </WrapPanel>
+                        </Border>
+                        <Border Grid.Row="1" Padding="8,4" Background="#FAFBFD" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                            <StackPanel x:Name="ItemSelPanel" Orientation="Horizontal"/>
+                        </Border>
+                        <DataGrid x:Name="ItemGrid" Grid.Row="2" Style="{StaticResource ModernDataGrid}" SelectionChanged="OnItemSelected">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Ngày" Binding="{Binding DateDisplay}" Width="80"/>
+                                <DataGridTextColumn Header="Mã GD" Binding="{Binding Code}" Width="80"/>
+                                <DataGridTextColumn Header="Loại" Binding="{Binding Type}" Width="85"/>
+                                <DataGridTextColumn Header="Diễn giải" Binding="{Binding Description}" Width="120"/>
+                                <DataGridTextColumn Header="BP" Binding="{Binding Dept}" Width="45"/>
+                                <DataGridTextColumn Header="Phòng" Binding="{Binding Room}" Width="55"/>
+                                <DataGridTextColumn Header="Khách" Binding="{Binding Guest}" Width="100"/>
+                                <DataGridTextColumn Header="Payer" Binding="{Binding Payer}" Width="55"/>
+                                <DataGridTextColumn Header="SL" Binding="{Binding Qty}" Width="35"/>
+                                <DataGridTextColumn Header="ĐG" Binding="{Binding Price}" Width="70"/>
+                                <DataGridTextColumn Header="Thuế" Binding="{Binding Tax}" Width="60"/>
+                                <DataGridTextColumn Header="Phí" Binding="{Binding ServiceCharge}" Width="50"/>
+                                <DataGridTextColumn Header="Thành tiền" Binding="{Binding Net}" Width="90"/>
+                                <DataGridTextColumn Header="Currency" Binding="{Binding Currency}" Width="50"/>
+                                <DataGridTextColumn Header="T.Thái" Binding="{Binding Status}" Width="65"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Border Grid.Row="3" Padding="8,5" Background="#FBFCFE" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock x:Name="ItemPagerSummary" VerticalAlignment="Center" FontSize="11" Foreground="#64748B"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button x:Name="ItemPrevBtn" Content="←" Click="OnItemPrevPage" Style="{StaticResource PagerButtonStyle}"/>
+                                    <StackPanel x:Name="ItemPageBtns" Orientation="Horizontal"/>
+                                    <Button x:Name="ItemNextBtn" Content="→" Click="OnItemNextPage" Style="{StaticResource PagerButtonStyle}"/>
+                                    <ComboBox x:Name="ItemPageSizeBox" Width="100" Margin="4,0,0,0" SelectionChanged="OnItemPageSizeChanged" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="Chi tiết khoản mục" Style="{StaticResource SectionTitle}"/>
+                        <Border x:Name="ItemEmptyState" Padding="10" Background="#F8FAFC" CornerRadius="8">
+                            <TextBlock Text="Chọn một khoản mục để xem chi tiết." FontSize="12" Foreground="#94A3B8"/>
+                        </Border>
+                        <StackPanel x:Name="ItemDetailPanel" Visibility="Collapsed">
+                            <TextBlock x:Name="IdCode" FontSize="14" FontWeight="SemiBold" Foreground="#17365D"/>
+                            <TextBlock x:Name="IdType" FontSize="11" Foreground="#64748B" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdDesc" FontSize="11" Foreground="#64748B" Margin="0,1,0,0"/>
+                            <Border Height="1" Margin="0,4,0,4" Background="#E2E8F0"/>
+                            <TextBlock x:Name="IdDate" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdDept" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdRoom" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdGuest" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdPayer" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <Border Height="1" Margin="0,4,0,4" Background="#E2E8F0"/>
+                            <TextBlock x:Name="IdQty" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdPrice" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdTax" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdSc" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdDisc" FontSize="11" Foreground="#334155" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="IdNet" FontSize="14" FontWeight="SemiBold" Foreground="#17365D" Margin="0,3,0,0"/>
+                            <TextBlock x:Name="IdStatus" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                            <TextBlock x:Name="IdSplitFlag" FontSize="11" FontWeight="SemiBold" Foreground="#2F6BFF" Margin="0,2,0,0"/>
+                            <Button x:Name="BtnToggleItem" Content="✓ Chọn khoản này" Click="OnToggleItem" Style="{StaticResource PrimaryButton}" Margin="0,6,0,0" HorizontalAlignment="Left"/>
+                            <StackPanel x:Name="PartialPanel" Visibility="Collapsed" Margin="0,4,0,0">
+                                <Border Height="1" Margin="0,4,0,4" Background="#E2E8F0"/>
+                                <TextBlock Text="Tách một phần" FontSize="12" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,4"/>
+                                <TextBlock Text="Gốc" Style="{StaticResource FieldLabel}"/><TextBlock x:Name="PsOrig" FontSize="12" Foreground="#17365D"/>
+                                <TextBlock Text="Tách" Style="{StaticResource FieldLabel}" Margin="0,4,0,0"/><TextBlock x:Name="PsSplit" FontSize="12" Foreground="#DC2626"/>
+                                <TextBlock Text="Giữ lại" Style="{StaticResource FieldLabel}" Margin="0,4,0,0"/><TextBlock x:Name="PsRemain" FontSize="12" Foreground="#16A34A"/>
+                                <TextBlock Text="Tỷ lệ" Style="{StaticResource FieldLabel}" Margin="0,4,0,0"/><TextBlock x:Name="PsRatio" FontSize="12" Foreground="#2F6BFF"/>
+                                <TextBlock Text="Lý do" Style="{StaticResource FieldLabel}" Margin="0,4,0,0"/><TextBlock x:Name="PsReason" FontSize="12" Foreground="#64748B"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- STEP C: Target Folios -->
+            <Grid x:Name="StepCContent" Visibility="Collapsed">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="68*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="32*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="Folio đích đã chọn" Style="{StaticResource SectionTitle}"/>
+                        <StackPanel x:Name="TargetListPanel"/>
+                        <Border Height="1" Margin="0,6,0,6" Background="#E2E8F0"/>
+                        <TextBlock Text="Folio có sẵn trong hồ sơ" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,4"/>
+                        <!-- Available folios are added programmatically -->
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="10">
+                    <StackPanel x:Name="TargetFolioInfoPanel"/>
+                </Border>
+            </Grid>
+
+            <!-- STEP D: Split Rules -->
+            <Grid x:Name="StepDContent" Visibility="Collapsed">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="45*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="55*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="Loại quy tắc" Style="{StaticResource SectionTitle}"/>
+                        <StackPanel x:Name="RuleLeftPanel"/>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="10">
+                    <StackPanel x:Name="RuleRightPanel"/>
+                </Border>
+            </Grid>
+
+            <!-- STEP E: Reconciliation -->
+            <Grid x:Name="StepEContent" Visibility="Collapsed">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="55*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="45*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="12">
+                    <StackPanel x:Name="ReconcileLeftPanel"/>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="12">
+                    <StackPanel x:Name="ReconcileRightPanel"/>
+                </Border>
+            </Grid>
+
+            <!-- STEP F: Confirmation -->
+            <Grid x:Name="StepFContent" Visibility="Collapsed">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="52*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="48*"/></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="12">
+                    <StackPanel x:Name="ConfirmLeftPanel"/>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="12">
+                    <StackPanel x:Name="ConfirmRightPanel"/>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- ══ FOOTER ══ -->
+        <Border Grid.Row="4" Padding="14,8" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="FooterStepLabel" Text="Bước 1/6 · Chọn Folio nguồn" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Hủy" Click="OnClose" Style="{StaticResource SecondaryButton}"/>
+                    <Button x:Name="BtnBack" Content="← Quay lại" Click="OnBack" Style="{StaticResource SecondaryButton}" Margin="6,0,0,0" IsEnabled="False"/>
+                    <Button x:Name="BtnNext" Content="Tiếp tục →" Click="OnNext" Style="{StaticResource PrimaryButton}" Margin="6,0,0,0"/>
+                    <Button x:Name="BtnConfirm" Content="Xác nhận tách Folio" Click="OnConfirm" Style="{StaticResource PrimaryButton}" Margin="6,0,0,0" Visibility="Collapsed"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

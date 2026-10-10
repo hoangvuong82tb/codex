@@ -8,6 +8,12 @@
     <DataTemplate DataType="{x:Type vm:ItemsViewModel}">
         <views:ItemsView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelMinibarConfigurationViewModel}">
+        <views:HotelMinibarConfigurationView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelHousekeepingSupplyCatalogViewModel}">
+        <views:HotelHousekeepingSupplyCatalogView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:SuppliersViewModel}">
         <views:SupplierPage />
     </DataTemplate>
@@ -49,6 +55,153 @@
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:CashBankViewModel}">
         <views:CashBankView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:RoomMasterViewModel}">
+        <views:RoomMasterView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:RoomTypeMasterViewModel}">
+        <views:RoomTypeMasterView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelBuildingMasterViewModel}">
+        <views:HotelBuildingMasterView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelFloorMasterViewModel}">
+        <views:HotelFloorMasterView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelAreaMasterViewModel}">
+        <views:HotelAreaMasterView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelReferenceCatalogViewModel}">
+        <views:HotelReferenceCatalogView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelRoomStatusRuleViewModel}">
+        <views:HotelRoomStatusRuleView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelPropertyProfileViewModel}">
+        <views:HotelPropertyProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelStayPolicyViewModel}">
+        <views:HotelStayPolicyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelCheckInOutRuleViewModel}">
+        <views:HotelCheckInOutRuleView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelRoomMoveUpgradeRuleViewModel}">
+        <views:HotelRoomMoveUpgradeRuleView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelPropertyDocumentViewModel}">
+        <views:HotelPropertyDocumentView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelPromotionPackageViewModel}">
+        <views:HotelPromotionPackageView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelGroupPolicyViewModel}">
+        <views:HotelGroupPolicyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelCashierShiftPolicyViewModel}">
+        <views:HotelCashierShiftPolicyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelNightAuditPolicyViewModel}">
+        <views:HotelNightAuditPolicyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelApprovalMatrixViewModel}">
+        <views:HotelApprovalMatrixView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelFOPermissionPolicyViewModel}">
+        <views:HotelFOPermissionPolicyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelFormPrinterProfileViewModel}">
+        <views:HotelFormPrinterProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:VfcRetentionPolicyViewModel}">
+        <views:VfcRetentionPolicyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ExportPipelineSettingsViewModel}">
+        <views:ExportPipelineSettingsView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelMessagingIntegrationProfileViewModel}">
+        <views:HotelMessagingIntegrationProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelPostedCorrectionPolicyViewModel}">
+        <views:HotelPostedCorrectionPolicyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelBusinessRuleProfileViewModel}">
+        <views:HotelBusinessRuleProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelTaxServiceChargeRuleViewModel}">
+        <views:HotelTaxServiceChargeRuleView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelPaymentMethodProfileViewModel}">
+        <views:HotelPaymentMethodProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelDepositPolicyViewModel}">
+        <views:HotelDepositPolicyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelDiscountPolicyViewModel}">
+        <views:HotelDiscountPolicyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelChargeCodeProfileViewModel}">
+        <views:HotelChargeCodeProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelFolioProfileViewModel}">
+        <views:HotelFolioProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelGuestTypeProfileViewModel}">
+        <views:HotelGuestTypeProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelProfileTypeProfileViewModel}">
+        <views:HotelProfileTypeProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelVipLevelProfileViewModel}">
+        <views:HotelVipLevelProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelGuestPreferenceProfileViewModel}">
+        <views:HotelGuestPreferenceProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelGuestRequestProfileViewModel}">
+        <views:HotelGuestRequestProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelReservationTypeProfileViewModel}">
+        <views:HotelReservationTypeProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelBookingSourceProfileViewModel}">
+        <views:HotelBookingSourceProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelBookingChannelProfileViewModel}">
+        <views:HotelBookingChannelProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelMarketSegmentProfileViewModel}">
+        <views:HotelMarketSegmentProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelHousekeepingRuleProfileViewModel}">
+        <views:HotelHousekeepingRuleProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelWakeupRuleProfileViewModel}">
+        <views:HotelWakeupRuleProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelComplaintProfileViewModel}">
+        <views:HotelComplaintProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelCompanyProfileViewModel}">
+        <views:HotelPartnerProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelTravelAgentProfileViewModel}">
+        <views:HotelPartnerProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelCommissionRuleProfileViewModel}">
+        <views:HotelPartnerProfileView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelRoomConfigurationViewModel}">
+        <views:HotelRoomConfigurationView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HousekeepingSupplyViewModel}">
+        <views:HousekeepingSupplyView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:RateEngineViewModel}">
+        <views:RateEngineView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HotelExchangeRateViewModel}">
+        <views:HotelExchangeRateView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:AssetManagementViewModel}">
         <views:AssetManagementView />
@@ -95,9 +248,6 @@
     <DataTemplate DataType="{x:Type vm:BreakfastCafeSalesViewModel}">
         <views:BreakfastCafeSalesView />
     </DataTemplate>
-    <DataTemplate DataType="{x:Type vm:BreakfastCafeSettingsViewModel}">
-        <views:BreakfastCafeSettingsView />
-    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:AlacarteRestaurantViewModel}">
         <views:AlacarteRestaurantView />
     </DataTemplate>
@@ -106,6 +256,27 @@
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:ReservationWorkspaceViewModel}">
         <views:ReservationWorkspaceView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReservationModalWorkspaceViewModel}">
+        <views:ReservationModalWorkspaceView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:FrontOfficeHubViewModel}">
+        <views:FrontOfficeHubView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReservationHubViewModel}">
+        <views:ReservationHubView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReceptionHubViewModel}">
+        <views:ReceptionHubView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ModuleHubViewModel}">
+        <views:ModuleHubView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:WalkInStayModalViewModel}">
+        <views:WalkInStayModalView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:CheckInStayModalViewModel}">
+        <views:CheckInStayModalView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:BanquetMenuSelectionViewModel}">
         <views:BanquetMenuSelectionView />

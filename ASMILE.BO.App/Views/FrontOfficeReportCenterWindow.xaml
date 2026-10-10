@@ -1,0 +1,108 @@
+<Window x:Class="ASMILE.BO.App.Views.FrontOfficeReportCenterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Báo cáo Front Office" Width="1460" Height="900"
+        MinWidth="1200" MinHeight="720"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <Style x:Key="ModTextBox" TargetType="TextBox"><Setter Property="Height" Value="40"/><Setter Property="Padding" Value="12,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModCombo" TargetType="ComboBox"><Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions><ContentPresenter Grid.Column="0" Margin="12,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}"/><Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7B8DA6" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="6" Stretch="Uniform"/></Grid></Border><Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"><Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="9" Margin="0,2"><ScrollViewer MaxHeight="220"><ItemsPresenter/></ScrollViewer></Border></Popup></Grid></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModDatePicker" TargetType="DatePicker"><Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="CalendarStyle" Value="{StaticResource FoModernCalendarStyle}"/><Setter Property="FirstDayOfWeek" Value="Monday"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DatePicker"><Grid><Border x:Name="Root" Background="White" BorderBrush="#D7E2F0" BorderThickness="1" CornerRadius="9" SnapsToDevicePixels="True"/><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions><Grid Grid.Column="0"><DatePickerTextBox x:Name="PART_TextBox" BorderThickness="0" Background="Transparent" Padding="12,0" VerticalContentAlignment="Center" FontSize="13" FontFamily="Segoe UI" Foreground="#17365D"/><TextBlock x:Name="Watermark" Text="Chọn ngày" IsHitTestVisible="False" Background="White" FontSize="13" FontFamily="Segoe UI" Foreground="#94A3B8" Padding="12,0" VerticalAlignment="Center" Visibility="Collapsed"/></Grid><ToggleButton x:Name="PART_Button" Grid.Column="1" Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Focusable="False" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"><Border Width="28" Height="28" CornerRadius="7" Background="#F2F6FD"><TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#2F6BFF" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ToggleButton></Grid><Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" StaysOpen="False" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"><Calendar x:Name="PART_Calendar" Style="{StaticResource FoModernCalendarStyle}" Language="vi-VN" BorderThickness="0" Background="White" SelectedDate="{Binding SelectedDate, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" DisplayDate="{Binding DisplayDate, RelativeSource={RelativeSource TemplatedParent}}"/></Popup></Grid><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#AFCBF7"/></Trigger><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#2F6BFF"/></Trigger><DataTrigger Binding="{Binding SelectedDate, RelativeSource={RelativeSource Self}}" Value="{x:Null}"><Setter TargetName="Watermark" Property="Visibility" Value="Visible"/></DataTrigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="BlueBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="Background" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="18,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="GrayBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="14"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="OutlineBtn" TargetType="Button"><Setter Property="Height" Value="36"/><Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#D8E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="12,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModDataGrid" TargetType="DataGrid"><Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/><Setter Property="Background" Value="Transparent"/><Setter Property="RowBackground" Value="Transparent"/><Setter Property="AlternatingRowBackground" Value="#FAFBFD"/><Setter Property="BorderThickness" Value="0"/><Setter Property="ColumnHeaderHeight" Value="42"/><Setter Property="RowHeight" Value="42"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/><Setter Property="ColumnHeaderStyle"><Setter.Value><Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="#F2F6FC"/><Setter Property="Foreground" Value="#475569"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="12"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/><Setter Property="Padding" Value="10,0"/></Style></Setter.Value></Setter></Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Padding="22,16" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="44" Height="44" CornerRadius="12">
+                    <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#7C3AED" Offset="0"/><GradientStop Color="#6D28D9" Offset="1"/></LinearGradientBrush></Border.Background>
+                    <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="21" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <TextBlock Text="Báo cáo Front Office" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/>
+                    <TextBlock Text="Báo cáo vận hành, công suất phòng và doanh thu từ dữ liệu cơ sở đang chọn." FontSize="13" Foreground="#64748B" Margin="0,3,0,0"/>
+                </StackPanel>
+                <Button Grid.Column="2" Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Margin="16,12" Padding="14" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/><ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="1.2*"/><ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0"><TextBlock Text="Tìm báo cáo" FontSize="11" Foreground="#64748B" Margin="2,0,0,5"/><TextBox x:Name="SearchBox" Style="{StaticResource ModTextBox}" TextChanged="OnSearchTextChanged" ToolTip="Tên hoặc mô tả báo cáo"/></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="Danh mục" FontSize="11" Foreground="#64748B" Margin="2,0,0,5"/><ComboBox x:Name="ReportCategoryCombo" Style="{StaticResource ModCombo}" SelectionChanged="OnCategoryChanged"/></StackPanel>
+                <StackPanel x:Name="FromDatePanel" Grid.Column="4"><TextBlock Text="Từ ngày" FontSize="11" Foreground="#64748B" Margin="2,0,0,5"/><DatePicker x:Name="FromDatePicker" Style="{StaticResource ModDatePicker}"/></StackPanel>
+                <StackPanel Grid.Column="6"><TextBlock x:Name="ToDateLabel" Text="Đến ngày" FontSize="11" Foreground="#64748B" Margin="2,0,0,5"/><DatePicker x:Name="ToDatePicker" Style="{StaticResource ModDatePicker}"/></StackPanel>
+                <Button Grid.Column="8" Content="Lọc" Click="OnApplyFilters" Style="{StaticResource BlueBtn}" VerticalAlignment="Bottom"/>
+                <Button Grid.Column="10" Content="Làm mới" Click="OnRefresh" Style="{StaticResource GrayBtn}" VerticalAlignment="Bottom"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" Margin="16,0,16,12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="0.9*" MinWidth="300"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.7*" MinWidth="540"/></Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Padding="16,13" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                        <Grid><TextBlock Text="Danh mục báo cáo khả dụng" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock x:Name="ResultCount" HorizontalAlignment="Right" FontSize="12" Foreground="#64748B"/></Grid>
+                    </Border>
+                    <DataGrid Grid.Row="1" x:Name="ReportGrid" Style="{StaticResource ModDataGrid}" SelectionChanged="OnReportSelected" AutoGenerateColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Báo cáo" Binding="{Binding ReportName}" Width="*" MinWidth="150"/>
+                            <DataGridTextColumn Header="Danh mục" Binding="{Binding Category}" Width="105"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock x:Name="ReportTitle" Text="Chọn một báo cáo" FontSize="17" FontWeight="SemiBold" Foreground="#102E5A"/>
+                            <TextBlock x:Name="ReportDescription" FontSize="12" Foreground="#64748B" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Chạy lại" Click="OnRefreshSelected" Style="{StaticResource GrayBtn}"/>
+                        <Button x:Name="PrintReportButton" Grid.Column="3" Content="In" Click="OnPrint" Style="{StaticResource OutlineBtn}"/>
+                        <Button x:Name="ExportPdfButton" Grid.Column="5" Content="PDF" Click="OnExportPdf" Style="{StaticResource OutlineBtn}"/>
+                        <Button x:Name="ExportExcelButton" Grid.Column="7" Content="Excel" Click="OnExportExcel" Style="{StaticResource OutlineBtn}"/>
+                        <Button x:Name="ExportCsvButton" Grid.Column="9" Content="CSV" Click="OnExportCsv" Style="{StaticResource OutlineBtn}"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,12,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ReportSummary" Text="Chọn báo cáo để truy vấn dữ liệu." FontSize="12" Foreground="#166534" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                            <Button x:Name="FolioBackfillButton" Grid.Column="1" Content="Mở quy trình backfill" Click="OnFolioBackfill" Style="{StaticResource OutlineBtn}" Visibility="Collapsed" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Border>
+                    <DataGrid Grid.Row="2" x:Name="ResultGrid" Style="{StaticResource ModDataGrid}" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False"/>
+                    <TextBlock Grid.Row="3" x:Name="ReportStatus" FontSize="11" Foreground="#64748B" Margin="0,9,0,0" TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="3" Padding="16,10" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <TextBlock x:Name="FooterStatus" VerticalAlignment="Center" FontSize="12" Foreground="#64748B"/>
+        </Border>
+    </Grid>
+</Window>

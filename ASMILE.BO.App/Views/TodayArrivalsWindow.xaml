@@ -1,0 +1,186 @@
+<Window x:Class="ASMILE.BO.App.Views.TodayArrivalsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Khách đến hôm nay" Width="1460" Height="900"
+        MinWidth="1200" MinHeight="720"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis"/>
+        <Style x:Key="ModTextBox" TargetType="TextBox"><Setter Property="Height" Value="40"/><Setter Property="Padding" Value="12,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModCombo" TargetType="ComboBox"><Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions><ContentPresenter Grid.Column="0" Margin="12,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}"/><Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7B8DA6" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="6" Stretch="Uniform"/></Grid></Border><Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"><Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="9" Margin="0,2"><ScrollViewer MaxHeight="220"><ItemsPresenter/></ScrollViewer></Border></Popup></Grid></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModDatePicker" TargetType="DatePicker"><Setter Property="Height" Value="40"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="CalendarStyle" Value="{StaticResource FoModernCalendarStyle}"/><Setter Property="FirstDayOfWeek" Value="Monday"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DatePicker"><Grid><Border x:Name="Root" Background="White" BorderBrush="#D7E2F0" BorderThickness="1" CornerRadius="9" SnapsToDevicePixels="True"/><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions><Grid Grid.Column="0"><DatePickerTextBox x:Name="PART_TextBox" BorderThickness="0" Background="Transparent" Padding="12,0" VerticalContentAlignment="Center" FontSize="13" FontFamily="Segoe UI" Foreground="#17365D"/><TextBlock x:Name="Watermark" Text="Chọn ngày" IsHitTestVisible="False" Background="White" FontSize="13" FontFamily="Segoe UI" Foreground="#94A3B8" Padding="12,0" VerticalAlignment="Center" Visibility="Collapsed"/></Grid><ToggleButton x:Name="PART_Button" Grid.Column="1" Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Focusable="False" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"><Border Width="28" Height="28" CornerRadius="7" Background="#F2F6FD"><TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#2F6BFF" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ToggleButton></Grid><Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" StaysOpen="False" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"><Calendar x:Name="PART_Calendar" Style="{StaticResource FoModernCalendarStyle}" Language="vi-VN" BorderThickness="0" Background="White" SelectedDate="{Binding SelectedDate, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" DisplayDate="{Binding DisplayDate, RelativeSource={RelativeSource TemplatedParent}}"/></Popup></Grid><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#AFCBF7"/></Trigger><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Root" Property="BorderBrush" Value="#2F6BFF"/></Trigger><DataTrigger Binding="{Binding SelectedDate, RelativeSource={RelativeSource Self}}" Value="{x:Null}"><Setter TargetName="Watermark" Property="Visibility" Value="Visible"/></DataTrigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="BlueBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="Background" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="18,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="GreenBtn" TargetType="Button" BasedOn="{StaticResource BlueBtn}"><Setter Property="Background" Value="#16A34A"/></Style>
+        <Style x:Key="GrayBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="14"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="OutlineBtn" TargetType="Button"><Setter Property="Height" Value="38"/><Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#D8E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="14,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/><Setter TargetName="Bd" Property="BorderBrush" Value="#2F6BFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="TabBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="MinWidth" Value="80"/><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#64748B"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="0,0,0,2"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="12,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModDataGrid" TargetType="DataGrid"><Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/><Setter Property="Background" Value="Transparent"/><Setter Property="RowBackground" Value="Transparent"/><Setter Property="AlternatingRowBackground" Value="#FAFBFD"/><Setter Property="BorderThickness" Value="0"/><Setter Property="ColumnHeaderHeight" Value="44"/><Setter Property="RowHeight" Value="44"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/><Setter Property="ColumnHeaderStyle"><Setter.Value><Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="#F2F6FC"/><Setter Property="Foreground" Value="#475569"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="12"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/><Setter Property="Padding" Value="10,0"/></Style></Setter.Value></Setter></Style>
+        <Style x:Key="BadgeGreen" TargetType="Border"><Setter Property="Background" Value="#DCFCE7"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8,3"/></Style>
+        <Style x:Key="BadgeBlue" TargetType="Border"><Setter Property="Background" Value="#DBEAFE"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8,3"/></Style>
+        <Style x:Key="BadgeOrange" TargetType="Border"><Setter Property="Background" Value="#FFF7ED"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8,3"/></Style>
+        <Style x:Key="BadgeRed" TargetType="Border"><Setter Property="Background" Value="#FEE2E2"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8,3"/></Style>
+        <Style x:Key="BadgeYellow" TargetType="Border"><Setter Property="Background" Value="#FEF9C3"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8,3"/></Style>
+        <Style x:Key="BadgeGray" TargetType="Border"><Setter Property="Background" Value="#F3F4F6"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8,3"/></Style>
+        <Style x:Key="MetricCard" TargetType="Border"><Setter Property="Background" Value="#FAFBFD"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="12,10"/><Setter Property="MinWidth" Value="100"/></Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock"><Setter Property="FontSize" Value="13"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#0F172A"/><Setter Property="Margin" Value="0,0,0,6"/></Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <Border Padding="24,18" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="46" Height="46" CornerRadius="12"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#16A34A" Offset="0"/><GradientStop Color="#15803D" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE121;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0"><TextBlock Text="Khách đến hôm nay" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Theo dõi toàn bộ khách sẽ đến trong ngày." FontSize="13" Foreground="#64748B" Margin="0,3,0,0"/></StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal"><Button Content="Làm mới" Click="OnRefresh" Style="{StaticResource GrayBtn}"/><Button Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}" Margin="8,0,0,0"/></StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ METRICS ═══ -->
+        <Border Grid.Row="1" Margin="14,10,14,0" Padding="14,12" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource MetricCard}" Margin="0,0,6,0"><StackPanel><TextBlock Text="Khách đến hôm nay" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricTotal" FontSize="22" FontWeight="Bold" Foreground="#17365D" Text="48"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="Đã Check-in" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricCheckedIn" FontSize="22" FontWeight="Bold" Foreground="#16A34A" Text="17"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="Chưa đến" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricPending" FontSize="22" FontWeight="Bold" Foreground="#2563EB" Text="21"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="VIP" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricVip" FontSize="22" FontWeight="Bold" Foreground="#F59E0B" Text="5"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="3,0,3,0"><StackPanel><TextBlock Text="OTA" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricOta" FontSize="22" FontWeight="Bold" Foreground="#8B5CF6" Text="12"/></StackPanel></Border>
+                <Border Style="{StaticResource MetricCard}" Margin="6,0,0,0"><StackPanel><TextBlock Text="Đang chuẩn bị phòng" FontSize="11" Foreground="#94A3B8"/><TextBlock x:Name="MetricRoomPrep" FontSize="22" FontWeight="Bold" Foreground="#EA580C" Text="8"/></StackPanel></Border>
+            </Grid>
+        </Border>
+
+        <!-- ═══ FILTER ═══ -->
+        <Border Grid.Row="2" Margin="14,8,14,6" Padding="12,10" Background="White" CornerRadius="12" BorderBrush="#D8E2F0" BorderThickness="1">
+            <WrapPanel>
+                <StackPanel Margin="0,0,8,4"><TextBlock Text="Từ khóa" FontSize="11" Foreground="#94A3B8"/><TextBox x:Name="SearchBox" Width="180" Style="{StaticResource ModTextBox}"/></StackPanel>
+                <StackPanel Margin="0,0,8,4"><TextBlock Text="Nguồn" FontSize="11" Foreground="#94A3B8"/><ComboBox Width="120" Style="{StaticResource ModCombo}" x:Name="SourceFilter" SelectionChanged="OnFilterChanged"><ComboBoxItem Content="Tất cả"/><ComboBoxItem Content="OTA"/><ComboBoxItem Content="Corporate"/><ComboBoxItem Content="Travel Agent"/><ComboBoxItem Content="Walk-in"/><ComboBoxItem Content="FIT"/><ComboBoxItem Content="Group"/></ComboBox></StackPanel>
+                <StackPanel Margin="0,0,8,4"><TextBlock Text="Trạng thái" FontSize="11" Foreground="#94A3B8"/><ComboBox Width="130" Style="{StaticResource ModCombo}" x:Name="StatusFilter" SelectionChanged="OnFilterChanged"><ComboBoxItem Content="Tất cả"/><ComboBoxItem Content="Đã xác nhận"/><ComboBoxItem Content="Chờ"/><ComboBoxItem Content="Guarantee"/><ComboBoxItem Content="Đã Check-in"/><ComboBoxItem Content="No Show"/></ComboBox></StackPanel>
+                <StackPanel Margin="0,0,8,4"><TextBlock Text="VIP" FontSize="11" Foreground="#94A3B8"/><ComboBox Width="90" Style="{StaticResource ModCombo}" x:Name="VipFilter" SelectionChanged="OnFilterChanged"><ComboBoxItem Content="Tất cả"/><ComboBoxItem Content="Có"/><ComboBoxItem Content="Không"/></ComboBox></StackPanel>
+                <StackPanel Margin="0,0,8,4"><TextBlock Text="Giờ đến" FontSize="11" Foreground="#94A3B8"/><ComboBox Width="110" Style="{StaticResource ModCombo}" x:Name="EtaFilter" SelectionChanged="OnFilterChanged"><ComboBoxItem Content="Tất cả"/><ComboBoxItem Content="Sáng (6-12h)"/><ComboBoxItem Content="Chiều (12-18h)"/><ComboBoxItem Content="Tối (18-24h)"/><ComboBoxItem Content="Late (0-6h)"/></ComboBox></StackPanel>
+                <StackPanel Margin="0,0,8,4"><TextBlock Text="Ngày" FontSize="11" Foreground="#94A3B8"/><DatePicker Width="140" Style="{StaticResource ModDatePicker}" x:Name="DateFilter"/></StackPanel>
+                <StackPanel Margin="14,16,6,4"><Button Content="Tìm" Click="OnRefresh" Style="{StaticResource BlueBtn}" Width="80"/></StackPanel>
+                <StackPanel Margin="0,16,0,4"><Button Content="Xóa lọc" Click="OnClearFilter" Style="{StaticResource GrayBtn}"/></StackPanel>
+            </WrapPanel>
+        </Border>
+
+        <!-- ═══ MAIN: 2 cột ═══ -->
+        <Grid Grid.Row="3" Margin="14,4,14,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="6.4*" MinWidth="540"/><ColumnDefinition Width="16"/><ColumnDefinition Width="3.6*" MinWidth="370"/></Grid.ColumnDefinitions>
+
+            <!-- ═══ LEFT: DataGrid ═══ -->
+            <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="0">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Padding="16,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Danh sách khách đến" FontSize="14" FontWeight="SemiBold" Foreground="#102E5A"/>
+                            <TextBlock Grid.Column="1" FontSize="12" Foreground="#94A3B8" x:Name="ResultCount" Text="40 khách"/>
+                        </Grid>
+                    </Border>
+                    <DataGrid Grid.Row="1" x:Name="ArrivalGrid" Style="{StaticResource ModDataGrid}" SelectionChanged="OnArrivalSelected">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Giờ đến" Binding="{Binding ETA}" Width="60"/>
+                            <DataGridTextColumn Header="Khách" Binding="{Binding GuestName}" Width="150"/>
+                            <DataGridTextColumn Header="Booking" Binding="{Binding BookingRef}" Width="100"/>
+                            <DataGridTextColumn Header="Nguồn" Binding="{Binding Source}" Width="80"/>
+                            <DataGridTextColumn Header="Loại phòng" Binding="{Binding RoomType}" Width="85"/>
+                            <DataGridTextColumn Header="Phòng" Binding="{Binding RoomNumber}" Width="55"/>
+                            <DataGridTextColumn Header="Đêm" Binding="{Binding Nights}" Width="45"/>
+                            <DataGridTextColumn Header="Khách" Binding="{Binding GuestCount}" Width="50"/>
+                            <DataGridTemplateColumn Header="Trạng thái" Width="100"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                <Border Padding="8,3" CornerRadius="10" HorizontalAlignment="Left" Background="{Binding StatusBadgeBrush}" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding StatusText}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding StatusColorBrush}" VerticalAlignment="Center"/>
+                                </Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="VIP" Width="45"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                <TextBlock Text="{Binding Vip}" FontSize="13" FontWeight="Bold" Foreground="#F59E0B" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Ghi chú" Binding="{Binding Remark}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <!-- ═══ RIGHT: Detail + Tabs ═══ -->
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Detail Header -->
+                    <Border x:Name="DetailCard" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16">
+                        <Grid>
+                            <StackPanel x:Name="DetailEmpty">
+                                <TextBlock Text="Chọn một booking để xem chi tiết." FontSize="13" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,20"/>
+                            </StackPanel>
+                            <StackPanel x:Name="DetailContent" Visibility="Collapsed">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <Border Width="42" Height="42" CornerRadius="21" Background="#16A34A"><TextBlock x:Name="DetailInitials" Text="?" FontSize="16" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                    <StackPanel Grid.Column="1" Margin="12,0,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="DetailName" FontSize="16" FontWeight="SemiBold" Foreground="#102E5A"/>
+                                        <Border Grid.Column="1" Margin="8,0,0,0" x:Name="DetailVipBadge" Style="{StaticResource BadgeYellow}" VerticalAlignment="Center" Visibility="Collapsed"><TextBlock Text="VIP" FontSize="11" FontWeight="SemiBold" Foreground="#A16207"/></Border>
+                                    </Grid>
+                                    <TextBlock Margin="0,2,0,0" FontSize="12" Foreground="#64748B"><Run x:Name="DetailBookingMeta" Text="Booking #CFM-24001"/><Run Text=" · "/><Run x:Name="DetailEtaMeta" Text="14:00"/></TextBlock></StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="Check-in" Click="OnCheckIn" Style="{StaticResource GreenBtn}" Height="34" FontSize="13" Padding="14,0"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Grid Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Style="{StaticResource MetricCard}" Margin="0,0,4,0"><StackPanel><TextBlock Text="Số đêm" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="DetailNights" FontSize="18" FontWeight="Bold" Foreground="#17365D"/></StackPanel></Border>
+                                    <Border Style="{StaticResource MetricCard}" Margin="2,0,2,0"><StackPanel><TextBlock Text="Khách" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="DetailGuests" FontSize="18" FontWeight="Bold" Foreground="#17365D"/></StackPanel></Border>
+                                    <Border Style="{StaticResource MetricCard}" Margin="2,0,2,0"><StackPanel><TextBlock Text="Phòng" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="DetailRoom" FontSize="18" FontWeight="Bold" Foreground="#17365D"/></StackPanel></Border>
+                                    <Border Style="{StaticResource MetricCard}" Margin="4,0,0,0"><StackPanel><TextBlock Text="Rate" FontSize="10" Foreground="#94A3B8"/><TextBlock x:Name="DetailRate" FontSize="18" FontWeight="Bold" Foreground="#17365D"/></StackPanel></Border>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Tabs -->
+                    <Border Margin="0,10,0,0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Border Padding="12,0" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Tổng quan" Click="OnTabClick" Tag="0" Style="{StaticResource TabBtn}"/>
+                                    <Button Content="Khách" Click="OnTabClick" Tag="1" Style="{StaticResource TabBtn}"/>
+                                    <Button Content="Phòng" Click="OnTabClick" Tag="2" Style="{StaticResource TabBtn}"/>
+                                    <Button Content="Giấy tờ" Click="OnTabClick" Tag="3" Style="{StaticResource TabBtn}"/>
+                                    <Button Content="Tài chính" Click="OnTabClick" Tag="4" Style="{StaticResource TabBtn}"/>
+                                </StackPanel>
+                            </Border>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="480">
+                                <StackPanel x:Name="TabContent" Margin="14,10"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
+                    <!-- Quick Actions -->
+                    <Border Margin="0,10,0,0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="Thao tác nhanh" FontSize="13" FontWeight="SemiBold" Foreground="#102E5A" Margin="0,0,0,10"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="Check-in" Click="OnCheckIn" Style="{StaticResource GreenBtn}" Height="38" FontSize="13" Padding="0,0"/>
+                                <Button Grid.Column="2" Content="Đổi phòng" Click="OnChangeRoom" Style="{StaticResource OutlineBtn}" Height="38" FontSize="13" Padding="0,0"/>
+                            </Grid>
+                            <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="Xem Booking" Click="OnViewBooking" Style="{StaticResource OutlineBtn}" Height="38" FontSize="13" Padding="0,0"/>
+                                <Button Grid.Column="2" Content="In Registration Card" Click="OnPrintReg" Style="{StaticResource GrayBtn}" Height="38" FontSize="13" Padding="0,0"/>
+                            </Grid>
+                            <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="Gửi HSK" Click="OnSendHsk" Style="{StaticResource GrayBtn}" Height="38" FontSize="13" Padding="0,0"/>
+                                <Button Grid.Column="2" Content="Gửi Bellman" Click="OnSendBell" Style="{StaticResource GrayBtn}" Height="38" FontSize="13" Padding="0,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ═══ FOOTER ═══ -->
+        <Border Grid.Row="4" Padding="14,10" Margin="14,10,14,12" Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#64748B" x:Name="FooterTotal" Text="Tổng: 40 khách đến"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="← Trước" Style="{StaticResource GrayBtn}" Click="OnPrevPage"/>
+                    <Button Content="Sau →" Style="{StaticResource GrayBtn}" Margin="8,0,0,0" Click="OnNextPage"/>
+                    <Button Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}" Margin="16,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

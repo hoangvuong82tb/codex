@@ -915,6 +915,8 @@ public sealed class PermissionService : IPermissionService
             ("hr.view", "View HR", "HR", "Open HR module"),
             ("reports.view", "View reports", "Reports", "Open report center"),
             ("reports.export", "Export reports", "Reports", "Export reports"),
+            ("reports.export.sensitive", "Export sensitive report fields", "Reports", "Export unmasked staff and other sensitive report fields"),
+            ("reports.backfill", "Backfill report data", "Reports", "Approve and backfill missing Folio business dates"),
             ("settings.view", "View settings", "Settings", "Open settings"),
             ("security.view", "View security", "Security", "Open security admin"),
             ("security.admin", "Administer security", "Security", "Manage roles and permissions"),
@@ -942,7 +944,13 @@ public sealed class PermissionService : IPermissionService
             ("FrontOffice.Reservation.Update", "Cập nhật đặt phòng", "FrontOffice", "Cập nhật thông tin lưu trú và khách"),
             ("FrontOffice.Reservation.AssignRoom", "Phân phòng đặt phòng", "FrontOffice", "Phân hoặc bỏ phân phòng"),
             ("FrontOffice.Reservation.ChangeStatus", "Đổi trạng thái đặt phòng", "FrontOffice", "Tạm giữ, xác nhận hoặc no-show"),
-            ("FrontOffice.Reservation.Cancel", "Hủy đặt phòng", "FrontOffice", "Hủy đặt phòng")
+            ("FrontOffice.Reservation.Cancel", "Hủy đặt phòng", "FrontOffice", "Hủy đặt phòng"),
+            ("FrontOffice.Stay.View", "Xem lưu trú", "FrontOffice", "Tra cứu và tác nghiệp lưu trú"),
+            ("FrontOffice.Stay.Prepare", "Chuẩn bị lưu trú", "FrontOffice", "Chuẩn bị hồ sơ nhận phòng"),
+            ("FrontOffice.Stay.CheckIn", "Nhận phòng", "FrontOffice", "Thực hiện nhận phòng"),
+            ("FrontOffice.Stay.CheckOut", "Trả phòng", "FrontOffice", "Thực hiện trả phòng"),
+            ("FrontOffice.Stay.Cancel", "Hủy lưu trú", "FrontOffice", "Hủy hồ sơ lưu trú"),
+            ("FrontOffice.Stay.Update", "Cập nhật lưu trú", "FrontOffice", "Cập nhật thông tin lưu trú")
         };
 
         return data.Select(x => new AppPermission { Code = x.Item1, Name = x.Item2, Group = x.Item3, Description = x.Item4 }).ToArray();

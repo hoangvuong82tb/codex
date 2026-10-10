@@ -234,6 +234,11 @@ public sealed class AuditReplayService : IAuditReplayService
 
     public async Task<AuditExportResultDto> ExportAsync(AuditExportRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (_currentUserService?.HasPermission("Logs.Export") != true)
+        {
+            throw new UnauthorizedAccessException("Permission denied: Logs.Export");
+        }
+
         var sw = Stopwatch.StartNew();
         var exportType = NormalizeExportType(request.ExportType);
         var filePath = ResolveFilePath(request.FilePath, exportType);
@@ -316,6 +321,78 @@ public sealed class AuditReplayService : IAuditReplayService
         if (!string.IsNullOrWhiteSpace(request.EntityId))
         {
             query = query.Where(x => x.EntityId == request.EntityId);
+        }
+
+        var auditLogs = _dbContext.AuditLogs.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(request.EntityType))
+        {
+            auditLogs = auditLogs.Where(x => x.EntityName == request.EntityType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.EntityId))
+        {
+            auditLogs = auditLogs.Where(x => x.EntityId == request.EntityId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.CorrelationId))
+        {
+            auditLogs = auditLogs.Where(x => x.CorrelationId == request.CorrelationId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ModuleFilter))
+        {
+            var moduleFilter = request.ModuleFilter.Trim().ToLowerInvariant();
+            auditLogs = auditLogs.Where(x =>
+                x.EntityName.ToLower().Contains(moduleFilter)
+                || x.Detail.ToLower().Contains(moduleFilter));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.UserFilter))
+        {
+            var userFilter = request.UserFilter.Trim().ToLowerInvariant();
+            auditLogs = auditLogs.Where(x => x.Username.ToLower().Contains(userFilter));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ActionFilter))
+        {
+            auditLogs = auditLogs.Where(x => x.Action == request.ActionFilter);
+        }
+
+        if (request.FromDate.HasValue)
+        {
+            auditLogs = auditLogs.Where(x => x.CreatedAt >= request.FromDate.Value);
+        }
+
+        if (request.ToDate.HasValue)
+        {
+            auditLogs = auditLogs.Where(x => x.CreatedAt <= request.ToDate.Value);
+        }
+
+        // Replay rows do not carry company/branch ownership themselves. Always
+        // join to the filtered AuditLogs query so global company/branch filters
+        // scope exports, even when the user has no optional filters selected.
+        // Match the exact event rather than the correlation: a workflow may
+        // contain events from other users or actions.
+        query = query.Where(replay => auditLogs.Any(log =>
+            log.CorrelationId == replay.CorrelationId
+            && log.EntityName == replay.EntityType
+            && log.EntityId == replay.EntityId
+            && log.Action == replay.Action
+            && log.CreatedAt == replay.TimestampUtc));
+
+        if (!string.IsNullOrWhiteSpace(request.ActionFilter))
+        {
+            query = query.Where(x => x.Action == request.ActionFilter);
+        }
+
+        if (request.FromDate.HasValue)
+        {
+            query = query.Where(x => x.TimestampUtc >= request.FromDate.Value);
+        }
+
+        if (request.ToDate.HasValue)
+        {
+            query = query.Where(x => x.TimestampUtc <= request.ToDate.Value);
         }
 
         return query.OrderBy(x => x.SequenceNo).ThenBy(x => x.TimestampUtc).ThenBy(x => x.Id);
@@ -503,7 +580,12 @@ public sealed class AuditReplayService : IAuditReplayService
         {
             request.CorrelationId,
             request.EntityType,
-            request.EntityId
+            request.EntityId,
+            request.ModuleFilter,
+            request.ActionFilter,
+            request.UserFilter,
+            request.FromDate,
+            request.ToDate
         }, JsonOptions);
 
     private static string Escape(object? value)

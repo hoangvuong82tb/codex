@@ -266,6 +266,14 @@
                     </Grid>
 
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,14">
+                        <Button Style="{StaticResource ExportChipButtonStyle}" Command="{Binding ExportDefaultCommand}" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="22" Height="22" CornerRadius="6" Background="#EEF2FF" BorderBrush="#C7D2FE" BorderThickness="1">
+                                    <TextBlock Text="↓" Foreground="#4338CA" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="Xuất mặc định" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
                         <Button Style="{StaticResource ExportChipButtonStyle}" Command="{Binding ExportExcelCommand}" Width="106">
                             <StackPanel Orientation="Horizontal">
                                 <Border Width="22" Height="22" CornerRadius="6" Background="#E7F7EC" BorderBrush="#B7E4C3" BorderThickness="1">

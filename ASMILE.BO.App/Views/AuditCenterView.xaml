@@ -12,9 +12,9 @@
       <controls:EnterpriseCommandToolbar.ActionsContent>
         <StackPanel Orientation="Horizontal">
           <Button Style="{StaticResource EnterpriseModuleCmdPrimary}" Content="Mở nguồn" Command="{Binding OpenSourceCommand}" />
-          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xuất JSON" Command="{Binding ExportJsonCommand}" />
-          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xuất CSV" Command="{Binding ExportCSVCommand}" />
-          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xuất ZIP" Command="{Binding ExportZipCommand}" />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xuất JSON" Command="{Binding ExportJsonCommand}" IsEnabled="{Binding CanExport}" ToolTip="Cần quyền Logs.Export để xuất nhật ký." />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xuất CSV" Command="{Binding ExportCsvCommand}" IsEnabled="{Binding CanExport}" ToolTip="Cần quyền Logs.Export để xuất nhật ký." />
+          <Button Style="{StaticResource EnterpriseModuleCmdSecondary}" Content="Xuất ZIP" Command="{Binding ExportZipCommand}" IsEnabled="{Binding CanExport}" ToolTip="Cần quyền Logs.Export để xuất nhật ký." />
         </StackPanel>
       </controls:EnterpriseCommandToolbar.ActionsContent>
     </controls:EnterpriseCommandToolbar>

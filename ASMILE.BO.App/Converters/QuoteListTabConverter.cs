@@ -13,7 +13,7 @@ public sealed class QuoteTabBgConverter : IValueConverter
         return isActive ? new SolidColorBrush(Color.FromRgb(37, 99, 235))   // #2563EB
                         : new SolidColorBrush(Colors.White);
     }
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
 public sealed class QuoteTabFgConverter : IValueConverter
@@ -24,7 +24,7 @@ public sealed class QuoteTabFgConverter : IValueConverter
         return isActive ? new SolidColorBrush(Colors.White)
                         : new SolidColorBrush(Color.FromRgb(51, 65, 85)); // #334155
     }
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
 public sealed class QuoteTabBrConverter : IValueConverter
@@ -35,7 +35,7 @@ public sealed class QuoteTabBrConverter : IValueConverter
         return isActive ? new SolidColorBrush(Color.FromRgb(37, 99, 235))   // #2563EB
                         : new SolidColorBrush(Color.FromRgb(203, 213, 225)); // #CBD5E1
     }
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
 public sealed class QuoteTabLabelConverter : IValueConverter
@@ -45,7 +45,7 @@ public sealed class QuoteTabLabelConverter : IValueConverter
         var tab = System.Convert.ToInt32(value);
         return tab switch { 0 => "đã duyệt", 1 => "chưa duyệt", 2 => "đang phục vụ", _ => "đã phục vụ" };
     }
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
 public sealed class IsAlreadyAddedConverter : IMultiValueConverter
@@ -59,5 +59,5 @@ public sealed class IsAlreadyAddedConverter : IMultiValueConverter
     }
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        => throw new NotSupportedException();
+        => [Binding.DoNothing];
 }

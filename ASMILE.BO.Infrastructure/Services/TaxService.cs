@@ -83,7 +83,9 @@ public sealed class TaxService : ITaxService
     public async Task<VatTransactionDto> CreateVatTransactionAsync(CreateVatTransactionRequest request, CancellationToken cancellationToken = default)
     {
         using var correlationScope = _auditCorrelationService?.BeginScope();
-        var taxCode = await _dbContext.TaxCodes.FirstOrDefaultAsync(x => x.Id == request.TaxCodeId && x.IsActive, cancellationToken)
+        var taxCode = await _dbContext.TaxCodes
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Id == request.TaxCodeId && x.IsActive, cancellationToken)
             ?? throw new InvalidOperationException("Không tìm thấy mã thuế đang hoạt động.");
 
         var direction = NormalizeDirection(request.Direction);
@@ -356,7 +358,9 @@ public sealed class TaxService : ITaxService
     {
         if (string.Equals(line.ObjectType, "TaxCode", StringComparison.OrdinalIgnoreCase) && line.ObjectId.HasValue)
         {
-            var byId = await _dbContext.TaxCodes.FirstOrDefaultAsync(x => x.Id == line.ObjectId.Value && x.IsActive, cancellationToken);
+            var byId = await _dbContext.TaxCodes
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Id == line.ObjectId.Value && x.IsActive, cancellationToken);
             if (byId is not null)
             {
                 return byId;

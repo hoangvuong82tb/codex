@@ -1,7 +1,9 @@
 ﻿using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Application.Interfaces.Settings;
 using ASMILE.BO.Core.Accounting;
 using ASMILE.BO.Core.Entities;
+using ASMILE.BO.Core.Entities.Settings;
 using ASMILE.BO.Core.Enums;
 using ASMILE.BO.Core.Interfaces.Services;
 using ASMILE.BO.Infrastructure.Persistence;
@@ -17,11 +19,18 @@ public sealed class InventoryCostingService : IInventoryCostingService
 
     private readonly AppDbContext _dbContext;
     private readonly IAuditLogService _auditLogService;
+    private readonly ISettingsService? _settingsService;
 
     public InventoryCostingService(AppDbContext dbContext, IAuditLogService auditLogService)
+        : this(dbContext, auditLogService, null)
+    {
+    }
+
+    public InventoryCostingService(AppDbContext dbContext, IAuditLogService auditLogService, ISettingsService? settingsService)
     {
         _dbContext = dbContext;
         _auditLogService = auditLogService;
+        _settingsService = settingsService;
     }
 
     public async Task<InventoryCostResult> ApplyReceiptCostAsync(Guid stockReceiptId, CancellationToken cancellationToken = default)
@@ -177,6 +186,13 @@ public sealed class InventoryCostingService : IInventoryCostingService
             return InventoryCostResult.Failed("Phiếu xuất chưa có chi tiết để tính giá vốn.");
         }
 
+        var configuredCostMethod = await GetConfiguredCostMethodAsync();
+        if (configuredCostMethod is null)
+        {
+            return InventoryCostResult.Failed(
+                "Phương pháp tính giá vốn đã lưu chưa được hỗ trợ. Chọn Bình quân tức thời hoặc FIFO trong Cài đặt module Kho.");
+        }
+
         var results = new List<InventoryCostLineResult>();
         var warnings = new List<string>();
         var now = DateTime.UtcNow;
@@ -220,12 +236,24 @@ public sealed class InventoryCostingService : IInventoryCostingService
 
             if (availableQty >= detail.Quantity && availableQty > 0)
             {
-                unitCost = Math.Round(layers.Sum(x => x.RemainingCost) / availableQty, 6, MidpointRounding.AwayFromZero);
-                totalCost = Math.Round(detail.Quantity * unitCost, 2, MidpointRounding.AwayFromZero);
-
-                if (apply)
+                if (configuredCostMethod == nameof(InventoryCostMethod.FIFO))
                 {
-                    ConsumeLayers(layers, detail.Quantity, totalCost, now);
+                    totalCost = CalculateFifoCost(layers, detail.Quantity);
+                    unitCost = Math.Round(totalCost / detail.Quantity, 6, MidpointRounding.AwayFromZero);
+                    if (apply)
+                    {
+                        ConsumeFifoLayers(layers, detail.Quantity, now);
+                    }
+                }
+                else
+                {
+                    unitCost = Math.Round(layers.Sum(x => x.RemainingCost) / availableQty, 6, MidpointRounding.AwayFromZero);
+                    totalCost = Math.Round(detail.Quantity * unitCost, 2, MidpointRounding.AwayFromZero);
+
+                    if (apply)
+                    {
+                        ConsumeLayers(layers, detail.Quantity, totalCost, now);
+                    }
                 }
             }
             else
@@ -250,7 +278,7 @@ public sealed class InventoryCostingService : IInventoryCostingService
                     Quantity = detail.Quantity,
                     UnitCost = unitCost,
                     TotalCost = totalCost,
-                    CostMethod = MovingAverageMethod,
+                    CostMethod = configuredCostMethod,
                     CreatedAt = now
                 });
             }
@@ -263,7 +291,7 @@ public sealed class InventoryCostingService : IInventoryCostingService
                 Quantity = detail.Quantity,
                 UnitCost = unitCost,
                 TotalCost = totalCost,
-                CostMethod = MovingAverageMethod
+                CostMethod = configuredCostMethod
             });
         }
 
@@ -289,6 +317,75 @@ public sealed class InventoryCostingService : IInventoryCostingService
             .ThenBy(x => x.CreatedAt)
             .ThenBy(x => x.Id)
             .ToListAsync(cancellationToken);
+    }
+
+    private async Task<string?> GetConfiguredCostMethodAsync()
+    {
+        if (_settingsService is null)
+        {
+            return MovingAverageMethod;
+        }
+
+        var configured = await _settingsService.GetValueAsync(
+            "Module.inventory.costMethod",
+            SettingScope.App,
+            "inventory");
+        var value = configured?.Value?.Trim();
+        if (string.IsNullOrWhiteSpace(value)
+            || string.Equals(value, "Bình quân tức thời", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, MovingAverageMethod, StringComparison.OrdinalIgnoreCase))
+        {
+            return MovingAverageMethod;
+        }
+
+        return string.Equals(value, "FIFO", StringComparison.OrdinalIgnoreCase)
+            ? nameof(InventoryCostMethod.FIFO)
+            : null;
+    }
+
+    private static decimal CalculateFifoCost(IReadOnlyList<InventoryCostLayer> layers, decimal quantity)
+    {
+        var remainingQuantity = quantity;
+        var totalCost = 0m;
+        foreach (var layer in layers)
+        {
+            if (remainingQuantity <= 0)
+            {
+                break;
+            }
+
+            var takeQuantity = Math.Min(layer.RemainingQuantity, remainingQuantity);
+            var allocatedCost = takeQuantity == layer.RemainingQuantity
+                ? layer.RemainingCost
+                : Math.Round(layer.RemainingCost * (takeQuantity / layer.RemainingQuantity), 2, MidpointRounding.AwayFromZero);
+            totalCost += allocatedCost;
+            remainingQuantity -= takeQuantity;
+        }
+
+        return Math.Round(totalCost, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private static void ConsumeFifoLayers(IReadOnlyList<InventoryCostLayer> layers, decimal quantity, DateTime now)
+    {
+        var remainingQuantity = quantity;
+        foreach (var layer in layers)
+        {
+            if (remainingQuantity <= 0)
+            {
+                break;
+            }
+
+            var takeQuantity = Math.Min(layer.RemainingQuantity, remainingQuantity);
+            var allocatedCost = takeQuantity == layer.RemainingQuantity
+                ? layer.RemainingCost
+                : Math.Round(layer.RemainingCost * (takeQuantity / layer.RemainingQuantity), 2, MidpointRounding.AwayFromZero);
+            layer.QuantityOut += takeQuantity;
+            layer.RemainingQuantity -= takeQuantity;
+            layer.RemainingCost = Math.Max(0, layer.RemainingCost - allocatedCost);
+            layer.Status = layer.RemainingQuantity <= 0 ? "Consumed" : "Open";
+            layer.UpdatedAt = now;
+            remainingQuantity -= takeQuantity;
+        }
     }
 
     private static void ConsumeLayers(IReadOnlyList<InventoryCostLayer> layers, decimal quantity, decimal totalCost, DateTime now)

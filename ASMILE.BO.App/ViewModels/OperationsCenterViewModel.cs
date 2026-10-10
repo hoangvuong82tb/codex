@@ -2,6 +2,7 @@ using ASMILE.BO.App.Infrastructure;
 using ASMILE.BO.App.Services;
 using ASMILE.BO.Application.DTOs;
 using ASMILE.BO.Application.Interfaces;
+using ASMILE.BO.Shared.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -308,9 +309,8 @@ public sealed partial class OperationsCenterViewModel : ViewModelBase
     [RelayCommand]
     private void OpenLogFolder()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "logs");
-        var fallback = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "logs"));
-        var target = Directory.Exists(path) ? path : fallback;
+        var target = ApplicationDataPaths.UserLogsDirectory;
+        Directory.CreateDirectory(target);
         Process.Start(new ProcessStartInfo { FileName = target, UseShellExecute = true });
     }
 

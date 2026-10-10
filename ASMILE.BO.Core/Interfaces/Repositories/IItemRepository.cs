@@ -8,6 +8,7 @@ public interface IItemRepository : IRepository<Item>
     Task<Item?> FindByCodeAsync(string itemCode, CancellationToken cancellationToken = default);
     Task<bool> ExistsCodeAsync(string itemCode, int excludingId = 0, CancellationToken cancellationToken = default);
     Task<bool> ExistsNameAsync(string itemName, int excludingId = 0, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<string>> GetCodesStartingWithAsync(string prefix, CancellationToken cancellationToken = default);
     Task<bool> IsUsedInTransactionsAsync(int itemId, CancellationToken cancellationToken = default);
 }
 

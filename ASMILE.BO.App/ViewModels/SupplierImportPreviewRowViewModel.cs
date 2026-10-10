@@ -21,6 +21,8 @@ public partial class SupplierImportPreviewRowViewModel : ObservableObject
     [ObservableProperty] private string bankAccountNo = string.Empty;
     [ObservableProperty] private string address = string.Empty;
     [ObservableProperty] private string note = string.Empty;
+    [ObservableProperty] private string email = string.Empty;
+    [ObservableProperty] private string taxCode = string.Empty;
     [ObservableProperty] private bool isActive = true;
 
     [ObservableProperty] private SupplierImportRowState state;
@@ -46,6 +48,8 @@ public partial class SupplierImportPreviewRowViewModel : ObservableObject
             BankAccountNo = BankAccountNo,
             Address = Address,
             Note = Note,
+            Email = Email,
+            TaxCode = TaxCode,
             IsActive = IsActive,
             IsActiveRaw = IsActive ? "true" : "false"
         };

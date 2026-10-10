@@ -41,7 +41,7 @@ public sealed class Supplier
         set => SupplierName = value;
     }
 
-    [NotMapped]
+    [MaxLength(50)]
     public string TaxCode { get; set; } = string.Empty;
 
     [NotMapped]

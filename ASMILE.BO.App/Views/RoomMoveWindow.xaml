@@ -1,0 +1,1236 @@
+<Window x:Class="ASMILE.BO.App.Views.RoomMoveWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Đổi phòng"
+        Width="1440"
+        Height="900"
+        MinWidth="1180"
+        MinHeight="720"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        Background="#F6F8FC"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+    <Window.Resources>
+        <Style x:Key="ModernTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="11,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D8E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="9">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#2F6BFF"/>
+                                <Setter TargetName="Root" Property="BorderThickness" Value="1.5"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Background" Value="#F1F5F9"/>
+                                <Setter Property="Foreground" Value="#94A3B8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernComboBox" TargetType="ComboBox">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D8E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="9">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="32"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Margin="11,0,0,0"
+                                                      VerticalAlignment="Center"
+                                                      Content="{TemplateBinding SelectionBoxItem}"/>
+                                    <Path Grid.Column="1"
+                                          Width="9"
+                                          Height="5"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Data="M0,0 L4.5,4.5 L9,0"
+                                          Fill="Transparent"
+                                          Stroke="#7B8DA6"
+                                          StrokeThickness="1.5"
+                                          Stretch="Uniform"/>
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border Margin="0,3"
+                                        Padding="2"
+                                        Background="White"
+                                        BorderBrush="#D8E2F0"
+                                        BorderThickness="1"
+                                        CornerRadius="9">
+                                    <ScrollViewer MaxHeight="240">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#2F6BFF"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Background" Value="#F1F5F9"/>
+                                <Setter Property="Foreground" Value="#94A3B8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Height" Value="34"/>
+                        <Setter Property="Padding" Value="10,0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="ItemRoot"
+                                            Margin="2"
+                                            Padding="{TemplateBinding Padding}"
+                                            Background="Transparent"
+                                            CornerRadius="7">
+                                        <ContentPresenter VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="ItemRoot" Property="Background" Value="#EFF6FF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="ItemRoot" Property="Background" Value="#DBEAFE"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernDatePicker" TargetType="DatePicker">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+            <Setter Property="CalendarStyle" Value="{StaticResource FoModernCalendarStyle}"/>
+            <Setter Property="FirstDayOfWeek" Value="Monday"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePicker">
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="White"
+                                    BorderBrush="#D8E2F0"
+                                    BorderThickness="1"
+                                    CornerRadius="9"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="34"/>
+                                </Grid.ColumnDefinitions>
+                                <DatePickerTextBox x:Name="PART_TextBox"
+                                                   Padding="11,0"
+                                                   VerticalContentAlignment="Center"
+                                                   Background="Transparent"
+                                                   BorderThickness="0"
+                                                   FontFamily="Segoe UI"
+                                                   FontSize="13"
+                                                   Foreground="#17365D"/>
+                                <ToggleButton x:Name="PART_Button"
+                                              Grid.Column="1"
+                                              Width="28"
+                                              Height="28"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              Focusable="False"
+                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <Border Width="28" Height="28" Background="#F2F6FD" CornerRadius="7">
+                                        <Path Width="14"
+                                              Height="14"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Data="M2,4 H14 V14 H2 Z M5,2 V6 M11,2 V6 M2,7 H14"
+                                              Fill="Transparent"
+                                              Stroke="#2F6BFF"
+                                              StrokeThickness="1.4"
+                                              Stretch="Uniform"/>
+                                    </Border>
+                                </ToggleButton>
+                            </Grid>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                   StaysOpen="False"
+                                   IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border Background="White"
+                                        BorderBrush="#DCE5F1"
+                                        BorderThickness="1"
+                                        CornerRadius="14">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="20"
+                                                          ShadowDepth="4"
+                                                          Opacity="0.16"
+                                                          Color="#62748E"/>
+                                    </Border.Effect>
+                                    <Calendar x:Name="PART_Calendar"
+                                              Style="{StaticResource FoModernCalendarStyle}"
+                                              Language="vi-VN"
+                                              BorderThickness="0"
+                                              Background="White"
+                                              SelectedDate="{Binding SelectedDate, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                              DisplayDate="{Binding DisplayDate, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#2F6BFF"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Background" Value="#F1F5F9"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="MinWidth" Value="98"/>
+            <Setter Property="Padding" Value="18,0"/>
+            <Setter Property="Background" Value="#2F6BFF"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Background" Value="#CBD5E1"/>
+                                <Setter Property="Foreground" Value="#64748B"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="MinWidth" Value="88"/>
+            <Setter Property="Padding" Value="15,0"/>
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#E2E8F0"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.48"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StepButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="52"/>
+            <Setter Property="MinWidth" Value="154"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#F8FAFF"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#AFCBF7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserResizeRows" Value="False"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#EEF2F7"/>
+            <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="RowHeight" Value="40"/>
+            <Setter Property="ColumnHeaderHeight" Value="40"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+            <Setter Property="AlternatingRowBackground" Value="#FAFBFD"/>
+            <Setter Property="RowStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="DataGridRow">
+                                    <Border x:Name="RowRoot" Background="{TemplateBinding Background}">
+                                        <DataGridCellsPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="RowRoot" Property="Background" Value="#F1F6FF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="RowRoot" Property="Background" Value="#E5EEFF"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Padding" Value="9,0"/>
+                        <Setter Property="Background" Value="#F2F6FC"/>
+                        <Setter Property="Foreground" Value="#52657D"/>
+                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="CellStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="Padding" Value="9,0"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PagerButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="35"/>
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#52657D"/>
+            <Setter Property="BorderBrush" Value="#D8E2F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#EFF6FF"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#AFCBF7"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.38"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ActivePagerButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource PagerButtonStyle}">
+            <Setter Property="Background" Value="#2F6BFF"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#2F6BFF"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="ModernCheckBox" TargetType="CheckBox">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border Padding="3">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="Box"
+                                        Width="18"
+                                        Height="18"
+                                        Background="White"
+                                        BorderBrush="#BFCDE0"
+                                        BorderThickness="1.5"
+                                        CornerRadius="5">
+                                    <Path x:Name="Mark"
+                                          Margin="3"
+                                          Data="M1,5 L4,8 L10,1"
+                                          Fill="Transparent"
+                                          Stroke="White"
+                                          StrokeThickness="2"
+                                          Stretch="Uniform"
+                                          Visibility="Collapsed"/>
+                                </Border>
+                                <ContentPresenter Grid.Column="2" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="#2F6BFF"/>
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#2F6BFF"/>
+                                <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.48"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#7B8DA6"/>
+        </Style>
+
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#17365D"/>
+        </Style>
+
+        <Style x:Key="PanelCard" TargetType="Border">
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Padding="22,14"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="44"
+                        Height="44"
+                        Background="#EAF2FF"
+                        CornerRadius="12">
+                    <Grid Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Path Data="M2,7 H18 M14,3 L18,7 L14,11 M22,17 H6 M10,13 L6,17 L10,21"
+                              Fill="Transparent"
+                              Stroke="#2F6BFF"
+                              StrokeThickness="2"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
+                              Stretch="Uniform"/>
+                    </Grid>
+                </Border>
+                <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Đổi phòng"
+                               FontFamily="Segoe UI"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="#102E5A"/>
+                    <TextBlock Text="Wizard điều chỉnh phòng đang lưu trú · dữ liệu thật, xác nhận sẽ ghi vào hệ thống"
+                               Margin="0,2,0,0"
+                               FontFamily="Segoe UI"
+                               FontSize="12"
+                               Foreground="#64748B"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="Làm mới" Click="OnRefresh" Style="{StaticResource SecondaryButton}"/>
+                    <Button Margin="8,0,0,0" Content="Đóng" Click="OnClose" Style="{StaticResource SecondaryButton}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Padding="20,10"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="0,0,0,1">
+            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                <Button x:Name="Step1Button" Tag="1" Content="A  Chọn khách" Click="OnStepClick" Style="{StaticResource StepButtonStyle}"/>
+                <Button x:Name="Step2Button" Tag="2" Content="B  Chọn phòng" Click="OnStepClick" Style="{StaticResource StepButtonStyle}"/>
+                <Button x:Name="Step3Button" Tag="3" Content="C  Điều chỉnh" Click="OnStepClick" Style="{StaticResource StepButtonStyle}"/>
+                <Button x:Name="Step4Button" Tag="4" Content="D  Bàn giao" Click="OnStepClick" Style="{StaticResource StepButtonStyle}"/>
+                <Button x:Name="Step5Button" Tag="5" Content="E  Xác nhận" Click="OnStepClick" Style="{StaticResource StepButtonStyle}" Margin="0"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2"
+                Padding="20,8"
+                Background="#F8FAFC"
+                BorderBrush="#E2E8F0"
+                BorderThickness="0,0,0,1">
+            <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Khách:" FontSize="11" Foreground="#94A3B8"/>
+                <TextBlock x:Name="SummaryGuestText" Margin="4,0,16,0" Text="Chưa chọn khách" FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
+                <TextBlock Text="Phòng:" FontSize="11" Foreground="#94A3B8"/>
+                <TextBlock x:Name="SummaryRoomText" Margin="4,0,16,0" Text="Chưa chọn phòng" FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
+                <TextBlock Text="Hiệu lực:" FontSize="11" Foreground="#94A3B8"/>
+                <TextBlock x:Name="SummaryEffectiveText" Margin="4,0,16,0" Text="Ngay" FontSize="11" FontWeight="SemiBold" Foreground="#17365D"/>
+                <TextBlock Text="Chênh lệch:" FontSize="11" Foreground="#94A3B8"/>
+                <TextBlock x:Name="SummaryDifferenceText" Margin="4,0,16,0" Text="—" FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
+                <Border x:Name="SummaryReadinessBadge" Padding="9,3" Background="#FEF3C7" CornerRadius="8">
+                    <TextBlock x:Name="SummaryReadinessText" Text="Chưa đủ thông tin" FontSize="11" FontWeight="SemiBold" Foreground="#A16207"/>
+                </Border>
+            </WrapPanel>
+        </Border>
+
+        <Grid Grid.Row="3" Margin="20,12">
+            <Grid x:Name="Step1Content">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="65*"/>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="35*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Border Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                            <WrapPanel>
+                                <StackPanel Width="235" Margin="0,0,8,6">
+                                    <TextBlock Text="Từ khóa" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="GuestSearchBox"
+                                             ToolTip="Tên khách, số phòng, mã hồ sơ hoặc Folio"
+                                             Style="{StaticResource ModernTextBox}"/>
+                                </StackPanel>
+                                <StackPanel Width="78" Margin="0,0,8,6">
+                                    <TextBlock Text="Số phòng" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="GuestRoomFilterBox" Style="{StaticResource ModernTextBox}"/>
+                                </StackPanel>
+                                <StackPanel Width="105" Margin="0,0,8,6">
+                                    <TextBlock Text="Hạng phòng" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="GuestRoomTypeFilter" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <StackPanel Width="132" Margin="0,0,8,6">
+                                    <TextBlock Text="Ngày đi" Style="{StaticResource FieldLabel}"/>
+                                    <DatePicker x:Name="GuestDepartureFilter" Style="{StaticResource ModernDatePicker}"/>
+                                </StackPanel>
+                                <StackPanel Width="78" Margin="0,0,8,6">
+                                    <TextBlock Text="VIP" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="GuestVipFilter" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <StackPanel Width="110" Margin="0,0,8,6">
+                                    <TextBlock Text="Trạng thái Folio" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="GuestFolioFilter" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <Button Margin="0,15,6,6" Content="Tìm" Click="OnApplyGuestFilters" Style="{StaticResource PrimaryButton}"/>
+                                <Button Margin="0,15,0,6" Content="Xóa lọc" Click="OnClearGuestFilters" Style="{StaticResource SecondaryButton}"/>
+                            </WrapPanel>
+                        </Border>
+
+                        <DataGrid x:Name="GuestGrid"
+                                  Grid.Row="1"
+                                  Style="{StaticResource ModernDataGrid}"
+                                  SelectionChanged="OnGuestSelectionChanged">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Phòng" Binding="{Binding Room}" Width="58"/>
+                                <DataGridTextColumn Header="Tên khách" Binding="{Binding Name}" Width="150"/>
+                                <DataGridTextColumn Header="Mã hồ sơ" Binding="{Binding ProfileCode}" Width="90"/>
+                                <DataGridTextColumn Header="Ngày đến" Binding="{Binding Arrival}" Width="76"/>
+                                <DataGridTextColumn Header="Ngày đi" Binding="{Binding Departure}" Width="76"/>
+                                <DataGridTextColumn Header="Hạng" Binding="{Binding RoomType}" Width="78"/>
+                                <DataGridTextColumn Header="Số khách" Binding="{Binding GuestCount}" Width="65"/>
+                                <DataGridTextColumn Header="VIP" Binding="{Binding VipDisplay}" Width="42"/>
+                                <DataGridTextColumn Header="Folio" Binding="{Binding Folio}" Width="82"/>
+                                <DataGridTextColumn Header="Trạng thái" Binding="{Binding FolioStatus}" Width="82"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <Border Grid.Row="2"
+                                Padding="12,9"
+                                Background="#FBFCFE"
+                                BorderBrush="#E2E8F0"
+                                BorderThickness="0,1,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="GuestPagerSummary"
+                                           VerticalAlignment="Center"
+                                           FontSize="11"
+                                           Foreground="#64748B"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button x:Name="GuestPreviousButton" Content="←" Click="OnGuestPreviousPage" Style="{StaticResource PagerButtonStyle}"/>
+                                    <StackPanel x:Name="GuestPageButtons" Orientation="Horizontal"/>
+                                    <Button x:Name="GuestNextButton" Content="→" Click="OnGuestNextPage" Style="{StaticResource PagerButtonStyle}"/>
+                                    <ComboBox x:Name="GuestPageSizeBox"
+                                              Width="118"
+                                              Margin="8,0,0,0"
+                                              SelectionChanged="OnGuestPageSizeChanged"
+                                              Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Chi tiết khách đã chọn" Style="{StaticResource SectionTitle}"/>
+                        <StackPanel Grid.Row="1">
+                            <Border x:Name="GuestEmptyState" Padding="16" Background="#F8FAFC" CornerRadius="10">
+                                <StackPanel>
+                                    <TextBlock Text="Chưa chọn khách" FontSize="14" FontWeight="SemiBold" Foreground="#52657D"/>
+                                    <TextBlock Margin="0,4,0,0" Text="Chọn một khách đang lưu trú trong danh sách để tiếp tục." TextWrapping="Wrap" FontSize="12" Foreground="#94A3B8"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel x:Name="GuestDetailPanel" Visibility="Collapsed">
+                                <TextBlock x:Name="GuestDetailName" FontSize="18" FontWeight="SemiBold" Foreground="#17365D"/>
+                                <TextBlock x:Name="GuestDetailProfile" Margin="0,3,0,14" FontSize="12" Foreground="#64748B"/>
+                                <Border Height="1" Margin="0,0,0,12" Background="#E2E8F0"/>
+                                <TextBlock x:Name="GuestDetailRoom" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="GuestDetailDates" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="GuestDetailFolio" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="GuestDetailVip" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                                <Border Margin="0,16,0,0" Padding="12" Background="#FFF7ED" CornerRadius="9">
+                                    <StackPanel>
+                                        <TextBlock Text="Lưu ý bàn giao" FontSize="12" FontWeight="SemiBold" Foreground="#9A3412"/>
+                                        <TextBlock Margin="0,4,0,0" Text="Minibar chưa kiểm tra · 2 thẻ cần thu hồi · hành lý cần chuyển" TextWrapping="Wrap" FontSize="11" Foreground="#C2410C"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="Step2Content" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="65*"/>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="35*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource PanelCard}" Padding="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Border Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                            <WrapPanel>
+                                <StackPanel Width="112" Margin="0,0,8,6">
+                                    <TextBlock Text="Hạng phòng" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="RoomTypeFilter" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <StackPanel Width="76" Margin="0,0,8,6">
+                                    <TextBlock Text="Tầng" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="RoomFloorFilter" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <StackPanel Width="86" Margin="0,0,8,6">
+                                    <TextBlock Text="Giường" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="RoomBedFilter" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <StackPanel Width="112" Margin="0,0,8,6">
+                                    <TextBlock Text="Trạng thái" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="RoomStatusFilter" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <StackPanel Width="100" Margin="0,0,8,6">
+                                    <TextBlock Text="Nhà buồng" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="RoomHousekeepingFilter" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <StackPanel Width="112" Margin="0,0,8,6">
+                                    <TextBlock Text="Giá" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="RoomPriceFilter" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <CheckBox x:Name="ReadyRoomsOnlyCheckBox"
+                                          Margin="0,18,8,6"
+                                          Content="Chỉ phòng sẵn sàng"
+                                          Style="{StaticResource ModernCheckBox}"/>
+                                <Button Margin="0,15,6,6" Content="Tìm" Click="OnApplyRoomFilters" Style="{StaticResource PrimaryButton}"/>
+                                <Button Margin="0,15,0,6" Content="Xóa lọc" Click="OnClearRoomFilters" Style="{StaticResource SecondaryButton}"/>
+                            </WrapPanel>
+                        </Border>
+
+                        <DataGrid x:Name="RoomGrid"
+                                  Grid.Row="1"
+                                  Style="{StaticResource ModernDataGrid}"
+                                  SelectionChanged="OnRoomPreviewChanged">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Phòng" Binding="{Binding Room}" Width="60"/>
+                                <DataGridTextColumn Header="Hạng" Binding="{Binding RoomType}" Width="85"/>
+                                <DataGridTextColumn Header="Tầng" Binding="{Binding Floor}" Width="48"/>
+                                <DataGridTextColumn Header="Giường" Binding="{Binding Bed}" Width="60"/>
+                                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="92"/>
+                                <DataGridTextColumn Header="Nhà buồng" Binding="{Binding HousekeepingStatus}" Width="75"/>
+                                <DataGridTextColumn Header="Giá" Binding="{Binding PriceDisplay}" Width="92"/>
+                                <DataGridTextColumn Header="Chênh lệch" Binding="{Binding DifferenceDisplay}" Width="90"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <Border Grid.Row="2"
+                                Padding="12,9"
+                                Background="#FBFCFE"
+                                BorderBrush="#E2E8F0"
+                                BorderThickness="0,1,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="RoomPagerSummary"
+                                           VerticalAlignment="Center"
+                                           FontSize="11"
+                                           Foreground="#64748B"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button x:Name="RoomPreviousButton" Content="←" Click="OnRoomPreviousPage" Style="{StaticResource PagerButtonStyle}"/>
+                                    <StackPanel x:Name="RoomPageButtons" Orientation="Horizontal"/>
+                                    <Button x:Name="RoomNextButton" Content="→" Click="OnRoomNextPage" Style="{StaticResource PagerButtonStyle}"/>
+                                    <ComboBox x:Name="RoomPageSizeBox"
+                                              Width="118"
+                                              Margin="8,0,0,0"
+                                              SelectionChanged="OnRoomPageSizeChanged"
+                                              Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Chi tiết phòng đang xem" Style="{StaticResource SectionTitle}"/>
+                        <Border x:Name="RoomGuestWarning"
+                                Grid.Row="1"
+                                Margin="0,0,0,12"
+                                Padding="12"
+                                Background="#FFF7ED"
+                                CornerRadius="9">
+                            <TextBlock Text="Vui lòng chọn khách trước khi chọn phòng."
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       Foreground="#C2410C"/>
+                        </Border>
+                        <Grid Grid.Row="2">
+                            <Border x:Name="RoomEmptyState" Padding="16" Background="#F8FAFC" CornerRadius="10">
+                                <StackPanel>
+                                    <TextBlock Text="Chưa chọn dòng phòng" FontSize="14" FontWeight="SemiBold" Foreground="#52657D"/>
+                                    <TextBlock Margin="0,4,0,0" Text="Click một dòng để xem trước. Dòng được xem chưa phải phòng đã chọn." TextWrapping="Wrap" FontSize="12" Foreground="#94A3B8"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel x:Name="RoomPreviewPanel" Visibility="Collapsed">
+                                <TextBlock x:Name="RoomPreviewTitle" FontSize="20" FontWeight="SemiBold" Foreground="#17365D"/>
+                                <TextBlock x:Name="RoomPreviewType" Margin="0,3,0,14" FontSize="12" Foreground="#64748B"/>
+                                <Border Height="1" Margin="0,0,0,12" Background="#E2E8F0"/>
+                                <TextBlock x:Name="RoomPreviewStatus" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="RoomPreviewBed" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="RoomPreviewPrice" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="RoomPreviewDifference" Margin="0,3" FontSize="12" Foreground="#334155"/>
+                            </StackPanel>
+                        </Grid>
+                        <Button x:Name="SelectPreviewRoomButton"
+                                Grid.Row="3"
+                                Margin="0,14,0,0"
+                                Content="Chọn phòng này"
+                                Click="OnSelectPreviewRoom"
+                                IsEnabled="False"
+                                Style="{StaticResource PrimaryButton}"/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="Step3Content" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border x:Name="AdjustmentWarning"
+                        Margin="0,0,0,10"
+                        Padding="12,9"
+                        Background="#FFF7ED"
+                        CornerRadius="9">
+                    <TextBlock x:Name="AdjustmentWarningText"
+                               Text="Chưa đủ thông tin. Bạn vẫn có thể xem bước này; hãy chọn khách và phòng để kích hoạt các trường phụ thuộc."
+                               FontSize="12"
+                               Foreground="#C2410C"/>
+                </Border>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource PanelCard}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="1"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Thông tin điều chỉnh" Style="{StaticResource SectionTitle}"/>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Thời điểm hiệu lực" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="EffectiveModeBox" SelectionChanged="OnAdjustmentChanged" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Ngày" Style="{StaticResource FieldLabel}"/>
+                                    <DatePicker x:Name="EffectiveDatePicker" SelectedDateChanged="OnAdjustmentDateChanged" Style="{StaticResource ModernDatePicker}"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Grid.Row="2" Margin="0,14" Background="#E2E8F0"/>
+                            <Grid Grid.Row="3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Giờ" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="EffectiveTimeBox" Text="14:00" TextChanged="OnAdjustmentTextChanged" Style="{StaticResource ModernTextBox}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Lý do đổi phòng" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="ReasonBox" SelectionChanged="OnAdjustmentChanged" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Grid.Row="4" Margin="0,12,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Người yêu cầu" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="RequestedByBox" Text="Khách lưu trú" Style="{StaticResource ModernTextBox}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Người phê duyệt" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="ApprovedByBox" Text="Quản lý trực ca" Style="{StaticResource ModernTextBox}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                    <TextBlock Text="Ghi chú" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="AdjustmentNoteBox"
+                                             Height="70"
+                                             Padding="11,8"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             VerticalContentAlignment="Top"
+                                             Style="{StaticResource ModernTextBox}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource PanelCard}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="1"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Giá và chính sách" Style="{StaticResource SectionTitle}"/>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Giá cũ" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock x:Name="OldPriceText" Text="—" FontSize="18" FontWeight="SemiBold" Foreground="#17365D"/>
+                                    <TextBlock Margin="0,12,0,0" Text="Chênh lệch" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock x:Name="PriceDifferenceText" Text="—" FontSize="16" FontWeight="SemiBold" Foreground="#2F6BFF"/>
+                                    <TextBlock Margin="0,12,0,0" Text="Tổng phát sinh" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock x:Name="TotalDifferenceText" Text="—" FontSize="16" FontWeight="SemiBold" Foreground="#17365D"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Giá mới" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock x:Name="NewPriceText" Text="—" FontSize="18" FontWeight="SemiBold" Foreground="#17365D"/>
+                                    <TextBlock Margin="0,12,0,0" Text="Số đêm còn lại" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock x:Name="RemainingNightsText" Text="—" FontSize="16" FontWeight="SemiBold" Foreground="#17365D"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Grid.Row="2" Margin="0,16" Background="#E2E8F0"/>
+                            <Grid Grid.Row="3">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Chính sách giá" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="PricePolicyBox" SelectionChanged="OnAdjustmentChanged" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Giá thỏa thuận" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="NegotiatedPriceBox" IsEnabled="False" Style="{StaticResource ModernTextBox}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                    <TextBlock Text="Lý do miễn chênh lệch" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="WaiverReasonBox" IsEnabled="False" Style="{StaticResource ModernTextBox}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <Grid x:Name="Step4Content" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Border Style="{StaticResource PanelCard}">
+                    <StackPanel>
+                        <TextBlock Text="Phòng cũ" Style="{StaticResource SectionTitle}"/>
+                        <CheckBox Content="Kiểm tra và chốt Minibar" Tag="Minibar" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Đối chiếu tài sản trong phòng" Tag="Tài sản" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Thu hồi toàn bộ thẻ phòng cũ" Tag="Thu hồi thẻ" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Thông báo bộ phận Nhà buồng" Tag="Thông báo HSK" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Chuyển phòng cũ về trạng thái chờ dọn" Tag="Đưa phòng dọn" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}">
+                    <StackPanel>
+                        <TextBlock Text="Phòng mới" Style="{StaticResource SectionTitle}"/>
+                        <CheckBox Content="Xác nhận phòng mới đã sạch" Tag="Phòng sạch" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Kiểm tra nhanh trang thiết bị" Tag="Kiểm tra" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Phát hành thẻ phòng mới" Tag="Thẻ mới" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Chuẩn bị giường phụ nếu có" Tag="Giường phụ" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Chuyển yêu cầu đặc biệt" Tag="Chuyển YCĐB" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="2" Style="{StaticResource PanelCard}">
+                    <StackPanel>
+                        <TextBlock Text="Khách và hành lý" Style="{StaticResource SectionTitle}"/>
+                        <CheckBox Content="Xác nhận phương án chuyển khách" Tag="Chuyển khách" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Kiểm đếm và bàn giao hành lý" Tag="Hành lý" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Điều phối Bellman" Tag="Bellman" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Thông báo lịch chuyển cho khách" Tag="Báo khách" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource PanelCard}">
+                    <StackPanel>
+                        <TextBlock Text="Folio và hồ sơ" Style="{StaticResource SectionTitle}"/>
+                        <CheckBox Content="Chuyển Folio sang phòng mới" Tag="Chuyển Folio" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Chuyển package và quyền lợi" Tag="Chuyển package" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Chuyển ghi chú lưu trú" Tag="Chuyển ghi chú" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                        <CheckBox Margin="0,8,0,0" Content="Chuyển thông tin VIP" Tag="Chuyển VIP" Checked="OnHandoverChanged" Unchecked="OnHandoverChanged" Style="{StaticResource ModernCheckBox}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="Step5Content" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="42*"/>
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource PanelCard}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Tóm tắt đổi phòng" Style="{StaticResource SectionTitle}"/>
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="145"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Khách" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock x:Name="ConfirmGuestText" Grid.Column="1" Margin="0,0,0,9" FontSize="12" FontWeight="SemiBold" Foreground="#17365D"/>
+                            <TextBlock Grid.Row="1" Text="Phòng cũ" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock x:Name="ConfirmOldRoomText" Grid.Row="1" Grid.Column="1" Margin="0,0,0,9" FontSize="12" Foreground="#334155"/>
+                            <TextBlock Grid.Row="2" Text="Phòng mới" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock x:Name="ConfirmNewRoomText" Grid.Row="2" Grid.Column="1" Margin="0,0,0,9" FontSize="12" FontWeight="SemiBold" Foreground="#2F6BFF"/>
+                            <TextBlock Grid.Row="3" Text="Ngày giờ hiệu lực" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock x:Name="ConfirmEffectiveText" Grid.Row="3" Grid.Column="1" Margin="0,0,0,9" FontSize="12" Foreground="#334155"/>
+                            <TextBlock Grid.Row="4" Text="Lý do" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock x:Name="ConfirmReasonText" Grid.Row="4" Grid.Column="1" Margin="0,0,0,9" FontSize="12" Foreground="#334155"/>
+                            <TextBlock Grid.Row="5" Text="Giá" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock x:Name="ConfirmPriceText" Grid.Row="5" Grid.Column="1" Margin="0,0,0,9" FontSize="12" Foreground="#334155"/>
+                            <TextBlock Grid.Row="6" Text="Chênh lệch" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock x:Name="ConfirmDifferenceText" Grid.Row="6" Grid.Column="1" Margin="0,0,0,9" FontSize="12" Foreground="#334155"/>
+                            <TextBlock Grid.Row="7" Text="Người phê duyệt" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock x:Name="ConfirmApproverText" Grid.Row="7" Grid.Column="1" Margin="0,0,0,9" FontSize="12" Foreground="#334155"/>
+                            <TextBlock Grid.Row="8" Text="Tác vụ bàn giao" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock x:Name="ConfirmHandoverText" Grid.Row="8" Grid.Column="1" FontSize="12" Foreground="#334155"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource PanelCard}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Kiểm tra sẵn sàng" Style="{StaticResource SectionTitle}"/>
+                        <Border x:Name="ReadinessPanel" Grid.Row="1" Padding="14" Background="#FEF3C7" CornerRadius="10">
+                            <StackPanel>
+                                <TextBlock x:Name="ReadinessTitleText" Text="Chưa đủ thông tin" FontSize="15" FontWeight="SemiBold" Foreground="#A16207"/>
+                                <TextBlock x:Name="ReadinessDescriptionText" Margin="0,4,0,0" Text="Hãy chọn khách và phòng mới trước khi xác nhận." TextWrapping="Wrap" FontSize="12" Foreground="#92400E"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Grid.Row="2" Margin="0,16,0,8" Text="Cảnh báo và tác vụ còn thiếu" FontSize="12" FontWeight="SemiBold" Foreground="#17365D"/>
+                        <StackPanel x:Name="ReadinessIssuesPanel" Grid.Row="3"/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border x:Name="StepRuntimeError"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    MaxWidth="720"
+                    Margin="0,12,0,0"
+                    Padding="14,10"
+                    Background="#FEE2E2"
+                    BorderBrush="#FCA5A5"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Visibility="Collapsed">
+                <TextBlock x:Name="StepRuntimeErrorText"
+                           TextWrapping="Wrap"
+                           FontSize="12"
+                           Foreground="#B91C1C"/>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="4"
+                Padding="18,10"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="FooterStepLabel"
+                               Text="Bước 1/5 · Chọn khách"
+                               FontFamily="Segoe UI"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="#52657D"/>
+                    <TextBlock x:Name="FooterStatusText"
+                               Margin="0,2,0,0"
+                               Text="Dữ liệu phòng và lưu trú được tải từ hệ thống thật"
+                               FontFamily="Segoe UI"
+                               FontSize="10"
+                               Foreground="#94A3B8"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Hủy" Click="OnClose" Style="{StaticResource SecondaryButton}"/>
+                    <Button x:Name="BackButton"
+                            Margin="8,0,0,0"
+                            Content="← Quay lại"
+                            Click="OnBack"
+                            Style="{StaticResource SecondaryButton}"/>
+                    <Button x:Name="NextButton"
+                            Margin="8,0,0,0"
+                            Content="Tiếp tục →"
+                            Click="OnNext"
+                            Style="{StaticResource PrimaryButton}"/>
+                    <Button x:Name="ConfirmButton"
+                            Margin="8,0,0,0"
+                            Content="Xác nhận đổi phòng"
+                            Click="OnConfirm"
+                            Style="{StaticResource PrimaryButton}"
+                            Visibility="Collapsed"
+                            IsEnabled="False"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

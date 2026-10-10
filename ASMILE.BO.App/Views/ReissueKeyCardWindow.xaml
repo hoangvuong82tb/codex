@@ -1,0 +1,92 @@
+<Window x:Class="ASMILE.BO.App.Views.ReissueKeyCardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cấp lại thẻ" Width="1800" Height="900" MinWidth="1500" MinHeight="760"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis"/>
+        <Style x:Key="PrimaryButton" TargetType="Button"><Setter Property="Height" Value="32"/><Setter Property="Background" Value="#2F6BFF"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="11"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="12,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="SecondaryButton" TargetType="Button"><Setter Property="Height" Value="32"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="11"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="10,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModernTextBox" TargetType="TextBox"><Setter Property="Height" Value="32"/><Setter Property="Padding" Value="10,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="FontSize" Value="12"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModernComboBox" TargetType="ComboBox"><Setter Property="Height" Value="32"/><Setter Property="FontSize" Value="12"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions><ContentPresenter Grid.Column="0" Margin="10,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}"/><Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#7B8DA6" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="9" Height="5" Stretch="Uniform"/></Grid></Border><Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"><Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="8" Margin="0,2"><ScrollViewer MaxHeight="200"><ItemsPresenter/></ScrollViewer></Border></Popup></Grid></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="PagerButtonStyle" TargetType="Button"><Setter Property="Width" Value="28"/><Setter Property="Height" Value="26"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="11"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="1,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="PanelCard" TargetType="Border"><Setter Property="Background" Value="White"/><Setter Property="CornerRadius" Value="10"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/></Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <!-- HEADER -->
+        <Border Padding="16,10" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="40" Height="40" CornerRadius="10"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#DC2626" Offset="0"/><GradientStop Color="#B91C1C" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" Margin="10,0,0,0"><TextBlock Text="Cấp lại thẻ" FontSize="18" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Thay thế thẻ hiện có cho khách lưu trú." FontSize="12" Foreground="#64748B"/></StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal"><Button Content="Làm mới" Click="OnRefresh" Style="{StaticResource SecondaryButton}"/><Button Content="Đóng" Click="OnClose" Style="{StaticResource SecondaryButton}" Margin="4,0,0,0"/></StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- SUMMARY STRIP -->
+        <Border Grid.Row="1" Padding="10,5" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <WrapPanel x:Name="SummaryStrip" HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- BODY -->
+        <Grid Grid.Row="2" Margin="8,6">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="450"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
+
+            <!-- LEFT: Guest Browser -->
+            <Border Style="{StaticResource PanelCard}">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Text="Danh sách khách" FontSize="13" FontWeight="SemiBold" Foreground="#102E5A" Margin="8,8,8,6"/>
+                    <Border Grid.Row="1" Padding="8,4" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                        <StackPanel>
+                            <TextBox x:Name="GuestSearchBox" Style="{StaticResource ModernTextBox}" Margin="0,0,0,4"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <ComboBox x:Name="GuestTypeFilter" Style="{StaticResource ModernComboBox}" Grid.Column="0" Margin="0,0,4,0"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal"><Button Content="Tìm" Click="OnApplyGuestFilter" Style="{StaticResource PrimaryButton}" FontSize="10" Height="28" Padding="8,0"/><Button Content="X" Click="OnClearGuestFilter" Style="{StaticResource SecondaryButton}" FontSize="10" Height="28" Padding="6,0" Margin="2,0,0,0"/></StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="GuestListPanel"/></ScrollViewer>
+                    <Border Grid.Row="3" Padding="6,4" Background="#FBFCFE" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="GuestPagerSummary" Grid.Column="0" VerticalAlignment="Center" FontSize="10" Foreground="#64748B" Margin="0,0,6,0"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button x:Name="GuestPrevBtn" Content="←" Click="OnGuestPrevPage" Style="{StaticResource PagerButtonStyle}"/>
+                                <StackPanel x:Name="GuestPageBtns" Orientation="Horizontal"/>
+                                <Button x:Name="GuestNextBtn" Content="→" Click="OnGuestNextPage" Style="{StaticResource PagerButtonStyle}"/>
+                                <ComboBox x:Name="GuestPageSizeBox" Width="90" Margin="2,0,0,0" SelectionChanged="OnGuestPageSizeChanged" Style="{StaticResource ModernComboBox}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- CENTER: Tabs -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel x:Name="CenterTabs" Orientation="Horizontal" Margin="0,0,0,6"/>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <StackPanel x:Name="Tab1" Visibility="Visible" Margin="8,0"><StackPanel x:Name="Tab1Panel"/></StackPanel>
+                        <StackPanel x:Name="Tab2" Visibility="Collapsed" Margin="8,4"><StackPanel x:Name="Tab2Panel"/></StackPanel>
+                        <StackPanel x:Name="Tab3" Visibility="Collapsed" Margin="8,4"><StackPanel x:Name="Tab3Panel"/></StackPanel>
+                        <StackPanel x:Name="Tab4" Visibility="Collapsed" Margin="8,4"><StackPanel x:Name="Tab4Panel"/></StackPanel>
+                        <StackPanel x:Name="Tab5" Visibility="Collapsed" Margin="8,4"><StackPanel x:Name="Tab5Panel"/></StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- RIGHT: Inspector -->
+            <Border Grid.Column="4" Style="{StaticResource PanelCard}" Padding="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="InspectorPanel"/></ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- BOTTOM BAR -->
+        <Border Grid.Row="3" Padding="10,6" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <StackPanel x:Name="BottomBar" Orientation="Horizontal"/>
+        </Border>
+    </Grid>
+</Window>

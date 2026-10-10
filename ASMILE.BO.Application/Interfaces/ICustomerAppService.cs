@@ -4,6 +4,7 @@ namespace ASMILE.BO.Application.Interfaces;
 
 public interface ICustomerAppService
 {
+    Task<CustomerDto?> GetAsync(int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CustomerDto>> SearchAsync(string keyword, CancellationToken cancellationToken = default);
     Task<CustomerDto> SaveAsync(CustomerDto dto, CancellationToken cancellationToken = default);
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);

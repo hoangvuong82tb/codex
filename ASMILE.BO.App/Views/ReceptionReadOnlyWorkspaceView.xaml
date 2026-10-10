@@ -1,0 +1,32 @@
+<UserControl x:Class="ASMILE.BO.App.Views.ReceptionReadOnlyWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <UserControl.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding CloseCommand}" />
+    </UserControl.InputBindings>
+    <UserControl.Resources><BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" /></UserControl.Resources>
+    <Border Style="{StaticResource FO.ReadOnlyModalShell}">
+        <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <Border Padding="24,20" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Border Width="46" Height="46" Background="{StaticResource CardSoftBrush}" CornerRadius="12"><TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="24" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0"><TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" /><TextBlock Text="{Binding Subtitle}" Margin="0,4,0,0" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" /></StackPanel>
+                    <Button Grid.Column="2" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Command="{Binding CloseCommand}" Style="{StaticResource FluentSecondaryButton}" ToolTip="Đóng" />
+                </Grid>
+            </Border>
+            <Grid Grid.Row="1" Margin="24,18">
+                <Border Style="{StaticResource FO.ErrorNotice}" Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"><TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" Foreground="{StaticResource TextPrimaryBrush}" /></Border>
+                <Grid Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"><StackPanel Style="{StaticResource FO.LoadingState}"><ProgressBar Width="200" Height="5" IsIndeterminate="True" /><TextBlock Text="Đang tải dữ liệu tra cứu..." Margin="0,12,0,0" HorizontalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" /></StackPanel></Grid>
+                <Grid Visibility="{Binding HasRows, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding Rows}"><ItemsControl.ItemTemplate><DataTemplate><Border Padding="16,13" Margin="0,0,0,10" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="10"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding PrimaryText}" FontWeight="SemiBold" FontSize="15" Foreground="{StaticResource TextPrimaryBrush}" /><TextBlock Text="{Binding SecondaryText}" Margin="0,4,0,0" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" /></StackPanel><Border Grid.Column="1" Background="{StaticResource CardSoftBrush}" CornerRadius="8" Padding="9,4" VerticalAlignment="Center"><TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{StaticResource AccentBlueBrush}" /></Border></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
+                </Grid>
+                <StackPanel Style="{StaticResource FO.EmptyState}" Visibility="{Binding IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}"><TextBlock Text="{Binding EmptyMessage}" Style="{StaticResource FO.StateDescription}" /></StackPanel>
+            </Grid>
+            <Border Grid.Row="2" Padding="18,14" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,1,0,0"><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Làm mới" Command="{Binding RefreshCommand}" Style="{StaticResource FluentSecondaryButton}" /><Button Content="Đóng" Command="{Binding CloseCommand}" Style="{StaticResource FluentPrimaryButton}" Margin="10,0,0,0" /></StackPanel></Border>
+        </Grid>
+    </Border>
+</UserControl>

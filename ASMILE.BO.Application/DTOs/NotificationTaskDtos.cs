@@ -9,6 +9,12 @@ public sealed class NotificationPublishRequest
     public string Message { get; set; } = string.Empty;
     public string? SourceType { get; set; }
     public Guid? SourceId { get; set; }
+    /// <summary>
+    /// Optional durable deduplication key for notifications emitted by a real
+    /// condition producer. The same key must resolve to the same notification
+    /// inside the current property scope.
+    /// </summary>
+    public string? IdempotencyKey { get; set; }
     public string? TargetRoute { get; set; }
     public string? MetadataJson { get; set; }
 }
@@ -25,6 +31,21 @@ public sealed class NotificationDto
     public string? TargetRoute { get; set; }
     public string? MetadataJson { get; set; }
     public bool IsRead { get; set; }
+    public bool IsAcknowledged { get; set; }
+    public bool IsDismissed { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public sealed class NotificationAttachmentDto
+{
+    public Guid Id { get; set; }
+    public Guid NotificationId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string FileExtension { get; set; } = string.Empty;
+    public string VirtualPath { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }
 

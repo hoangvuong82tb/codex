@@ -1,4 +1,5 @@
 using System.Windows.Controls;
+using System.Windows;
 using System.Windows.Input;
 using ASMILE.BO.App.Models;
 using ASMILE.BO.App.ViewModels;
@@ -10,22 +11,6 @@ public partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
-    }
-
-    private void OnCategorySelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (DataContext is SettingsViewModel vm && sender is ListBox listBox && listBox.SelectedItem is SettingsCategoryItem item)
-        {
-            vm.SelectCategoryCommand.Execute(item);
-        }
-    }
-
-    private void OnCategoryMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        if (DataContext is SettingsViewModel vm && sender is ListBox listBox && listBox.SelectedItem is SettingsCategoryItem item)
-        {
-            vm.SelectCategoryCommand.Execute(item);
-        }
     }
 
     private void OnTopSearchKeyDown(object sender, KeyEventArgs e)
@@ -46,5 +31,31 @@ public partial class SettingsView : UserControl
 
         await vm.NavigateToSettingsDetail(item);
         e.Handled = true;
+    }
+
+    private void OnDatabaseConnectionPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel vm && sender is PasswordBox passwordBox)
+        {
+            vm.DatabaseConfigPassword = passwordBox.Password;
+        }
+    }
+
+    private async void OnSaveDatabaseConfigurationClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel vm)
+        {
+            await vm.SaveDatabaseConfigurationCommand.ExecuteAsync(null);
+            DatabaseConnectionPasswordBox.Clear();
+        }
+    }
+
+    private void OnDatabaseConnectionEditorVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true && DataContext is SettingsViewModel vm)
+        {
+            DatabaseConnectionPasswordBox.Clear();
+            vm.DatabaseConfigPassword = string.Empty;
+        }
     }
 }

@@ -1,0 +1,72 @@
+<Window x:Class="ASMILE.BO.App.Views.RoomStatusWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tình trạng phòng"
+        Width="1300" Height="800"
+        MinWidth="1080" MinHeight="680"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F7F9FC"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis" />
+        <Style x:Key="ModCombo" TargetType="ComboBox"><Setter Property="Height" Value="34"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D8E2F0"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions><ContentPresenter Grid.Column="0" Margin="10,0,0,0" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}"/><Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#94A3B8" StrokeThickness="1.5" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center" Width="10" Height="6" Stretch="Uniform"/></Grid></Border><Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"><Border Background="White" BorderBrush="#D8E2F0" BorderThickness="1" CornerRadius="8" Margin="0,2"><ScrollViewer MaxHeight="200"><ItemsPresenter/></ScrollViewer></Border></Popup></Grid></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="GrayBtn" TargetType="Button"><Setter Property="Height" Value="34"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="13"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+
+        <!-- HEADER -->
+        <Border Padding="22,16" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="42" Height="42" CornerRadius="10" Background="#DBEAFE"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#2563EB" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center"><TextBlock Text="Tình trạng phòng" FontSize="19" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Theo dõi tình trạng lưu trú và nhà buồng theo phòng" FontSize="13" Foreground="#64748B" Margin="0,2,0,0"/></StackPanel>
+                <Button Grid.Column="2" Content="Làm mới" Click="OnRefreshClick" Style="{StaticResource GrayBtn}"/>
+            </Grid>
+        </Border>
+
+        <!-- ROOM GRID -->
+        <Border Grid.Row="1" Background="White" Margin="14,12,14,14" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16">
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+
+                <!-- Filter Row -->
+                <WrapPanel Margin="0,0,0,12">
+                    <StackPanel Margin="0,0,10,4"><TextBlock Text="Loại phòng" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,3"/><ComboBox x:Name="RoomTypeFilter" Style="{StaticResource ModCombo}" Width="160" SelectionChanged="OnFilterChanged"/></StackPanel>
+                    <StackPanel Margin="0,0,10,4"><TextBlock Text="Tầng" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,3"/><ComboBox x:Name="FloorFilter" Style="{StaticResource ModCombo}" Width="120" SelectionChanged="OnFilterChanged"/></StackPanel>
+                    <StackPanel Margin="0,0,10,4"><TextBlock Text="Trạng thái" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,3"/><ComboBox x:Name="StatusFilter" Style="{StaticResource ModCombo}" Width="150" SelectionChanged="OnFilterChanged"/></StackPanel>
+                    <StackPanel Margin="0,14,8,4"><Button Content="Xóa lọc" Click="OnClearFilter" Style="{StaticResource GrayBtn}"/></StackPanel>
+                </WrapPanel>
+
+                <!-- Room count -->
+                <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                    <TextBlock FontSize="12" Foreground="#94A3B8"><Run Text="Hiển thị "/><Run x:Name="RoomCount" Text="0" FontWeight="SemiBold" Foreground="#64748B"/><Run Text=" phòng"/></TextBlock>
+                    <TextBlock x:Name="LoadError" FontSize="12" Foreground="#B91C1C" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <!-- Room Cards -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="RoomList">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <Border Width="190" Height="110" Margin="0,0,8,8" Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12,10" Cursor="Hand" MouseLeftButtonDown="OnRoomClick">
+                                <StackPanel>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock FontSize="16" FontWeight="Bold" Foreground="#102E5A" Text="{Binding RoomNumber}"/>
+                                        <Border Grid.Column="1" CornerRadius="8" Padding="6,2" Background="#F1F5F9"><TextBlock FontSize="11" Foreground="#475569" Text="{Binding OperationalStatus}"/></Border>
+                                    </Grid>
+                                    <TextBlock FontSize="12" Foreground="#64748B" Margin="0,3,0,0" Text="{Binding HotelRoomTypeName}"/>
+                                    <TextBlock FontSize="11" Foreground="#94A3B8" Margin="0,1,0,0"><Run Text="Tầng "/><Run Text="{Binding Floor}"/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

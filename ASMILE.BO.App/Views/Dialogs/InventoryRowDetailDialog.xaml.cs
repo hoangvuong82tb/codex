@@ -144,9 +144,10 @@ public sealed class InventoryRowDetailModel
             Row("Kho", x.WarehouseCode),
             Row("Tồn hiện tại", N(x.CurrentStock)),
             Row("Ngưỡng tối thiểu", N(x.MinStockThreshold)),
+            Row("Mức tồn mục tiêu", N(x.TargetStockThreshold)),
             Row("Số lượng thiếu", N(x.MissingQuantity))));
         model.Sections.Add(Section("Gợi ý xử lý",
-            Row("Nhà cung cấp gần nhất", x.SuggestedSupplier),
+            Row("Nhà cung cấp cấu hình", x.SuggestedSupplier),
             Row("Gợi ý nhập thêm", N(x.SuggestedPurchaseQty)),
             Row("Đã ẩn cảnh báo", x.IsHidden ? "Có" : "Không")));
         return model;

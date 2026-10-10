@@ -1045,7 +1045,7 @@
                   <Button Grid.Column="5" Style="{StaticResource CmdPrimary}" MinWidth="130" Margin="0,24,8,0" Command="{Binding CreateReconciliationCommand}">
                     <StackPanel Orientation="Horizontal">
                       <TextBlock Text="" FontFamily="Segoe MDL2 Assets" Foreground="#FFFFFFFF" Margin="0,0,6,0" />
-                      <TextBlock Text="Tạo đối chiếu" Foreground="#FFFFFFFF" />
+                      <TextBlock Text="Xem đối chiếu" Foreground="#FFFFFFFF" />
                     </StackPanel>
                   </Button>
                 </Grid>

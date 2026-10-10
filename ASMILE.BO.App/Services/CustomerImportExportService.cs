@@ -16,7 +16,9 @@ public sealed class CustomerImportExportService : ICustomerImportExportService
         "Tài khoản ngân hàng",
         "Địa chỉ",
         "Ghi chú",
-        "Kích hoạt"
+        "Kích hoạt",
+        "Email",
+        "Mã số thuế"
     ];
 
     public async Task ExportTemplateAsync(string filePath, CancellationToken cancellationToken = default)
@@ -26,8 +28,8 @@ public sealed class CustomerImportExportService : ICustomerImportExportService
         var rows = new List<string[]>
         {
             TemplateHeaders,
-            new[] { "KH-001", "Khách hàng A", "0901234567", "123456789012", "123 Đường Lê Lợi", "Dữ liệu mẫu", "Có" },
-            new[] { "KH-002", "Khách hàng B", "0912345678", "987654321000", "45 Nguyễn Huệ", "Dữ liệu mẫu", "Không" }
+            new[] { "KH-001", "Khách hàng A", "0901234567", "123456789012", "123 Đường Lê Lợi", "Dữ liệu mẫu", "Có", "a@example.com", "0101234567" },
+            new[] { "KH-002", "Khách hàng B", "0912345678", "987654321000", "45 Nguyễn Huệ", "Dữ liệu mẫu", "Không", "", "" }
         };
 
         if (IsExcelFile(filePath))
@@ -46,7 +48,7 @@ public sealed class CustomerImportExportService : ICustomerImportExportService
         throw new NotSupportedException("Định dạng file không hỗ trợ. Chỉ hỗ trợ .xlsx hoặc .csv.");
     }
 
-    public async Task ExportCurrentViewAsync(IEnumerable<SupplierDto> customers, string filePath, SupplierExportOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task ExportCurrentViewAsync(IEnumerable<CustomerDto> customers, string filePath, SupplierExportOptions? options = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         options ??= new SupplierExportOptions();
@@ -54,17 +56,19 @@ public sealed class CustomerImportExportService : ICustomerImportExportService
         var rows = new List<string[]>();
         if (options.IncludeHeader)
         {
-            rows.Add(new[] { "Mã KH", "Tên khách hàng", "Điện thoại", "Trạng thái" });
+            rows.Add(new[] { "Mã KH", "Tên khách hàng", "Điện thoại", "Trạng thái", "Email", "Mã số thuế" });
         }
 
         foreach (var row in customers)
         {
             rows.Add(
             [
-                row.SupplierCode,
-                row.SupplierName,
+                row.CustomerCode,
+                row.CustomerName,
                 row.Phone,
-                row.IsActive ? "Kích hoạt" : "Không kích hoạt"
+                row.IsActive ? "Kích hoạt" : "Không kích hoạt",
+                row.Email,
+                row.TaxCode
             ]);
         }
 
@@ -136,7 +140,9 @@ public sealed class CustomerImportExportService : ICustomerImportExportService
                 BankAccountNo = GetColumn(columns, 3),
                 Address = GetColumn(columns, 4),
                 Note = GetColumn(columns, 5),
-                IsActiveRaw = GetColumn(columns, 6)
+                IsActiveRaw = GetColumn(columns, 6),
+                Email = GetColumn(columns, 7),
+                TaxCode = GetColumn(columns, 8)
             });
         }
 
@@ -189,7 +195,9 @@ public sealed class CustomerImportExportService : ICustomerImportExportService
                 BankAccountNo = GetColumn(columns, 3),
                 Address = GetColumn(columns, 4),
                 Note = GetColumn(columns, 5),
-                IsActiveRaw = GetColumn(columns, 6)
+                IsActiveRaw = GetColumn(columns, 6),
+                Email = GetColumn(columns, 7),
+                TaxCode = GetColumn(columns, 8)
             });
         }
 

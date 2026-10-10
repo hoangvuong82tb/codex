@@ -113,11 +113,15 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Grid.Column="0">
-                            <TextBlock Style="{StaticResource FormLabelStyle}"><Run Text="Mã hàng" /><Run Text=" *" Foreground="#D04747" /></TextBlock>
-                            <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.ItemCode, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource FormLabelStyle}" Text="Mã hàng" />
+                            <TextBox Style="{StaticResource FluentTextBox}"
+                                     ToolTip="Có thể để trống nếu đã bật tự động sinh mã hàng trong Cài đặt ứng dụng."
+                                     Text="{Binding Editing.ItemCode, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
 
                         <StackPanel Grid.Row="0" Grid.Column="2">
@@ -157,7 +161,31 @@
                             <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.SupplierName, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
 
-                        <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
+                        <StackPanel Grid.Row="3" Grid.Column="0">
+                            <TextBlock Style="{StaticResource FormLabelStyle}" Text="Giá bán chuẩn" />
+                            <TextBox Style="{StaticResource FluentTextBox}" Text="{Binding Editing.RetailPrice, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="3" Grid.Column="2">
+                            <TextBlock Style="{StaticResource FormLabelStyle}" Text="VAT (%)" />
+                            <TextBox Style="{StaticResource FluentTextBox}"
+                                     ToolTip="Để trống để áp dụng VAT mặc định trong Cài đặt hàng hóa. Nhập 0 nếu mặt hàng không chịu thuế."
+                                     Text="{Binding Editing.VatRate, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <WrapPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0" VerticalAlignment="Center">
+                            <CheckBox IsChecked="{Binding Editing.IsMinibarItem}" Style="{StaticResource FluentToggleSwitchStyle}" VerticalAlignment="Center" />
+                            <TextBlock Text="Hàng minibar" Margin="8,0,14,0" VerticalAlignment="Center" Foreground="#273E5A" />
+                            <TextBox Width="125" Style="{StaticResource FluentTextBox}" ToolTip="Nhóm minibar: Nước, bia, snack..." Text="{Binding Editing.MinibarCategory, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,12,0" />
+                            <TextBlock Text="Định mức" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="#273E5A" />
+                            <TextBox Width="55" Style="{StaticResource FluentTextBox}" Text="{Binding Editing.MinibarStandardQuantity, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,12,0" />
+                            <TextBlock Text="Min" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="#273E5A" />
+                            <TextBox Width="55" Style="{StaticResource FluentTextBox}" Text="{Binding Editing.MinibarMinStock, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,12,0" />
+                            <TextBlock Text="Max" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="#273E5A" />
+                            <TextBox Width="55" Style="{StaticResource FluentTextBox}" Text="{Binding Editing.MinibarMaxStock, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+
+                        <Grid Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />

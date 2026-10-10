@@ -7,6 +7,8 @@ public sealed class DatabaseOptions
     public DatabaseMigrationMode MigrationMode { get; set; } = DatabaseMigrationMode.Disabled;
     public bool AllowApplyPendingMigrations { get; set; }
     public bool FailOnPendingMigrations { get; set; } = true;
+    public string BackupDirectory { get; set; } = "Backups";
+    public bool AllowDatabaseRestore { get; set; }
 }
 
 public enum DatabaseMigrationMode

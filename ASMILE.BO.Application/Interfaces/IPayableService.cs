@@ -10,6 +10,8 @@ public interface IPayableService
     Task<string> CreatePaymentVoucherAsync(CreatePaymentVoucherRequest request, CancellationToken cancellationToken = default);
     Task<bool?> GetPaymentVoucherApprovedAsync(string documentNo, CancellationToken cancellationToken = default);
     Task SetPaymentVoucherApprovedAsync(string documentNo, bool approved, CancellationToken cancellationToken = default);
+    Task<bool> CancelPaymentVoucherAsync(string documentNo, CancellationToken cancellationToken = default);
+    Task<bool> RejectPaymentVoucherAsync(string documentNo, string reason, CancellationToken cancellationToken = default);
     Task CreateAdvancePaymentAsync(CreateAdvancePaymentRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PayableSummaryDto>> GetOverdueDebtsAsync(CancellationToken cancellationToken = default);
     Task PrintDebtStatementAsync(string supplierId, CancellationToken cancellationToken = default);

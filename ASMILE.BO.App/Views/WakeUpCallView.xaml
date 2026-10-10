@@ -1,0 +1,88 @@
+<UserControl x:Class="ASMILE.BO.App.Views.WakeUpCallView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ASMILE.BO.App.ViewModels"
+             xmlns:converters="clr-namespace:ASMILE.BO.App.Converters"
+             UseLayoutRounding="True" Loaded="OnLoaded">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:StatusToColorConverter x:Key="StatusToColor"/>
+        <converters:IntToVisibilityConverter x:Key="IntToVis"/>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="320"/></Grid.ColumnDefinitions>
+
+        <Border Grid.ColumnSpan="2" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="20,14">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Danh Thuc (Wake-up Call)" FontSize="23" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="{Binding TotalScheduled, StringFormat='Cho: {0}'}" Margin="0,0,12,0" Foreground="#EA580C" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding TotalDueSoon, StringFormat='Sap goi: {0}'}" Margin="0,0,12,0" Foreground="#F2994A" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding TotalOverdue, StringFormat='Tre: {0}'}" Margin="0,0,12,0" Foreground="#DC2626" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding TotalCompleted, StringFormat='Xong: {0}'}" Foreground="#16A34A" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </StackPanel>
+                <Button Grid.Column="1" Content="Lam moi" Command="{Binding RefreshCommand}" Style="{StaticResource FluentSecondaryButton}"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#F0F4F8" Padding="12,8" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1">
+            <WrapPanel>
+                <TextBlock Text="Gio:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBox Text="{Binding NewWakeTime, StringFormat='{}{0:HH:mm}'}" Width="60" Margin="0,0,6,0"/>
+                <TextBox Text="{Binding NewRoomNumber, UpdateSourceTrigger=PropertyChanged}" Width="60" Margin="0,0,4,0"/>
+                <TextBox Text="{Binding NewGuestName, UpdateSourceTrigger=PropertyChanged}" Width="100" Margin="0,0,4,0"/>
+                <CheckBox Content="Lap lai" IsChecked="{Binding NewRecurring}" Margin="4,3,4,0"/>
+                <CheckBox Content="Hang ngay" IsChecked="{Binding NewDaily}" Margin="4,3,4,0"/>
+                <Button Content="Tao" Command="{Binding CreateCallCommand}" Style="{StaticResource FluentPrimaryButton}" Padding="8,4" FontSize="11"/>
+            </WrapPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="2" Grid.Column="0" Margin="12,8">
+            <ItemsControl ItemsSource="{Binding Calls}">
+                <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:WakeUpCallDto}">
+                    <Border Padding="12,10" Margin="0,0,0,4" CornerRadius="8" Background="White" BorderBrush="#DDE7F3" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="OnCallClick" Tag="{Binding}">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding WakeTime, StringFormat='{}{0:HH:mm}'}" FontSize="18" FontWeight="Bold" Margin="0,0,8,0"/>
+                                    <Border CornerRadius="3" Padding="4,1" Background="{Binding Status, Converter={StaticResource StatusToColor}}"><TextBlock Text="{Binding Status}" FontSize="10" Foreground="White"/></Border>
+                                    <Border CornerRadius="3" Padding="4,1" Background="#DC2626" Margin="4,0,0,0" Visibility="{Binding IsOverdue, Converter={StaticResource BoolToVis}}"><TextBlock Text="TRE" FontSize="10" Foreground="White"/></Border>
+                                    <Border CornerRadius="3" Padding="4,1" Background="#F2994A" Margin="2,0,0,0" Visibility="{Binding IsDueSoon, Converter={StaticResource BoolToVis}}"><TextBlock Text="SAP GOI" FontSize="10" Foreground="White"/></Border>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <TextBlock Text="{Binding RoomNumber, StringFormat='Phong {0}'}" FontSize="12"/>
+                                    <TextBlock Text="{Binding GuestName, StringFormat=' - {0}'}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="🔄" Visibility="{Binding IsRecurring, Converter={StaticResource BoolToVis}}" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Result}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding RetryCount, StringFormat='Goi lai: {0} lan'}" FontSize="10" Foreground="#DC2626" Visibility="{Binding RetryCount, Converter={StaticResource IntToVis}}"/></StackPanel>
+                        </Grid>
+                    </Border>
+                </DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Grid.Column="1" Background="White" BorderBrush="#DDE7F3" BorderThickness="1,0,0,0" Padding="16" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <TextBlock Text="CHI TIET" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+                <TextBlock Text="{Binding SelectedCall.CallNumber}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding SelectedCall.WakeTime, StringFormat='Gio danh thuc: {0:HH:mm dd/MM}'}"/>
+                <TextBlock Text="{Binding SelectedCall.GuestName}"/>
+                <TextBlock Text="{Binding SelectedCall.RoomNumber, StringFormat='Phong: {0}'}"/>
+                <Separator Margin="0,8"/>
+                <Button Content="Bat đau goi" Command="{Binding StartCallCommand}" Style="{StaticResource FluentPrimaryButton}" Padding="8,4" Margin="0,0,0,4"/>
+                <Button Content="Da tra loi ✓" Command="{Binding MarkAnsweredCommand}" Style="{StaticResource FluentSecondaryButton}" Padding="8,4" Margin="0,0,0,4"/>
+                <Button Content="Khong tra loi ✗" Command="{Binding MarkNoAnswerCommand}" Style="{StaticResource FluentSecondaryButton}" Padding="8,4"/>
+                <Separator Margin="0,8"/>
+                <ItemsControl ItemsSource="{Binding SelectedCall.History}"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.RowSpan="3" Grid.ColumnSpan="2" Background="#80000000" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="Dang tai..." Foreground="White" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+    </Grid>
+</UserControl>

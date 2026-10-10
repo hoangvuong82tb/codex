@@ -121,6 +121,8 @@
                                         <DataTemplate DataType="{x:Type model:AppModuleInfo}">
                                             <Button Style="{StaticResource RecommendedItemButtonStyle}"
                                                     HorizontalContentAlignment="Stretch"
+                                                    AutomationProperties.Name="{Binding Title}"
+                                                    AutomationProperties.AutomationId="{Binding Key}"
                                                     Command="{Binding DataContext.OpenModuleCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding}">
                                                 <Grid>

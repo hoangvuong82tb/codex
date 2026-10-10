@@ -17,6 +17,14 @@ public sealed class ExportExecutionDto
     public DateTime QueuedAtUtc { get; set; }
 }
 
+public sealed class ExportRetentionPolicyDto
+{
+    public Guid Id { get; set; }
+    public string ExportCode { get; set; } = string.Empty;
+    public int RetentionDays { get; set; } = 30;
+    public bool IsActive { get; set; } = true;
+}
+
 public sealed class DataIntegrityIssueDto
 {
     public Guid Id { get; set; }

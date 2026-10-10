@@ -202,8 +202,8 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <DataGridTextColumn Header="M? NCC" Binding="{Binding SupplierCode, UpdateSourceTrigger=PropertyChanged}" Width="120" />
-                        <DataGridTextColumn Header="Tên nhà cung cấp" Binding="{Binding SupplierName, UpdateSourceTrigger=PropertyChanged}" Width="190" />
+                        <DataGridTextColumn Header="Mã" Binding="{Binding SupplierCode, UpdateSourceTrigger=PropertyChanged}" Width="120" />
+                        <DataGridTextColumn Header="Tên" Binding="{Binding SupplierName, UpdateSourceTrigger=PropertyChanged}" Width="190" />
                         <DataGridTextColumn Header="Điện thoại" Binding="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Width="130" />
                         <DataGridTextColumn Header="Tài khoản ngân hàng" Binding="{Binding BankAccountNo, UpdateSourceTrigger=PropertyChanged}" Width="168" />
                         <DataGridTextColumn Header="Địa chỉ" Binding="{Binding Address, UpdateSourceTrigger=PropertyChanged}" Width="200" />

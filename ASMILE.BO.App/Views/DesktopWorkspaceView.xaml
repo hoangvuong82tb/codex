@@ -9,7 +9,7 @@
              d:DesignHeight="860"
              d:DesignWidth="1540"
              SizeChanged="WorkspaceHost_SizeChanged">
-    <Grid x:Name="WorkspaceRoot" Background="{StaticResource DesktopWallpaperBrush}">
+    <Grid x:Name="WorkspaceRoot" Background="{Binding DesktopWallpaperBrush}">
         <Grid.ContextMenu>
             <ContextMenu Style="{StaticResource DesktopContextMenuStyle}"
                          DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
@@ -79,6 +79,8 @@
                     <Setter Property="Canvas.Top" Value="{Binding DesktopTop}" />
                     <Setter Property="Width" Value="104" />
                     <Setter Property="Height" Value="96" />
+                    <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+                    <Setter Property="AutomationProperties.AutomationId" Value="{Binding Key}" />
                 </Style>
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>

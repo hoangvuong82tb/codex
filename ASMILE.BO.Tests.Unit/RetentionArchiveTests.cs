@@ -27,6 +27,53 @@ public sealed class RetentionArchiveTests
     }
 
     [Fact]
+    public async Task SaveRetentionPolicy_UpdatesPersistedPolicyAndReloadsIt()
+    {
+        await using var fixture = await SqliteFixture.CreateAsync();
+        var service = fixture.CreateArchiveService();
+        var policy = (await service.GetRetentionPoliciesAsync()).First(x => x.Module == "search");
+
+        var saved = await service.SaveRetentionPolicyAsync(new DataRetentionPolicyDto
+        {
+            Id = policy.Id,
+            RetentionDays = 120,
+            ArchiveAfterDays = 90,
+            DeleteAfterDays = 365,
+            CompressArchivedPayload = false,
+            IsEnabled = false
+        });
+
+        saved.RetentionDays.Should().Be(120);
+        saved.IsEnabled.Should().BeFalse();
+        var persisted = await fixture.Db.DataRetentionPolicies.AsNoTracking().SingleAsync(x => x.Id == policy.Id);
+        persisted.RetentionDays.Should().Be(120);
+        persisted.ArchiveAfterDays.Should().Be(90);
+        persisted.DeleteAfterDays.Should().Be(365);
+        persisted.CompressArchivedPayload.Should().BeFalse();
+        persisted.IsEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SaveRetentionPolicy_RejectsDeleteBeforeArchive()
+    {
+        await using var fixture = await SqliteFixture.CreateAsync();
+        var service = fixture.CreateArchiveService();
+        var policy = (await service.GetRetentionPoliciesAsync()).First();
+
+        var act = () => service.SaveRetentionPolicyAsync(new DataRetentionPolicyDto
+        {
+            Id = policy.Id,
+            RetentionDays = 365,
+            ArchiveAfterDays = 180,
+            DeleteAfterDays = 179,
+            CompressArchivedPayload = true,
+            IsEnabled = true
+        });
+
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
     public async Task RunArchive_SoftArchivesSearchEntriesAndPersistsBatch()
     {
         await using var fixture = await SqliteFixture.CreateAsync();

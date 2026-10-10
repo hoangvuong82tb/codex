@@ -6,5 +6,6 @@ public enum DocumentStatus
     Active = 1,
     Locked = 2,
     Cancelled = 3,
-    Archived = 4
+    Archived = 4,
+    Rejected = 5
 }

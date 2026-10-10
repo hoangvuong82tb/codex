@@ -16,6 +16,7 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
     private readonly INotificationService _notificationService;
     private readonly IDialogService _dialogService;
     private readonly IWindowManagerService _windowManagerService;
+    private readonly Task _initializationTask;
     private readonly List<PaymentVoucherRow> _allRows = new();
     private readonly List<PayableSummaryDto> _allDebtSummaries = new();
 
@@ -73,12 +74,78 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
         _notificationService = notificationService;
         _dialogService = dialogService;
         _windowManagerService = windowManagerService;
-        _ = InitializeAsync();
+        _initializationTask = InitializeAsync();
+    }
+
+    /// <summary>
+    /// Completes when the constructor-started real-data initialization has finished.
+    /// Views must await this task before requesting another refresh.
+    /// </summary>
+    public Task WaitForInitializationAsync() => _initializationTask;
+
+    /// <summary>
+    /// Snapshot used by the legacy voucher shell. The shell must display the
+    /// persisted rows, not only the currently selected workflow tab.
+    /// </summary>
+    public IReadOnlyList<PaymentVoucherRow> AllRows => _allRows;
+
+    public bool SelectVoucherByDocumentNo(string documentNo)
+    {
+        var row = _allRows.FirstOrDefault(x =>
+            string.Equals(x.DocumentNo?.Trim(), documentNo?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (row is null)
+        {
+            return false;
+        }
+
+        SelectedVoucher = row;
+        return true;
+    }
+
+    public async Task ApproveVoucherByDocumentNoAsync(string documentNo)
+    {
+        if (!SelectVoucherByDocumentNo(documentNo))
+        {
+            _dialogService.Error("Không tìm thấy phiếu chi thật để duyệt. Vui lòng tải lại danh sách.");
+            return;
+        }
+
+        await ApproveSelected();
+    }
+
+    public async Task RejectVoucherByDocumentNoAsync(string documentNo, string reason)
+    {
+        if (!SelectVoucherByDocumentNo(documentNo))
+        {
+            _dialogService.Error("Không tìm thấy phiếu chi thật để từ chối. Vui lòng tải lại danh sách.");
+            return;
+        }
+
+        if (SelectedVoucher?.WorkflowStatus != VoucherWorkflowStatus.Pending)
+        {
+            _dialogService.Error("Chỉ từ chối được phiếu chi đang chờ duyệt.");
+            return;
+        }
+
+        var rejected = await _payableService.RejectPaymentVoucherAsync(documentNo, reason);
+        if (!rejected)
+        {
+            _dialogService.Error("Không từ chối được phiếu chi ở trạng thái hiện tại.");
+            return;
+        }
+
+        SelectedVoucher.Status = "Từ chối";
+        SelectedVoucher.WorkflowStatus = VoucherWorkflowStatus.Rejected;
+        _notificationService.Show("Đã từ chối phiếu chi trong CSDL và ghi audit.");
+        ApplyCurrentTabFilter();
     }
 
     private async Task InitializeAsync()
     {
-        await NewAsync();
+        // Number allocation is a transactional database operation. Do not run
+        // it from constructor-started initialization while other module view
+        // models are querying through the shared application scope.
+        ResetEntryForm();
         await LoadAsync();
     }
 
@@ -210,7 +277,13 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
     [RelayCommand]
     private async Task NewAsync()
     {
+        await _initializationTask;
         VoucherNo = await _payableService.GetNextPaymentVoucherNoAsync();
+        ResetEntryForm();
+    }
+
+    private void ResetEntryForm()
+    {
         Amount = 0;
         Note = string.Empty;
         PayerName = string.Empty;
@@ -223,6 +296,8 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
     [RelayCommand]
     private async Task AddDraftAsync()
     {
+        await _initializationTask;
+
         if (SelectedSupplier is null)
         {
             _dialogService.Error("Chọn nhà cung cấp trước khi thêm dòng.");
@@ -346,7 +421,7 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void DeleteSelected()
+    private async Task DeleteSelected()
     {
         if (SelectedVoucher is null)
         {
@@ -360,7 +435,24 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
             return;
         }
 
-        _allRows.Remove(SelectedVoucher);
+        if (SelectedVoucher.IsPersisted)
+        {
+            var cancelled = await _payableService.CancelPaymentVoucherAsync(SelectedVoucher.DocumentNo);
+            if (!cancelled)
+            {
+                _dialogService.Error("Không hủy được phiếu chi. Chỉ phiếu chờ duyệt mới được hủy và phải còn nguyên trạng thái trong CSDL.");
+                return;
+            }
+
+            SelectedVoucher.Status = "Đã hủy";
+            SelectedVoucher.WorkflowStatus = VoucherWorkflowStatus.Cancelled;
+            _notificationService.Show("Đã hủy phiếu chi trong CSDL và ghi audit.");
+        }
+        else
+        {
+            _allRows.Remove(SelectedVoucher);
+        }
+
         ApplyCurrentTabFilter();
         SelectedVoucher = Vouchers.FirstOrDefault();
         OnPropertyChanged(nameof(TotalPaymentAmount));
@@ -437,8 +529,11 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
                         var isApproved = row.DocumentType == PayableDocumentType.PaymentVoucher
                             ? await _payableService.GetPaymentVoucherApprovedAsync(row.DocumentNo)
                             : true;
+                        var isCancelled = row.Status == DebtStatus.Cancelled;
+                        var isRejected = row.Status == DebtStatus.Rejected;
                         _allRows.Add(new PaymentVoucherRow
                         {
+                            IsPersisted = true,
                             Date = row.TransactionDate,
                             DocumentNo = row.DocumentNo,
                             SupplierCode = row.SupplierCode,
@@ -448,8 +543,8 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
                             DebitAccountCode = "331",
                             CreditAccountCode = "111",
                             Note = row.Description ?? string.Empty,
-                            Status = (isApproved ?? false) ? "Đã duyệt" : "Chờ duyệt",
-                            WorkflowStatus = (isApproved ?? false) ? VoucherWorkflowStatus.Approved : VoucherWorkflowStatus.Pending,
+                            Status = isRejected ? "Từ chối" : isCancelled ? "Đã hủy" : (isApproved ?? false) ? "Đã duyệt" : "Chờ duyệt",
+                            WorkflowStatus = isRejected ? VoucherWorkflowStatus.Rejected : isCancelled ? VoucherWorkflowStatus.Cancelled : (isApproved ?? false) ? VoucherWorkflowStatus.Approved : VoucherWorkflowStatus.Pending,
                             SupplierId = row.SupplierId
                         });
                     }
@@ -616,7 +711,7 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task RefreshAsync() => await LoadAsync();
+    public async Task RefreshAsync() => await LoadAsync();
 
     private async Task<IReadOnlyList<PayableSummaryDto>> ReloadDebtSummariesAsync()
     {
@@ -661,7 +756,7 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
                 "#8B5CF6",
                 isPinned: false,
                 showOnDesktop: false,
-                iconPath: @"D:\ASMILE-BO\Windows_Icon\Icons\applications\payment-voucher.ico");
+                iconPath: ApplicationAssetPaths.Icon(@"Icons\applications\payment-voucher.ico"));
 
             var vm = new PayableDebtDetailModuleViewModel(
                 target.SupplierCode ?? string.Empty,
@@ -736,7 +831,7 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
             "#8B5CF6",
             isPinned: false,
             showOnDesktop: false,
-            iconPath: @"D:\ASMILE-BO\Windows_Icon\Icons\applications\payment-voucher.ico");
+            iconPath: ApplicationAssetPaths.Icon(@"Icons\applications\payment-voucher.ico"));
 
         var vm = new PaymentVoucherDetailModuleViewModel(target, _windowManagerService, moduleKey);
         vm.RequestClose += () =>
@@ -754,6 +849,7 @@ public sealed partial class PaymentVouchersViewModel : ViewModelBase
 
 public sealed class PaymentVoucherRow
 {
+    public bool IsPersisted { get; set; }
     public string SupplierId { get; set; } = string.Empty;
     public DateTime Date { get; set; }
     public string DocumentNo { get; set; } = string.Empty;

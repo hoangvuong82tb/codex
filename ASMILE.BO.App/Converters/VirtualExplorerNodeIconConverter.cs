@@ -1,4 +1,5 @@
 using ASMILE.BO.Application.DTOs;
+using ASMILE.BO.App.Services;
 using ASMILE.BO.Core.Enums;
 using System.Globalization;
 using System.IO;
@@ -8,12 +9,12 @@ namespace ASMILE.BO.App.Converters;
 
 public sealed class VirtualExplorerNodeIconConverter : IValueConverter
 {
-    private const string IconRoot = @"D:\ASMILE-BO\Windows_Icon\Icons";
-    private const string FolderIcon = IconRoot + @"\folders\folder.ico";
-    private const string FolderFilledIcon = IconRoot + @"\folders\filled.ico";
-    private const string DriveIcon = IconRoot + @"\devices\drives\drive.ico";
-    private const string NetworkIcon = IconRoot + @"\folders\network.ico";
-    private const string DocumentIcon = IconRoot + @"\files\windowdesktop.ico";
+    private static string IconRoot => ApplicationAssetPaths.Icon(@"Icons");
+    private static string FolderIcon => Path.Combine(IconRoot, "folders", "folder.ico");
+    private static string FolderFilledIcon => Path.Combine(IconRoot, "folders", "filled.ico");
+    private static string DriveIcon => Path.Combine(IconRoot, "devices", "drives", "drive.ico");
+    private static string NetworkIcon => Path.Combine(IconRoot, "folders", "network.ico");
+    private static string DocumentIcon => Path.Combine(IconRoot, "files", "windowdesktop.ico");
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
@@ -43,7 +44,7 @@ public sealed class VirtualExplorerNodeIconConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        throw new NotSupportedException();
+        return Binding.DoNothing;
     }
 
     private static string? ResolveCustomIcon(string icon)

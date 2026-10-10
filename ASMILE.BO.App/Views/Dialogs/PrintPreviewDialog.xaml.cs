@@ -18,7 +18,7 @@ public partial class PrintPreviewDialog : Window
         PreviewContent = content;
         PreviewMetaLeft = $"Kỳ in: {DateTime.Now:dd/MM/yyyy HH:mm}";
         PreviewMetaRight = $"Người lập: {GetCurrentUser()}";
-        PreviewFooter = "Dữ liệu: In-memory sample mode • ASMILE BO";
+        PreviewFooter = "Dữ liệu: nội dung xem trước do chức năng gọi cung cấp";
 
         InitializeComponent();
         DataContext = this;

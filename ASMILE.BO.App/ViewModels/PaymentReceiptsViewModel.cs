@@ -5,6 +5,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 
+using ASMILE.BO.App.Helpers;
+
 namespace ASMILE.BO.App.ViewModels;
 
 public sealed partial class PaymentReceiptsViewModel : ViewModelBase
@@ -15,6 +17,7 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
     private readonly INotificationService _notificationService;
     private readonly IDialogService _dialogService;
     private readonly List<PaymentReceiptRow> _allRows = new();
+    private readonly Task _initializationTask;
 
     public ObservableCollection<CustomerDto> Customers { get; } = new();
     public ObservableCollection<PersonDto> Collectors { get; } = new();
@@ -57,12 +60,54 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
         _personService = personService;
         _notificationService = notificationService;
         _dialogService = dialogService;
-        _ = InitializeAsync();
+        _initializationTask = InitializeAsync();
+    }
+
+    /// <summary>
+    /// Completes when the constructor-started real-data initialization has finished.
+    /// Views must await this task before requesting another refresh.
+    /// </summary>
+    public Task WaitForInitializationAsync() => _initializationTask;
+
+    /// <summary>
+    /// Snapshot used by the legacy voucher shell. The shell must display the
+    /// persisted rows, not only the currently selected workflow tab.
+    /// </summary>
+    public IReadOnlyList<PaymentReceiptRow> AllRows => _allRows;
+
+    public bool SelectReceiptByDocumentNo(string documentNo)
+    {
+        var row = _allRows.FirstOrDefault(x =>
+            string.Equals(x.DocumentNo?.Trim(), documentNo?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (row is null)
+        {
+            return false;
+        }
+
+        SelectedReceipt = row;
+        return true;
+    }
+
+    public async Task CancelReceiptByDocumentNoAsync(string documentNo)
+    {
+        if (!SelectReceiptByDocumentNo(documentNo))
+        {
+            _dialogService.Error("Không tìm thấy phiếu thu thật để hủy. Vui lòng tải lại danh sách.");
+            return;
+        }
+
+        await DeleteSelected();
     }
 
     private async Task InitializeAsync()
     {
-        await NewAsync();
+        // Do not allocate a document number while the view model is being
+        // constructed. The shell creates several real-data view models at
+        // once, all sharing the application scope; starting a transactional
+        // number allocation here races with their initial queries and can
+        // leave an unobserved DbContext/SQL transaction exception. A number
+        // is allocated only when the operator starts a new receipt.
+        ResetEntryForm();
         await LoadAsync();
     }
 
@@ -103,7 +148,13 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
     [RelayCommand]
     private async Task NewAsync()
     {
+        await _initializationTask;
         ReceiptNo = await _receivableService.GetNextReceiptNoAsync();
+        ResetEntryForm();
+    }
+
+    private void ResetEntryForm()
+    {
         Amount = 0;
         Note = string.Empty;
         CollectorName = string.Empty;
@@ -116,6 +167,8 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
     [RelayCommand]
     private async Task AddDraftAsync()
     {
+        await _initializationTask;
+
         if (SelectedCustomer is null)
         {
             _dialogService.Error("Chọn khách hàng trước khi thêm dòng.");
@@ -157,7 +210,7 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ApproveSelected()
+    private async Task ApproveSelected()
     {
         if (SelectedReceipt is null)
         {
@@ -171,8 +224,21 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
             return;
         }
 
-        SelectedReceipt.WorkflowStatus = VoucherWorkflowStatus.Approved;
-        SelectedReceipt.Status = "Đã duyệt";
+        if (!SelectedReceipt.IsPersisted)
+        {
+            _dialogService.Error("Phiếu chưa được lưu vào CSDL.");
+            return;
+        }
+
+        var ok = await _receivableService.ApprovePaymentReceiptAsync(SelectedReceipt.ReceiptId, CancellationToken.None);
+        if (!ok)
+        {
+            _dialogService.Error("Không duyệt được phiếu thu ở trạng thái hiện tại.");
+            return;
+        }
+
+        _notificationService.Show("Đã duyệt phiếu thu và ghi nhận vào dữ liệu công nợ.");
+        await LoadAsync();
         ShowApprovedTab();
     }
 
@@ -191,19 +257,11 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
             return;
         }
 
-        SelectedReceipt.WorkflowStatus = VoucherWorkflowStatus.Draft;
-        SelectedReceipt.Status = "Lập phiếu";
-        ReceiptNo = SelectedReceipt.DocumentNo;
-        ReceiptDate = SelectedReceipt.Date;
-        Amount = SelectedReceipt.Amount;
-        PaymentMethod = SelectedReceipt.Method;
-        SelectedCustomer = Customers.FirstOrDefault(x => string.Equals(x.CustomerCode, SelectedReceipt.CustomerCode, StringComparison.OrdinalIgnoreCase)) ?? SelectedCustomer;
-        ShowCreateTab();
-        ApplyCurrentTabFilter();
+        _dialogService.Error("Phiếu đã lưu không sửa trực tiếp; hãy hủy phiếu chờ duyệt rồi lập phiếu mới để giữ audit đầy đủ.");
     }
 
     [RelayCommand]
-    private void DeleteSelected()
+    private async Task DeleteSelected()
     {
         if (SelectedReceipt is null)
         {
@@ -217,14 +275,27 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
             return;
         }
 
-        _allRows.Remove(SelectedReceipt);
-        ApplyCurrentTabFilter();
-        SelectedReceipt = Receipts.FirstOrDefault();
-        OnPropertyChanged(nameof(TotalReceiptAmount));
+        if (!SelectedReceipt.IsPersisted)
+        {
+            _allRows.Remove(SelectedReceipt);
+            ApplyCurrentTabFilter();
+            SelectedReceipt = Receipts.FirstOrDefault();
+            return;
+        }
+
+        var ok = await _receivableService.CancelPaymentReceiptAsync(SelectedReceipt.ReceiptId, CancellationToken.None);
+        if (!ok)
+        {
+            _dialogService.Error("Không hủy được phiếu thu ở trạng thái hiện tại.");
+            return;
+        }
+
+        _notificationService.Show("Đã hủy phiếu thu trong CSDL.");
+        await LoadAsync();
     }
 
     [RelayCommand]
-    private void Reapprove()
+    private async Task Reapprove()
     {
         if (SelectedReceipt is null)
         {
@@ -232,8 +303,21 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
             return;
         }
 
-        SelectedReceipt.WorkflowStatus = VoucherWorkflowStatus.Pending;
-        SelectedReceipt.Status = "Chờ duyệt";
+        if (!SelectedReceipt.IsPersisted)
+        {
+            _dialogService.Error("Phiếu chưa được lưu vào CSDL.");
+            return;
+        }
+
+        var ok = await _receivableService.ReopenPaymentReceiptAsync(SelectedReceipt.ReceiptId, CancellationToken.None);
+        if (!ok)
+        {
+            _dialogService.Error("Không chuyển lại phiếu thu về Chờ duyệt được.");
+            return;
+        }
+
+        _notificationService.Show("Đã chuyển phiếu thu về Chờ duyệt trong CSDL.");
+        await LoadAsync();
         ShowPendingTab();
     }
 
@@ -268,40 +352,38 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
                 SelectedCollector = null;
             }
 
-            var summaries = await _receivableService.GetDebtSummariesAsync(new ReceivableFilterDto
+            var drafts = _allRows.Where(x => !x.IsPersisted).ToList();
+            _allRows.Clear();
+            _allRows.AddRange(drafts);
+
+            var persisted = await _receivableService.GetPaymentReceiptsAsync(new ReceivableFilterDto
             {
                 Keyword = SearchText.Trim(),
                 FromDate = FilterFromDate,
                 ToDate = FilterToDate
             });
-
-            if (_allRows.Count == 0 && Customers.Count > 0)
+            foreach (var row in persisted)
             {
-                foreach (var customer in Customers)
+                _allRows.Add(new PaymentReceiptRow
                 {
-                    var summary = summaries.FirstOrDefault(s => string.Equals(s.CustomerCode, customer.CustomerCode, StringComparison.OrdinalIgnoreCase));
-                    if (summary is null)
+                    ReceiptId = row.Id,
+                    IsPersisted = true,
+                    Date = row.ReceiptDate,
+                    DocumentNo = row.DocumentNo,
+                    CustomerCode = row.CustomerCode,
+                    CustomerName = row.CustomerName,
+                    Amount = row.Amount,
+                    Method = row.PaymentMethod,
+                    Note = row.Note,
+                    Status = row.Status,
+                    WorkflowStatus = row.Status switch
                     {
-                        continue;
-                    }
-
-                    var tx = await _receivableService.GetTransactionsByCustomerAsync(summary.CustomerId, DateTime.Today.AddMonths(-12), DateTime.Today);
-                    foreach (var row in tx.Where(x => x.DocumentType == ReceivableDocumentType.PaymentReceipt).OrderByDescending(x => x.TransactionDate))
-                    {
-                        _allRows.Add(new PaymentReceiptRow
-                        {
-                            Date = row.TransactionDate,
-                            DocumentNo = row.DocumentNo,
-                            CustomerCode = row.CustomerCode,
-                            CustomerName = row.CustomerName,
-                            Amount = row.CreditAmount,
-                            Method = string.IsNullOrWhiteSpace(PaymentMethod) ? "Tiền mặt" : PaymentMethod,
-                            Status = row.Status == DebtStatus.Paid ? "Đã duyệt" : "Chờ duyệt",
-                            WorkflowStatus = row.Status == DebtStatus.Paid ? VoucherWorkflowStatus.Approved : VoucherWorkflowStatus.Pending,
-                            CustomerId = row.CustomerId
-                        });
-                    }
-                }
+                        "Lập phiếu" => VoucherWorkflowStatus.Draft,
+                        "Đã duyệt" => VoucherWorkflowStatus.Approved,
+                        _ => VoucherWorkflowStatus.Pending
+                    },
+                    CustomerId = row.CustomerId
+                });
             }
 
             ApplyCurrentTabFilter();
@@ -385,6 +467,10 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
 
         try
         {
+            target.Date = ReceiptDate;
+            target.Amount = Amount;
+            target.Method = PaymentMethod;
+            target.Note = Note;
             var documentNo = await _receivableService.CreatePaymentReceiptAsync(new CreatePaymentReceiptRequest
             {
                 CustomerId = target.CustomerId,
@@ -394,15 +480,19 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
                 BankAccount = BankAccount,
                 Note = Note
             });
-            target.Status = "Chờ duyệt";
-            target.WorkflowStatus = VoucherWorkflowStatus.Pending;
-            target.DocumentNo = string.IsNullOrWhiteSpace(documentNo) ? target.DocumentNo : documentNo;
+            if (string.IsNullOrWhiteSpace(documentNo))
+            {
+                _dialogService.Error("Không tạo được phiếu thu trong CSDL.");
+                return;
+            }
 
             _notificationService.Show("Đã lưu phiếu thu, chuyển sang danh sách Chờ duyệt.");
-            await NewAsync();
+            target.IsPersisted = true;
+            target.DocumentNo = documentNo;
+            await LoadAsync();
             ShowPendingTab();
-            SelectedReceipt = target;
-            OnPropertyChanged(nameof(TotalReceiptAmount));
+            SelectedReceipt = _allRows.FirstOrDefault(x => x.ReceiptId == target.ReceiptId)
+                ?? _allRows.FirstOrDefault(x => x.DocumentNo == documentNo);
         }
         catch (Exception ex)
         {
@@ -411,18 +501,50 @@ public sealed partial class PaymentReceiptsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task RefreshAsync() => await LoadAsync();
+    public async Task RefreshAsync() => await LoadAsync();
+
+    [RelayCommand]
+    private void ExportCsv()
+    {
+        if (Receipts.Count == 0)
+        {
+            _notificationService.Show("Không có phiếu thu thật phù hợp bộ lọc để xuất.");
+            return;
+        }
+
+        var rows = Receipts.Select(row => (IReadOnlyList<string>)new[]
+        {
+            row.Date.ToString("yyyy-MM-dd"),
+            row.DocumentNo,
+            row.CustomerCode,
+            row.CustomerName,
+            row.Amount.ToString("0.##"),
+            row.Method,
+            row.Status,
+            row.Note
+        }).ToList();
+
+        var path = CsvExportHelper.Export(
+            "phieu-thu",
+            new[] { "Ngày thu", "Số phiếu", "Mã KH", "Khách hàng", "Số tiền", "Phương thức", "Trạng thái", "Ghi chú" },
+            rows);
+        _notificationService.Show($"Đã xuất {Receipts.Count:N0} phiếu thu thật: {path}");
+    }
 }
 
 public enum VoucherWorkflowStatus
 {
     Draft,
     Pending,
-    Approved
+    Approved,
+    Cancelled,
+    Rejected
 }
 
 public sealed class PaymentReceiptRow
 {
+    public string ReceiptId { get; set; } = string.Empty;
+    public bool IsPersisted { get; set; }
     public string CustomerId { get; set; } = string.Empty;
     public DateTime Date { get; set; }
     public string DocumentNo { get; set; } = string.Empty;
@@ -430,6 +552,7 @@ public sealed class PaymentReceiptRow
     public string CustomerName { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string Method { get; set; } = "Tiền mặt";
+    public string Note { get; set; } = string.Empty;
     public string Status { get; set; } = "Chờ duyệt";
     public VoucherWorkflowStatus WorkflowStatus { get; set; } = VoucherWorkflowStatus.Pending;
 }

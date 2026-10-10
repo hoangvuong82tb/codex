@@ -1,0 +1,97 @@
+<Window x:Class="ASMILE.BO.App.Views.CashieringWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Thu ngân / Folio" Width="960" Height="700"
+        MinWidth="800" MinHeight="600"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False"
+        Background="#F8FAFC" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Window.Resources>
+        <Style x:Key="GrayBtn" TargetType="Button"><Setter Property="Height" Value="40"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="14"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="16,0"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ActionCard" TargetType="Border"><Setter Property="Background" Value="White"/><Setter Property="CornerRadius" Value="14"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="20,18"/><Setter Property="Cursor" Value="Hand"/></Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <Border Padding="24,18" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="46" Height="46" CornerRadius="12"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#059669" Offset="0"/><GradientStop Color="#047857" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="&#xE677;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0"><TextBlock Text="Thu ngân / Folio" FontSize="20" FontWeight="SemiBold" Foreground="#102E5A"/><TextBlock Text="Quản lý Folio và giao dịch Front Office." FontSize="13" Foreground="#64748B" Margin="0,3,0,0"/></StackPanel>
+                <Button Grid.Column="2" Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}"/>
+            </Grid>
+        </Border>
+
+        <WrapPanel Grid.Row="1" Margin="28,24,28,16" HorizontalAlignment="Center">
+            <Border Width="200" Height="160" Style="{StaticResource ActionCard}" Margin="0,0,10,10" MouseLeftButtonDown="OnCollectPayment">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Width="48" Height="48" CornerRadius="12" Background="#EFF6FF" Margin="0,0,0,10"><TextBlock Text="&#xE677;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#2563EB" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="Thu tiền" FontSize="15" FontWeight="SemiBold" Foreground="#102E5A" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Thanh toán Folio" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Width="200" Height="160" Style="{StaticResource ActionCard}" Margin="0,0,10,10" MouseLeftButtonDown="OnDeposit">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Width="48" Height="48" CornerRadius="12" Background="#F0FDF4" Margin="0,0,0,10"><TextBlock Text="&#xE719;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#16A34A" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="Đặt cọc" FontSize="15" FontWeight="SemiBold" Foreground="#102E5A" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Nhận tiền đặt cọc" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Width="200" Height="160" Style="{StaticResource ActionCard}" Margin="0,0,10,10" MouseLeftButtonDown="OnRefund">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Width="48" Height="48" CornerRadius="12" Background="#FFF7ED" Margin="0,0,0,10"><TextBlock Text="&#xE716;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#F59E0B" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="Hoàn tiền" FontSize="15" FontWeight="SemiBold" Foreground="#102E5A" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Hoàn trả tiền dư" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Width="200" Height="160" Style="{StaticResource ActionCard}" Margin="0,0,0,10" MouseLeftButtonDown="OnFolio">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Width="48" Height="48" CornerRadius="12" Background="#FEF2F2" Margin="0,0,0,10"><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#DC2626" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="Folio" FontSize="15" FontWeight="SemiBold" Foreground="#102E5A" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Xem Folio khách" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Width="200" Height="160" Style="{StaticResource ActionCard}" Margin="0,0,10,10" MouseLeftButtonDown="OnSplitFolio">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Width="48" Height="48" CornerRadius="12" Background="#F3E8FF" Margin="0,0,0,10"><TextBlock Text="&#xE8C1;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#7C3AED" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="Tách Folio" FontSize="15" FontWeight="SemiBold" Foreground="#102E5A" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Tách thành nhiều" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Width="200" Height="160" Style="{StaticResource ActionCard}" Margin="0,0,10,10" MouseLeftButtonDown="OnMergeFolio">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Width="48" Height="48" CornerRadius="12" Background="#ECFDF5" Margin="0,0,0,10"><TextBlock Text="&#xE8C2;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#059669" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="Gộp Folio" FontSize="15" FontWeight="SemiBold" Foreground="#102E5A" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Gộp nhiều Folio" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Width="200" Height="160" Style="{StaticResource ActionCard}" Margin="0,0,10,10" MouseLeftButtonDown="OnTransferItem">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Width="48" Height="48" CornerRadius="12" Background="#EFF6FF" Margin="0,0,0,10"><TextBlock Text="&#xE8AB;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#0EA5E9" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="Chuyển khoản mục" FontSize="15" FontWeight="SemiBold" Foreground="#102E5A" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Chuyển giữa Folio" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Width="200" Height="160" Style="{StaticResource ActionCard}" Margin="0,0,0,10" MouseLeftButtonDown="OnPrintProforma">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Width="48" Height="48" CornerRadius="12" Background="#FEFCE8" Margin="0,0,0,10"><TextBlock Text="&#xE749;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="#CA8A04" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="In tạm tính" FontSize="15" FontWeight="SemiBold" Foreground="#102E5A" HorizontalAlignment="Center"/>
+                    <TextBlock Text="In phiếu tạm tính" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+        </WrapPanel>
+
+        <Border Grid.Row="2" Padding="14,10" Margin="14,10,14,12" Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Text="Chọn một thao tác để bắt đầu"/>
+                <Button Grid.Column="1" Content="Đóng" Click="OnClose" Style="{StaticResource GrayBtn}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

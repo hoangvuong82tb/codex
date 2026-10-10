@@ -34,16 +34,13 @@
                         Background="#EFF3F8"
                         CornerRadius="4"
                         BorderThickness="1"
-                        BorderBrush="#E5EAF2">
+                        BorderBrush="#E5EAF2"
+                        Visibility="{Binding Item.HasUsageMetric, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Border HorizontalAlignment="Left"
                             Width="{Binding UsedBarWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             Background="{Binding UsedBarBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             CornerRadius="4" />
                 </Border>
-                <TextBlock Text="{Binding Item.Description, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                           Foreground="#5F6B7A"
-                           FontSize="12"
-                           TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </Grid>
     </Border>

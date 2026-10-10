@@ -22,8 +22,10 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
     private readonly IBanquetRestaurantService? _banquetService;
     private readonly INavigationService _navigationService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IEInvoiceService? _eInvoiceService;
     private readonly DispatcherTimer _autoRefreshTimer;
     private readonly CancellationTokenSource _disposeCts = new();
+    private int _disposeState;
 
     public ObservableCollection<NotificationInboxItem> InboxItems { get; } = new();
     public ObservableCollection<NotificationInboxItem> SystemInboxItems { get; } = new();
@@ -98,6 +100,8 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
 
     // File attachment
     [ObservableProperty] private string attachedFileName = string.Empty;
+    public ObservableCollection<NotificationAttachmentItem> AttachmentList { get; } = new();
+    public bool CanAttachFile => SelectedInboxItem?.NotificationId is not null;
 
     // Saved filters
     private string CurrentUserName => _currentUserService.CurrentUser?.DisplayName ?? _currentUserService.CurrentUser?.UserName ?? "Administrator";
@@ -112,7 +116,7 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
     public bool AnyItemSelected => InboxItems.Any(x => x.IsSelected);
 
     public List<string> TypeFilters { get; } = new() { "Tất cả", "Thông báo", "Công việc", "Cảnh báo", "Phê duyệt", "Hệ thống" };
-    public List<string> StatusFilters { get; } = new() { "Tất cả", "Chưa đọc", "Đang xử lý", "Chờ xử lý", "Hoàn tất" };
+    public List<string> StatusFilters { get; } = new() { "Tất cả", "Chưa đọc", "Đã đọc", "Đã xác nhận", "Đã ẩn", "Đang xử lý", "Chờ xử lý", "Hoàn tất" };
     public List<string> PriorityFilters { get; } = new() { "Tất cả", "Khẩn cấp", "Cao", "Trung bình", "Thấp" };
     public List<string> TaskPriorityOptions { get; } = new() { "Khẩn cấp", "Cao", "Trung bình", "Thấp" };
 
@@ -134,6 +138,7 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
         OnPropertyChanged(nameof(HasSelectedItem));
         OnPropertyChanged(nameof(HasNoSelectedItem));
         CommentList.Clear();
+        AttachmentList.Clear();
         NewCommentText = string.Empty;
         SelectedQuantificationStatus = string.Empty;
         OnPropertyChanged(nameof(HasQuantificationBatch));
@@ -143,7 +148,11 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
         if (value.TaskId is not null)
             _ = LoadTaskCommentsAsync(value.TaskId.Value);
         else if (value.NotificationId is not null)
+        {
             _ = LoadNotificationCommentsAsync(value.NotificationId.Value);
+            _ = LoadNotificationAttachmentsAsync(value.NotificationId.Value);
+        }
+        OnPropertyChanged(nameof(CanAttachFile));
         if (value.IsQuantificationBatch && value.SourceId.HasValue)
             _ = LoadQuantificationStatusAsync(value.SourceId.Value);
     }
@@ -188,6 +197,30 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
         catch { /* non-critical */ }
     }
 
+    private async Task LoadNotificationAttachmentsAsync(Guid notificationId)
+    {
+        try
+        {
+            var attachments = await _service.GetNotificationAttachmentsAsync(notificationId, _disposeCts.Token);
+            if (SelectedInboxItem?.NotificationId != notificationId) return;
+            foreach (var attachment in attachments)
+            {
+                AttachmentList.Add(new NotificationAttachmentItem(
+                    attachment.Id,
+                    attachment.FileName,
+                    attachment.FileSize,
+                    attachment.CreatedBy,
+                    attachment.CreatedAt.ToLocalTime()));
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            if (SelectedInboxItem?.NotificationId == notificationId)
+                StatusMessage = "Không thể tải tệp đính kèm: " + ex.Message;
+        }
+    }
+
     partial void OnInboxTabIndexChanged(int value)
     {
         OnPropertyChanged(nameof(IsInboxTabSystem));
@@ -201,25 +234,31 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
         OnPropertyChanged(nameof(IsHistoryTabDone));
     }
 
-    public NotificationTaskCenterViewModel(INotificationTaskService service, INavigationService navigationService, ICurrentUserService currentUserService, IBanquetRestaurantService? banquetService = null)
+    public NotificationTaskCenterViewModel(INotificationTaskService service, INavigationService navigationService, ICurrentUserService currentUserService, IBanquetRestaurantService? banquetService = null, IEInvoiceService? eInvoiceService = null)
     {
         _service = service;
         _navigationService = navigationService;
         _currentUserService = currentUserService;
         _banquetService = banquetService;
+        _eInvoiceService = eInvoiceService;
         _autoRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
         _autoRefreshTimer.Tick += async (_, _) =>
         {
-            await LoadAsync(_disposeCts.Token);
-            await ScanRealConditionsAsync(_disposeCts.Token);
+            await RefreshDataAndScanAsync(_disposeCts.Token);
         };
         _autoRefreshTimer.Start();
-        _ = LoadAsync(_disposeCts.Token);
+        _ = RefreshDataAndScanAsync(_disposeCts.Token);
     }
 
     // ===== COMMANDS =====
 
-    [RelayCommand] private async Task RefreshAsync() => await LoadAsync(_disposeCts.Token);
+    [RelayCommand] private async Task RefreshAsync() => await RefreshDataAndScanAsync(_disposeCts.Token);
+
+    private async Task RefreshDataAndScanAsync(CancellationToken token)
+    {
+        await LoadAsync(token);
+        await ScanRealConditionsAsync(token);
+    }
 
     [RelayCommand]
     private async Task MarkReadAsync()
@@ -256,6 +295,42 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
             SelectedQuantificationStatus = "Received";
             StatusMessage = "Đã tiếp nhận định lượng để chuẩn bị nhập hàng.";
             await LoadCoreAsync(token);
+        });
+    }
+
+    [RelayCommand]
+    private async Task AcknowledgeAsync()
+    {
+        if (SelectedInboxItem?.NotificationId is not Guid notificationId) return;
+        await RunAsync(async token =>
+        {
+            await _service.AcknowledgeNotificationAsync(notificationId, token);
+            await LoadCoreAsync(token);
+            StatusMessage = "Đã xác nhận thông báo.";
+        });
+    }
+
+    [RelayCommand]
+    private async Task DismissAsync()
+    {
+        if (SelectedInboxItem?.NotificationId is not Guid notificationId) return;
+        await RunAsync(async token =>
+        {
+            await _service.DismissNotificationAsync(notificationId, token);
+            await LoadCoreAsync(token);
+            StatusMessage = "Đã ẩn thông báo cho tài khoản hiện tại.";
+        });
+    }
+
+    [RelayCommand]
+    private async Task RestoreAsync()
+    {
+        if (SelectedInboxItem?.NotificationId is not Guid notificationId) return;
+        await RunAsync(async token =>
+        {
+            await _service.RestoreNotificationAsync(notificationId, token);
+            await LoadCoreAsync(token);
+            StatusMessage = "Đã hiện lại thông báo.";
         });
     }
 
@@ -427,12 +502,6 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
         var notifications = await _service.GetNotificationsAsync(take: 500, cancellationToken: ct);
         var tasks = await _service.GetTasksAsync(cancellationToken: ct);
 
-        if (notifications.Count == 0 && tasks.Count == 0)
-        {
-            try { await SeedSampleDataAsync(ct); notifications = await _service.GetNotificationsAsync(take: 500, cancellationToken: ct); tasks = await _service.GetTasksAsync(cancellationToken: ct); }
-            catch { /* non-critical */ }
-        }
-
         var items = new List<NotificationInboxItem>();
         foreach (var n in notifications) items.Add(NotificationInboxItem.FromNotification(n));
         foreach (var t in tasks) items.Add(NotificationInboxItem.FromTask(t));
@@ -473,7 +542,7 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
                 SystemInboxItems.Add(item);
 
             // History log: separate journal of read/processed items
-            if (item.StatusText == "Hoàn tất")
+            if (item.StatusText is "Hoàn tất" or "Đã xác nhận" or "Đã ẩn")
             {
                 HistoryItems.Add(item);
                 DoneHistoryItems.Add(item);
@@ -517,40 +586,44 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
         OnPropertyChanged(nameof(HasSelectedItem)); OnPropertyChanged(nameof(HasNoSelectedItem)); OnPropertyChanged(nameof(HasUnreadItems)); OnPropertyChanged(nameof(AnyItemSelected));
     }
 
-    private async Task SeedSampleDataAsync(CancellationToken ct)
-    {
-        await _service.PublishAsync(new NotificationPublishRequest { NotificationType = "Hệ thống", Severity = "Information", Title = "Chào mừng đến với ASMILE-BO", Message = "Hệ thống đã sẵn sàng.", TargetRoute = "dashboard" }, ct);
-        await _service.PublishAsync(new NotificationPublishRequest { NotificationType = "Cảnh báo", Severity = "Warning", Title = "12 món chưa có định lượng", Message = "Cần bổ sung định lượng nguyên vật liệu để tính giá vốn chính xác.", TargetRoute = "menu-recipe" }, ct);
-        await _service.PublishAsync(new NotificationPublishRequest { NotificationType = "Cảnh báo", Severity = "Warning", Title = "17 đơn hàng chưa hoàn tất", Message = "Các đơn hàng đang ở trạng thái nháp cần được xử lý hoặc hủy bỏ.", TargetRoute = "breakfast-cafe-sales" }, ct);
-        await _service.PublishAsync(new NotificationPublishRequest { NotificationType = "Nhắc việc", Severity = "Information", Title = "Kiểm tra tồn kho định kỳ", Message = "Đối chiếu số liệu thực tế với hệ thống.", TargetRoute = "inventory" }, ct);
-        await _service.PublishAsync(new NotificationPublishRequest { NotificationType = "Nhắc việc", Severity = "Information", Title = "Sao lưu dữ liệu cuối ngày", Message = "Đảm bảo dữ liệu được sao lưu.", TargetRoute = "operations-center" }, ct);
-        await _service.PublishAsync(new NotificationPublishRequest { NotificationType = "Cảnh báo", Severity = "Warning", Title = "Đối soát công nợ đến hạn", Message = "Kiểm tra các khoản công nợ phải thu đến hạn.", TargetRoute = "ar" }, ct);
-
-        await _service.CreateTaskAsync(new TaskCreateRequest { Title = "Bổ sung định lượng cho 12 món", Description = "Kiểm tra danh sách món chưa có định lượng và bổ sung nguyên liệu.", Priority = "High", SourceType = "menu-recipe" }, ct);
-        await _service.CreateTaskAsync(new TaskCreateRequest { Title = "Xử lý 17 đơn hàng nháp", Description = "Rà soát các đơn hàng đang ở trạng thái nháp.", Priority = "High", SourceType = "breakfast-cafe-sales" }, ct);
-        await _service.CreateTaskAsync(new TaskCreateRequest { Title = "Kiểm kê tồn kho thực tế", Description = "Đối chiếu số liệu tồn kho trên hệ thống với thực tế.", Priority = "Normal", SourceType = "inventory" }, ct);
-        await _service.CreateTaskAsync(new TaskCreateRequest { Title = "Đối soát công nợ phải thu", Description = "Rà soát các khoản phải thu đến hạn.", Priority = "High", SourceType = "ar" }, ct);
-        await _service.CreateTaskAsync(new TaskCreateRequest { Title = "Lập báo cáo doanh thu tuần", Description = "Tổng hợp doanh thu bán hàng, cà phê và dịch vụ.", Priority = "Normal" }, ct);
-    }
-
     // ===== NEW FEATURES =====
 
     [RelayCommand]
     private async Task AddCommentAsync()
     {
         if (string.IsNullOrWhiteSpace(NewCommentText)) return;
-        var text = NewCommentText.Trim(); NewCommentText = string.Empty;
-        CommentList.Add(new CommentItem(text, CurrentUserName, DateTime.Now, true));
-        if (SelectedInboxItem?.TaskId is not null)
+        var selected = SelectedInboxItem;
+        if (selected is null)
         {
-            try { await _service.AddCommentAsync(SelectedInboxItem.TaskId.Value, text, null); }
-            catch (Exception ex) { StatusMessage = "Lỗi lưu: " + ex.Message; }
+            StatusMessage = "Vui lòng chọn một notification hoặc task trước khi gửi bình luận.";
+            return;
         }
-        else if (SelectedInboxItem?.NotificationId is not null)
+
+        var text = NewCommentText.Trim();
+        try
         {
-            try { await _service.SaveNotificationCommentAsync(SelectedInboxItem.NotificationId.Value, text); } catch (Exception ex) { StatusMessage = "Lỗi: " + ex.Message; }
+            if (selected.TaskId is Guid taskId)
+            {
+                await _service.AddCommentAsync(taskId, text, null);
+            }
+            else if (selected.NotificationId is Guid notificationId)
+            {
+                await _service.SaveNotificationCommentAsync(notificationId, text);
+            }
+            else
+            {
+                StatusMessage = "Mục đã chọn không hỗ trợ lưu bình luận.";
+                return;
+            }
+
+            NewCommentText = string.Empty;
+            CommentList.Add(new CommentItem(text, CurrentUserName, DateTime.Now, true));
+            StatusMessage = "Đã gửi.";
         }
-        StatusMessage = "Đã gửi.";
+        catch (Exception ex)
+        {
+            StatusMessage = "Không thể lưu bình luận: " + ex.Message;
+        }
     }
 
     [RelayCommand]
@@ -568,15 +641,49 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
     }
 
     [RelayCommand]
-    private void AddReaction(string? emoji)
+    private async Task AddReaction(string? emoji)
     {
         if (SelectedInboxItem is null || string.IsNullOrWhiteSpace(emoji)) return;
-        var item = SelectedInboxItem;
-        // Toggle reaction in comment list as a special message
-        var existing = CommentList.LastOrDefault(c => c.Text.StartsWith("👍✅❤️😄👀🔥".Contains(emoji[0]) ? emoji : ""));
-        if (existing is not null) { CommentList.Remove(existing); StatusMessage = "Đã bỏ reaction."; return; }
-        CommentList.Add(new CommentItem($"{emoji} Đã thả cảm xúc", CurrentUserName, DateTime.Now, true));
-        StatusMessage = $"Đã thả {emoji}.";
+        var selected = SelectedInboxItem;
+        var reactionText = $"{emoji} Đã thả cảm xúc";
+
+        try
+        {
+            if (selected.TaskId is Guid taskId)
+            {
+                var comments = await _service.GetCommentsAsync(taskId);
+                if (comments.Any(c => c.UserId == _currentUserService.CurrentUser?.Id && c.CommentText == reactionText))
+                {
+                    StatusMessage = "Reaction này đã được ghi nhận.";
+                    return;
+                }
+
+                await _service.AddCommentAsync(taskId, reactionText, null);
+            }
+            else if (selected.NotificationId is Guid notificationId)
+            {
+                var comments = await _service.GetNotificationCommentsAsync(notificationId);
+                if (comments.Any(c => c.IsMine && c.Text == reactionText))
+                {
+                    StatusMessage = "Reaction này đã được ghi nhận.";
+                    return;
+                }
+
+                await _service.SaveNotificationReactionAsync(notificationId, emoji);
+            }
+            else
+            {
+                StatusMessage = "Mục đã chọn không hỗ trợ lưu reaction.";
+                return;
+            }
+
+            CommentList.Add(new CommentItem(reactionText, CurrentUserName, DateTime.Now, true));
+            StatusMessage = $"Đã ghi nhận {emoji} vào CSDL.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Không thể lưu reaction: " + ex.Message;
+        }
     }
 
     [RelayCommand]
@@ -594,14 +701,29 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
     }
 
     [RelayCommand]
-    private void AttachFile()
+    private async Task AttachFile()
     {
+        if (SelectedInboxItem?.NotificationId is not Guid notificationId)
+        {
+            StatusMessage = "Chỉ có thể đính kèm file cho thông báo đã chọn.";
+            return;
+        }
+
         var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Tất cả|*.*|Ảnh|*.png;*.jpg|PDF|*.pdf" };
         if (dlg.ShowDialog() == true)
         {
-            AttachedFileName = System.IO.Path.GetFileName(dlg.FileName);
-            NewCommentText = $"📎 {AttachedFileName}";
-            StatusMessage = "Đã đính kèm: " + AttachedFileName;
+            try
+            {
+                var attachment = await _service.UploadNotificationAttachmentAsync(notificationId, dlg.FileName, _disposeCts.Token);
+                AttachedFileName = attachment.FileName;
+                await LoadNotificationAttachmentsAsync(notificationId);
+                StatusMessage = "Đã lưu file đính kèm vào CSDL: " + attachment.FileName;
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                StatusMessage = "Không thể lưu file đính kèm: " + ex.Message;
+            }
         }
     }
 
@@ -675,12 +797,28 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
     [RelayCommand]
     private async Task SnoozeAsync(string? minutesStr)
     {
-        if (SelectedInboxItem is null) return;
-        var minutes = int.TryParse(minutesStr, out var m) ? m : 30;
-        if (SelectedInboxItem.NotificationId.HasValue)
-            await _service.MarkReadAsync(SelectedInboxItem.NotificationId.Value);
-        await LoadCoreAsync(_disposeCts.Token);
-        DisplayToast("Đã tạm hoãn " + minutes + " phút", SelectedInboxItem.Title);
+        var selected = SelectedInboxItem;
+        if (selected is null) return;
+
+        // A notification has no persisted snooze contract yet. Do not mark it
+        // read as a UI-only substitute: that would lose an unread alert.
+        if (selected.TaskId is not Guid taskId)
+        {
+            StatusMessage = "Thông báo chưa hỗ trợ tạm hoãn lưu CSDL; chưa thay đổi dữ liệu.";
+            return;
+        }
+
+        var minutes = int.TryParse(minutesStr, out var parsed) ? Math.Clamp(parsed, 1, 7 * 24 * 60) : 30;
+        var title = selected.Title;
+        await RunAsync(async token =>
+        {
+            await _service.UpdateTaskAsync(taskId, new TaskCreateRequest
+            {
+                DueAt = DateTime.UtcNow.AddMinutes(minutes)
+            }, token);
+            await LoadCoreAsync(token);
+            DisplayToast("Đã tạm hoãn " + minutes + " phút", title);
+        });
     }
 
     [RelayCommand]
@@ -694,11 +832,73 @@ public sealed partial class NotificationTaskCenterViewModel : ViewModelBase, IDi
 
     private async Task ScanRealConditionsAsync(CancellationToken ct)
     {
-        // Background scan for real business conditions - lightweight check
-        await Task.CompletedTask;
+        try
+        {
+            // TaskInbox is already a persisted, property-scoped source. Only
+            // open operational tasks with a real DueAt participate; no demo
+            // rows or inferred SLA values are created here.
+            var tasks = await _service.GetTasksAsync(null, ct);
+            var now = DateTime.UtcNow;
+            foreach (var task in tasks
+                .Where(x => x.DueAt is not null
+                    && x.DueAt <= now
+                    && x.Status is "Open" or "Assigned" or "Accepted" or "InProgress" or "OnHold")
+                .Take(100))
+            {
+                ct.ThrowIfCancellationRequested();
+                var dueAt = task.DueAt!.Value;
+                await _service.PublishAsync(new NotificationPublishRequest
+                {
+                    UserId = task.AssignedToUserId,
+                    NotificationType = "TaskOverdue",
+                    Severity = task.Priority.Equals("Critical", StringComparison.OrdinalIgnoreCase)
+                        ? "Critical"
+                        : "Warning",
+                    Title = "Công việc quá hạn",
+                    Message = $"Công việc \"{task.Title}\" đã quá hạn từ {dueAt.ToLocalTime():dd/MM/yyyy HH:mm}.",
+                    SourceType = "TaskInbox",
+                    SourceId = task.Id,
+                    TargetRoute = task.TargetRoute ?? "notification-center",
+                    IdempotencyKey = $"task-overdue:{task.Id:N}:{dueAt.Ticks}"
+                }, ct);
+            }
+
+            if (_eInvoiceService is null) return;
+            foreach (var failure in await _eInvoiceService.GetFailedIssueLogsAsync(100, ct))
+            {
+                ct.ThrowIfCancellationRequested();
+                var detail = string.IsNullOrWhiteSpace(failure.ErrorMessage)
+                    ? "Không có thông tin lỗi từ provider."
+                    : failure.ErrorMessage.Trim();
+                await _service.PublishAsync(new NotificationPublishRequest
+                {
+                    NotificationType = "EInvoiceIssueFailed",
+                    Severity = "Critical",
+                    Title = "Phát hành hóa đơn điện tử thất bại",
+                    Message = $"Hóa đơn {failure.InvoiceNo} / {failure.ProviderCode} thất bại ở lần thử {failure.AttemptNo}: {detail}",
+                    SourceType = "InvoiceIssueLog",
+                    SourceId = failure.LogId,
+                    TargetRoute = "invoice-management",
+                    IdempotencyKey = $"e-invoice-issue-failed:{failure.LogId:N}"
+                }, ct);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            StatusMessage = "Không thể quét điều kiện nghiệp vụ: " + ex.Message;
+        }
     }
 
-    public void Dispose() { _autoRefreshTimer.Stop(); _disposeCts.Cancel(); _disposeCts.Dispose(); }
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0)
+            return;
+
+        _autoRefreshTimer.Stop();
+        _disposeCts.Cancel();
+        _disposeCts.Dispose();
+    }
 }
 
 public sealed class NotificationInboxItem : ObservableObject
@@ -720,6 +920,11 @@ public sealed class NotificationInboxItem : ObservableObject
     public string Description { get; init; } = "";
     public string TargetRoute { get; init; } = "";
     public bool IsUnread { get; init; }
+    public bool IsAcknowledged { get; init; }
+    public bool IsDismissed { get; init; }
+    public bool CanAcknowledge => NotificationId.HasValue && !IsAcknowledged && !IsDismissed;
+    public bool CanDismiss => NotificationId.HasValue && !IsDismissed;
+    public bool CanRestore => NotificationId.HasValue && IsDismissed;
     public bool IsRead => !IsUnread;
     public bool IsQuantificationBatch => SourceType == "BanquetQuantificationBatch" && SourceId.HasValue;
     public bool IsOverdue => CreatedAt < DateTime.UtcNow.AddDays(-2) && StatusText != "Hoàn tất";
@@ -745,8 +950,9 @@ public sealed class NotificationInboxItem : ObservableObject
         NotificationId = n.Id, Kind = "Notification", SourceId = n.SourceId, SourceType = n.SourceType ?? "",
         TypeText = MapNotificationType(n.NotificationType), TypeIcon = MapTypeIcon(n.NotificationType),
         Title = n.Title, Module = n.SourceType ?? "", PriorityText = MapSeverity(n.Severity),
-        PriorityOrder = MapSeverityOrder(n.Severity), StatusText = n.IsRead ? "Đã đọc" : "Chưa đọc",
-        CreatedAt = n.CreatedAt, CreatedBy = "Hệ thống", Description = n.Message, TargetRoute = n.TargetRoute ?? "", IsUnread = !n.IsRead
+        PriorityOrder = MapSeverityOrder(n.Severity), StatusText = n.IsDismissed ? "Đã ẩn" : n.IsAcknowledged ? "Đã xác nhận" : n.IsRead ? "Đã đọc" : "Chưa đọc",
+        CreatedAt = n.CreatedAt, CreatedBy = "Hệ thống", Description = n.Message, TargetRoute = n.TargetRoute ?? "", IsUnread = !n.IsRead && !n.IsDismissed && !n.IsAcknowledged,
+        IsAcknowledged = n.IsAcknowledged, IsDismissed = n.IsDismissed
     };
 
     public static NotificationInboxItem FromTask(TaskInboxDto t) => new()
@@ -768,6 +974,12 @@ public sealed class NotificationInboxItem : ObservableObject
 }
 
 public sealed record NotificationTimelineItem(DateTime Time, string Action, string Actor);
+
+public sealed record NotificationAttachmentItem(Guid Id, string FileName, long FileSize, string CreatedBy, DateTime CreatedAt)
+{
+    public string SizeText => FileSize < 1024 ? $"{FileSize} B" : FileSize < 1024 * 1024 ? $"{FileSize / 1024d:0.#} KB" : $"{FileSize / (1024d * 1024d):0.#} MB";
+    public string CreatedAtText => CreatedAt.ToString("dd/MM/yyyy HH:mm");
+};
 
 public sealed record TaskTemplate(string Title, string Description, string Priority, string Module);
 

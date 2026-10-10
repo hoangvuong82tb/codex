@@ -1,0 +1,54 @@
+<UserControl x:Class="ASMILE.BO.App.Controls.ServerPagerControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             UseLayoutRounding="True">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Button Style="{StaticResource FluentPaginationButton}"
+                Content="&#x2039;"
+                Command="{Binding PreviousPageAsyncCommand}"
+                IsEnabled="{Binding HasPreviousPage}" />
+        <ItemsControl ItemsSource="{Binding PageButtons}" VerticalAlignment="Center">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Command="{Binding DataContext.GoToPageAsyncCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource FluentPaginationButton}">
+                                <Setter Property="Content" Value="{Binding Label}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                        <Setter Property="Background" Value="#2563EB" />
+                                        <Setter Property="BorderBrush" Value="#2563EB" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsEllipsis}" Value="True">
+                                        <Setter Property="Width" Value="24" />
+                                        <Setter Property="MinWidth" Value="24" />
+                                        <Setter Property="MaxWidth" Value="24" />
+                                        <Setter Property="IsEnabled" Value="False" />
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="BorderBrush" Value="Transparent" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Style="{StaticResource FluentPaginationButton}"
+                Content="&#x203A;"
+                Command="{Binding NextPageAsyncCommand}"
+                IsEnabled="{Binding HasNextPage}" />
+        <ComboBox Style="{StaticResource FluentComboBox}"
+                  Width="122"
+                  Height="32"
+                  Margin="2,0,0,0"
+                  FontSize="12"
+                  ItemsSource="{Binding PageSizeOptions}"
+                  SelectedItem="{Binding SelectedPageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,789 @@
+<UserControl x:Class="ASMILE.BO.App.Views.ArPaymentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             xmlns:vm="clr-namespace:ASMILE.BO.App.ViewModels"
+             xmlns:converters="clr-namespace:ASMILE.BO.App.Converters"
+             UseLayoutRounding="True" Loaded="OnLoaded" SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:InverseBooleanConverter x:Key="InverseBool"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVis"/>
+        <converters:StringToBrushConverter x:Key="StringToBrush"/>
+        <converters:GreaterThanZeroToVisibilityConverter x:Key="GtZeroToVis"/>
+
+        <!-- ═══ STYLES ═══ -->
+        <Style x:Key="PanelCard" TargetType="Border"><Setter Property="Background" Value="White"/><Setter Property="CornerRadius" Value="14"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="14" ShadowDepth="1" Opacity="0.06" Color="#667A98"/></Setter.Value></Setter></Style>
+        <Style x:Key="PrimaryBtn" TargetType="Button"><Setter Property="Height" Value="34"/><Setter Property="MinWidth" Value="64"/><Setter Property="Background" Value="#2563EB"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderBrush" Value="#2563EB"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="11"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="12,0"/><Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="SuccessBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}"><Setter Property="Background" Value="#16A34A"/><Setter Property="BorderBrush" Value="#16A34A"/></Style>
+        <Style x:Key="WarningBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}"><Setter Property="Background" Value="#F59E0B"/><Setter Property="BorderBrush" Value="#F59E0B"/></Style>
+        <Style x:Key="DangerBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}"><Setter Property="Background" Value="#DC2626"/><Setter Property="BorderBrush" Value="#DC2626"/></Style>
+        <Style x:Key="SecondaryBtn" TargetType="Button"><Setter Property="Height" Value="34"/><Setter Property="MinWidth" Value="56"/><Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#475569"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontSize" Value="11"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="10,0"/><Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ToolbarBtn" TargetType="Button" BasedOn="{StaticResource SecondaryBtn}"><Setter Property="Height" Value="34"/><Setter Property="Margin" Value="0,0,5,3"/><Setter Property="FontSize" Value="11"/></Style>
+        <Style x:Key="FilterTextBox" TargetType="TextBox"><Setter Property="Height" Value="32"/><Setter Property="Padding" Value="8,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="FontSize" Value="11"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="#D7E2F0"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="FilterCombo" TargetType="ComboBox" BasedOn="{StaticResource FluentComboBox}"><Setter Property="Height" Value="32"/><Setter Property="MinWidth" Value="0"/><Setter Property="Padding" Value="8,0,28,0"/><Setter Property="FontSize" Value="11"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Foreground" Value="#17365D"/><Setter Property="Margin" Value="0,0,5,3"/></Style>
+        <Style x:Key="InspectorTabBtn" TargetType="Button"><Setter Property="Height" Value="36"/><Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#64748B"/><Setter Property="BorderThickness" Value="0"/><Setter Property="FontSize" Value="10"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="6,0"/><Setter Property="Margin" Value="0,0,1,0"/><Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F1F5F9"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+        <Style x:Key="ModDataGrid" TargetType="DataGrid"><Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/><Setter Property="Background" Value="Transparent"/><Setter Property="RowBackground" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="ColumnHeaderHeight" Value="40"/><Setter Property="RowHeight" Value="40"/><Setter Property="FontSize" Value="11"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/><Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="ColumnHeaderStyle"><Setter.Value><Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="10"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/><Setter Property="Padding" Value="6,0"/></Style></Setter.Value></Setter></Style>
+        <Style x:Key="PagerBtn" TargetType="Button" BasedOn="{StaticResource FluentPaginationButton}"><Setter Property="Foreground" Value="#475569"/><Setter Property="Margin" Value="1,0"/></Style>
+        <Style x:Key="PagerPageBtn" TargetType="Button" BasedOn="{StaticResource FluentPaginationButton}"><Setter Property="Content" Value="{Binding Label}"/><Style.Triggers><DataTrigger Binding="{Binding IsCurrent}" Value="True"><Setter Property="Background" Value="#2563EB"/><Setter Property="BorderBrush" Value="#2563EB"/><Setter Property="Foreground" Value="White"/></DataTrigger><DataTrigger Binding="{Binding IsEllipsis}" Value="True"><Setter Property="Width" Value="22"/><Setter Property="MinWidth" Value="22"/><Setter Property="MaxWidth" Value="22"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="IsEnabled" Value="False"/></DataTrigger></Style.Triggers></Style>
+
+        <!-- ═══ DATA TEMPLATES ═══ -->
+        <DataTemplate x:Key="KpiCardTemplate" DataType="{x:Type vm:ArPaymentKpi}">
+            <Border Background="{Binding BgColor, Converter={StaticResource StringToBrush}}" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1" Padding="10,8" Width="110" Margin="0,0,5,4" Cursor="Hand" MouseLeftButtonDown="OnKpiClick" Tag="{Binding}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Value}" FontSize="15" FontWeight="Bold" Foreground="{Binding Color, Converter={StaticResource StringToBrush}}" FontFamily="Segoe UI"/>
+                    <TextBlock Text="{Binding Label}" FontSize="9" Foreground="#64748B" Margin="0,2,0,0" FontFamily="Segoe UI" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="TreeItemTemplate" DataType="{x:Type vm:ArPaymentTreeItem}">
+            <Border x:Name="TreeBorder" Padding="14,9" CornerRadius="8" Cursor="Hand" Margin="2,1" MouseLeftButtonDown="OnTreeItemClick" Tag="{Binding}">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding Label}" FontSize="12" FontFamily="Segoe UI" VerticalAlignment="Center">
+                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#475569"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Foreground" Value="#1E40AF"/><Setter Property="FontWeight" Value="SemiBold"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                    </TextBlock>
+                    <Border Grid.Column="1" CornerRadius="10" Padding="7,2" MinWidth="26" HorizontalAlignment="Right">
+                        <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#F1F5F9"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Background" Value="#DBEAFE"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                        <TextBlock Text="{Binding Count}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center">
+                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#64748B"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="TreeBorder" Property="Background" Value="#EFF6FF"/></DataTrigger></DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Chart Bar Template -->
+        <DataTemplate x:Key="BarChartTemplate" DataType="{x:Type vm:ArPaymentChartDataPoint}">
+            <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Label}" FontSize="9" Foreground="#94A3B8" VerticalAlignment="Center" TextAlignment="Right" Margin="0,0,4,0"/>
+                <Border Grid.Column="1" Height="22" CornerRadius="5" Background="{Binding Color, Converter={StaticResource StringToBrush}}" HorizontalAlignment="Left" Width="{Binding BarWidth}" MinWidth="4"/>
+                <TextBlock Grid.Column="2" Text="{Binding FormattedValue}" FontSize="9" Foreground="#475569" VerticalAlignment="Center" Margin="6,0,0,0"/>
+            </Grid>
+        </DataTemplate>
+
+        <!-- Company Row Template -->
+        <DataTemplate x:Key="TopCompanyTemplate" DataType="{x:Type vm:ArPaymentTopCompany}">
+            <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="28" Height="28" CornerRadius="7" Background="{Binding Color, Converter={StaticResource StringToBrush}}" Margin="0,0,8,0"><TextBlock Text="{Binding Name, StringFormat='{}{0}'}" FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A"/><TextBlock FontSize="9" Foreground="#64748B"><Run Text="{Binding PaymentCount, Mode=OneWay, StringFormat='{}{0}'}"/><Run Text=" thanh toán"/></TextBlock></StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right"><TextBlock Text="{Binding TotalAmount, StringFormat='{}{0:N0} ₫'}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" TextAlignment="Right"/><TextBlock Text="{Binding Percentage, StringFormat='{}{0:F1}%'}" FontSize="9" Foreground="#94A3B8" TextAlignment="Right"/></StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- Collector Performance Template -->
+        <DataTemplate x:Key="CollectorPerfTemplate" DataType="{x:Type vm:ArPaymentCollectorStat}">
+            <Border Padding="12,10" Margin="0,0,0,6" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CollectionRate, StringFormat='{}{0:F0}%'}" FontSize="14" FontWeight="Bold" Foreground="{Binding Color, Converter={StaticResource StringToBrush}}"/>
+                    </Grid>
+                    <Grid Grid.Row="1" Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="2"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Height="6" CornerRadius="3" Background="#E2E8F0"><Border Height="6" CornerRadius="3" Background="{Binding Color, Converter={StaticResource StringToBrush}}" Width="{Binding CollectionRate}" HorizontalAlignment="Left"/></Border>
+                    </Grid>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock FontSize="9" Foreground="#16A34A"><Run Text="Đúng hạn: "/><Run Text="{Binding OnTimeCount, Mode=OneWay}" FontWeight="SemiBold"/></TextBlock>
+                        <TextBlock FontSize="9" Foreground="#DC2626" Margin="12,0,0,0"><Run Text="Trễ: "/><Run Text="{Binding LateCount, Mode=OneWay}" FontWeight="SemiBold"/></TextBlock>
+                        <TextBlock FontSize="9" Foreground="#64748B" Margin="12,0,0,0"><Run Text="Tổng: "/><Run Text="{Binding TotalPayments, Mode=OneWay}" FontWeight="SemiBold"/></TextBlock>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="18,12">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="42" Height="42" CornerRadius="12" Background="#4A91FF" Margin="0,0,14,0">
+                        <TextBlock Text="TT" FontFamily="Segoe UI" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="Thanh toán — AR Payment Management Center" FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" FontFamily="Segoe UI"/>
+                        <TextBlock Text="Quản lý toàn bộ thanh toán công nợ — Corporate, TA, OTA, Company, Government, Bank Transfer, Credit Card" FontSize="11" Foreground="#64748B" Margin="0,2,0,0" FontFamily="Segoe UI"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Export CSV (Excel)" Style="{StaticResource ToolbarBtn}" Command="{Binding ExportExcelCommand}"/>
+                    <Button Content="Export PDF" Style="{StaticResource ToolbarBtn}" Command="{Binding ExportPdfCommand}"/>
+                    <Button Content="Làm mới" Style="{StaticResource SecondaryBtn}" Command="{Binding RefreshCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ KPI DASHBOARD ═══ -->
+        <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="14,10">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding DashboardKpis}" ItemTemplate="{StaticResource KpiCardTemplate}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ═══ TOOLBAR + FILTER ═══ -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="14,8">
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <!-- Toolbar Row 1 -->
+                <WrapPanel Grid.Row="0">
+                    <Button Content="Nhận thanh toán" Style="{StaticResource SuccessBtn}" Margin="0,0,5,3" Command="{Binding OpenPaymentFormCommand}"/>
+                    <Button Content="Phân bổ" Style="{StaticResource PrimaryBtn}" Margin="0,0,5,3" Command="{Binding OpenAllocFormCommand}"/>
+                    <Button Content="Auto Allocate" Style="{StaticResource WarningBtn}" Margin="0,0,5,3" Command="{Binding AutoAllocateCommand}"/>
+                    <Button Content="Hoàn tác" Style="{StaticResource DangerBtn}" Margin="0,0,5,3" Command="{Binding UndoAllocateCommand}"/>
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="3,0"/>
+                    <Button Content="Xem trước Receipt" Style="{StaticResource ToolbarBtn}" Command="{Binding PrintReceiptCommand}"/>
+                    <Button Content="Email" Style="{StaticResource ToolbarBtn}" Command="{Binding EmailReceiptCommand}"/>
+                    <Button Content="Import Bank" Style="{StaticResource ToolbarBtn}" Command="{Binding OpenBankImportCommand}"/>
+                    <Button Content="Receipt Center" Style="{StaticResource ToolbarBtn}" Command="{Binding OpenReceiptCenterCommand}"/>
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="3,0"/>
+                    <Button Content="Panel Phải" Style="{StaticResource ToolbarBtn}" Command="{Binding ToggleRightPanelCommand}" ToolTip="Ẩn/hiện panel chi tiết"/>
+                </WrapPanel>
+                <!-- Filter Row 2 -->
+                <WrapPanel Grid.Row="1" Margin="0,6,0,0">
+                    <StackPanel Margin="0,0,6,0"><TextBlock Text="Search" FontSize="9" Foreground="#64748B" Margin="2,0,0,2"/><TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="150"/></StackPanel>
+                    <StackPanel Margin="0,0,6,0"><TextBlock Text="Status" FontSize="9" Foreground="#64748B" Margin="2,0,0,2"/><ComboBox ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding FilterStatus}" Style="{StaticResource FilterCombo}" Width="100"/></StackPanel>
+                    <StackPanel Margin="0,0,6,0"><TextBlock Text="Method" FontSize="9" Foreground="#64748B" Margin="2,0,0,2"/><ComboBox ItemsSource="{Binding MethodFilters}" SelectedItem="{Binding FilterMethod}" Style="{StaticResource FilterCombo}" Width="110"/></StackPanel>
+                    <StackPanel Margin="0,0,6,0"><TextBlock Text="Payment date" FontSize="9" Foreground="#64748B" Margin="2,0,0,2"/><ComboBox ItemsSource="{Binding PaymentDateFilters}" SelectedItem="{Binding FilterPaymentDate}" Style="{StaticResource FilterCombo}" Width="100"/></StackPanel>
+                    <StackPanel Margin="0,0,6,0"><TextBlock Text="Currency" FontSize="9" Foreground="#64748B" Margin="2,0,0,2"/><ComboBox ItemsSource="{Binding CurrencyFilters}" SelectedItem="{Binding FilterCurrency}" Style="{StaticResource FilterCombo}" Width="70"/></StackPanel>
+                    <StackPanel Margin="0,0,6,0"><TextBlock Text="Collector" FontSize="9" Foreground="#64748B" Margin="2,0,0,2"/><ComboBox ItemsSource="{Binding CollectorFilters}" SelectedItem="{Binding FilterCollector}" Style="{StaticResource FilterCombo}" Width="120"/></StackPanel>
+                    <StackPanel Margin="0,0,6,0"><TextBlock Text="Cashier" FontSize="9" Foreground="#64748B" Margin="2,0,0,2"/><ComboBox ItemsSource="{Binding CashierFilters}" SelectedItem="{Binding FilterCashier}" Style="{StaticResource FilterCombo}" Width="120"/></StackPanel>
+                    <StackPanel Margin="0,0,6,0"><TextBlock Text="Bank" FontSize="9" Foreground="#64748B" Margin="2,0,0,2"/><ComboBox ItemsSource="{Binding BankFilters}" SelectedItem="{Binding FilterBank}" Style="{StaticResource FilterCombo}" Width="90"/></StackPanel>
+                    <StackPanel Margin="0,0,0,0"><TextBlock Text=" " FontSize="9" Margin="2,0,0,2"/>
+                    <Button Content="Xóa lọc" Style="{StaticResource SecondaryBtn}" Command="{Binding ClearFiltersCommand}" Height="32" FontSize="10"/>
+                    </StackPanel>
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ CHART DASHBOARD ═══ -->
+        <Border Grid.Row="3" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,0,0,1" Padding="14,8" Visibility="Collapsed">
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <!-- Dashboard Tabs -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="Biểu đồ" Click="OnDashboardTabClick" Tag="0"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDashboardTab}" Value="0"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                    <Button Content="Collection Dashboard" Click="OnDashboardTabClick" Tag="1"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDashboardTab}" Value="1"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                    <Button Content="Receipt Center" Click="OnDashboardTabClick" Tag="2"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDashboardTab}" Value="2"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                </StackPanel>
+                <!-- Charts Content -->
+                <Grid Grid.Row="1" Visibility="{Binding IsChartsTab, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <!-- Payment by Month -->
+                    <Border Grid.Column="0" Margin="0,0,8,0" Style="{StaticResource PanelCard}" Padding="12,10">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <TextBlock Text="Thanh toán theo tháng" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding PaymentByMonthData}" ItemTemplate="{StaticResource BarChartTemplate}"/></ScrollViewer>
+                        </Grid>
+                    </Border>
+                    <!-- Payment Method -->
+                    <Border Grid.Column="1" Margin="0,0,8,0" Style="{StaticResource PanelCard}" Padding="12,10">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <TextBlock Text="Phương thức" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding PaymentMethodData}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentMethodPieSlice}"><Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <Border Width="12" Height="12" CornerRadius="3" Background="{Binding Color, Converter={StaticResource StringToBrush}}" Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="10" Foreground="#475569" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal"><TextBlock Text="{Binding Value, StringFormat='{}{0}'}" FontSize="10" FontWeight="SemiBold" Foreground="#0F172A"/><TextBlock Text="{Binding Percentage, StringFormat=' ({0:F1}%)'}" FontSize="9" Foreground="#94A3B8"/></StackPanel>
+                                </Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                    <!-- Top Companies -->
+                    <Border Grid.Column="2" Style="{StaticResource PanelCard}" Padding="12,10">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <TextBlock Text="Top Company" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding TopCompanyData}" ItemTemplate="{StaticResource TopCompanyTemplate}"/></ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+                <!-- Collection Dashboard -->
+                <Grid Grid.Row="1" Visibility="{Binding IsCollectionTab, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <!-- Collection KPIs -->
+                    <Border Grid.Column="0" Margin="0,0,8,0" Style="{StaticResource PanelCard}" Padding="12,10">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <TextBlock Text="Collection Dashboard" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                            <WrapPanel Grid.Row="1">
+                                <Border Background="#ECFEFF" CornerRadius="8" Padding="12,10" Width="140" Margin="0,0,8,8" BorderBrush="#E2E8F0" BorderThickness="1"><StackPanel><TextBlock Text="Tỷ lệ thu hồi" FontSize="9" Foreground="#64748B"/><TextBlock Text="{Binding OverallCollectionRate, Mode=OneWay, StringFormat='{}{0:F0}%'}" FontSize="18" FontWeight="Bold" Foreground="#0891B2"/></StackPanel></Border>
+                                <Border Background="#F0FDF4" CornerRadius="8" Padding="12,10" Width="140" Margin="0,0,8,8" BorderBrush="#E2E8F0" BorderThickness="1"><StackPanel><TextBlock Text="Đã thu" FontSize="9" Foreground="#64748B"/><TextBlock Text="{Binding CompletedCount}" FontSize="18" FontWeight="Bold" Foreground="#16A34A"/></StackPanel></Border>
+                                <Border Background="#FEF2F2" CornerRadius="8" Padding="12,10" Width="140" Margin="0,0,8,8" BorderBrush="#E2E8F0" BorderThickness="1"><StackPanel><TextBlock Text="Quá hạn" FontSize="9" Foreground="#64748B"/><TextBlock Text="{Binding OverdueCount}" FontSize="18" FontWeight="Bold" Foreground="#DC2626"/></StackPanel></Border>
+                                <Border Background="#FFFBEB" CornerRadius="8" Padding="12,10" Width="140" Margin="0,0,8,8" BorderBrush="#E2E8F0" BorderThickness="1"><StackPanel><TextBlock Text="Pending" FontSize="9" Foreground="#64748B"/><TextBlock Text="{Binding PendingCount}" FontSize="18" FontWeight="Bold" Foreground="#F59E0B"/></StackPanel></Border>
+                            </WrapPanel>
+                        </Grid>
+                    </Border>
+                    <!-- Collector Performance -->
+                    <Border Grid.Column="1" Style="{StaticResource PanelCard}" Padding="12,10">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <TextBlock Text="Hiệu suất nhân viên" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding CollectorPerformanceData}" ItemTemplate="{StaticResource CollectorPerfTemplate}"/></ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+                <!-- Receipt Center Mini -->
+                <Grid Grid.Row="1" Visibility="{Binding IsReceiptCenterTab, Converter={StaticResource BoolToVis}}">
+                    <Border Style="{StaticResource PanelCard}" Padding="12,10">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="Receipt Center" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                <Button Content="Mở Receipt Center" Style="{StaticResource SecondaryBtn}" Height="28" FontSize="10" Margin="12,0,0,0" Command="{Binding OpenReceiptCenterCommand}"/>
+                            </StackPanel>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding ReceiptCenterItems}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentReceiptCenterItem}"><Border Padding="8,6" Margin="0,0,0,3" Background="#F8FAFC" CornerRadius="6" BorderBrush="#E2E8F0" BorderThickness="1"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Text="{Binding ReceiptNo}" FontSize="10" FontWeight="SemiBold" Foreground="#0F172A"/><TextBlock FontSize="9" Foreground="#64748B"><Run Text="{Binding PaymentNo, Mode=OneWay}"/><Run Text=" • "/><Run Text="{Binding ReceiptDate, Mode=OneWay, StringFormat='{}{0:dd/MM}'}"/></TextBlock></StackPanel>
+                                    <Border Grid.Column="1" CornerRadius="5" Padding="5,1" Background="{Binding StatusBg, Converter={StaticResource StringToBrush}}"><TextBlock Text="{Binding StatusLabel}" FontSize="8" FontWeight="SemiBold" Foreground="{Binding StatusColor, Converter={StaticResource StringToBrush}}"/></Border>
+                                </Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- ═══ 3-COLUMN CONTENT ═══ -->
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+
+            <!-- LEFT: Tree -->
+            <Border Grid.Column="0" Margin="8,6,4,6" Style="{StaticResource PanelCard}" Padding="0">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="14,10">
+                        <TextBlock Text="Danh mục" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A"/>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding TreeItems}" ItemTemplate="{StaticResource TreeItemTemplate}" Margin="6,4"/>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- CENTER: DataGrid -->
+            <Border Grid.Column="1" Margin="4,6,6,6" Style="{StaticResource PanelCard}" Padding="0">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <!-- Info/Error Messages -->
+                    <Border Grid.Row="0" Background="#EFF6FF" CornerRadius="8" Padding="8,5" Margin="8,6,8,0" Visibility="{Binding InfoMessage, Converter={StaticResource StringToVis}}">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding InfoMessage}" FontSize="10" Foreground="#1E40AF" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Content="×" Background="Transparent" BorderThickness="0" Foreground="#1E40AF" FontSize="14" FontFamily="Segoe UI" Cursor="Hand" Width="22" Height="22" Padding="0" Click="OnDismissInfo"/>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="0" Background="#FEF2F2" CornerRadius="8" Padding="8,5" Margin="8,6,8,0" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}">
+                        <TextBlock Text="{Binding ErrorMessage}" FontSize="10" Foreground="#DC2626"/>
+                    </Border>
+                    <!-- DataGrid -->
+                    <Grid Grid.Row="1" Margin="8,6">
+                        <DataGrid ItemsSource="{Binding FilteredItems}" SelectedItem="{Binding SelectedItem}" Style="{StaticResource ModDataGrid}"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.CanContentScroll="True"
+                                  ScrollViewer.PanningMode="Both"
+                                  MouseDoubleClick="OnDataGridDoubleClick">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Xem chi tiết" Command="{Binding SelectItemCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+                                    <MenuItem Header="Phân bổ" Command="{Binding OpenAllocFormCommand}"/>
+                                    <MenuItem Header="Auto Allocate" Command="{Binding AutoAllocateCommand}"/>
+                                    <MenuItem Header="Hoàn tác phân bổ" Command="{Binding UndoAllocateCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="Xem Invoice" Command="{Binding ViewInvoiceCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem.InvoiceNo}"/>
+                                    <MenuItem Header="Xem Receipt" Command="{Binding ViewReceiptCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem.ReceiptNo}"/>
+                                    <Separator/>
+                                    <MenuItem Header="Xem trước Receipt" Command="{Binding PrintReceiptCommand}"/>
+                                    <MenuItem Header="Email Receipt" Command="{Binding EmailReceiptCommand}"/>
+                                    <MenuItem Header="Tải PDF" Command="{Binding DownloadPdfCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="Lịch sử" Command="{Binding ViewHistoryCommand}"/>
+                                    <MenuItem Header="Đảo ngược" Command="{Binding ReversePaymentCommand}"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Payment No" Binding="{Binding PaymentNo}" Width="95"/>
+                                <DataGridTextColumn Header="Receipt" Binding="{Binding ReceiptNo}" Width="85"/>
+                                <DataGridTextColumn Header="Company" Binding="{Binding CompanyName}" Width="110"/>
+                                <DataGridTextColumn Header="Guest" Binding="{Binding GuestName}" Width="110"/>
+                                <DataGridTextColumn Header="Invoice" Binding="{Binding InvoiceNo}" Width="90"/>
+                                <DataGridTextColumn Header="Reservation" Binding="{Binding ReservationNo}" Width="95"/>
+                                <DataGridTextColumn Header="Ngày" Binding="{Binding PaymentDate, StringFormat='{}{0:dd/MM/yy}'}" Width="75"/>
+                                <DataGridTextColumn Header="Method" Binding="{Binding Method}" Width="100"/>
+                                <DataGridTextColumn Header="Bank" Binding="{Binding Bank}" Width="80"/>
+                                <DataGridTemplateColumn Header="Amount" Width="110"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Amount, StringFormat='{}{0:N0} ₫'}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Allocated" Width="100"><DataGridTemplateColumn.CellTemplate><DataTemplate><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><TextBlock Text="{Binding Allocated, StringFormat='{}{0:N0} ₫'}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#16A34A"/><Border Grid.Row="1" Height="3" CornerRadius="2" Background="#E2E8F0" Margin="0,1,0,0"><Border Height="3" CornerRadius="2" Background="#16A34A" Width="{Binding ProgressPercent}" HorizontalAlignment="Left"/></Border></Grid></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Còn lại" Width="90"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Unallocated, StringFormat='{}{0:N0} ₫'}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#DC2626"/><Style.Triggers><DataTrigger Binding="{Binding Unallocated}" Value="0"><Setter Property="Foreground" Value="#16A34A"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Currency" Binding="{Binding Currency}" Width="55"/>
+                                <DataGridTemplateColumn Header="Exchange" Width="65"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding ExchangeRate, StringFormat='{}{0:N0}'}" FontSize="9" Foreground="#64748B" VerticalAlignment="Center"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="90"/>
+                                <DataGridTextColumn Header="Collector" Binding="{Binding Collector}" Width="100"/>
+                                <DataGridTemplateColumn Header="Over" Width="55"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border CornerRadius="4" Padding="3,1" Background="#FFF0F5" Visibility="{Binding IsOverPayment, Converter={StaticResource BoolToVis}}"><TextBlock Text="OVER" FontSize="7" FontWeight="Bold" Foreground="#E32F70"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Status" Width="100"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border CornerRadius="7" Padding="5,2" Background="{Binding StatusBg, Converter={StaticResource StringToBrush}}"><TextBlock Text="{Binding StatusLabel}" FontSize="9" FontWeight="SemiBold" Foreground="{Binding StatusColor, Converter={StaticResource StringToBrush}}"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                    <!-- Pagination -->
+                    <Border Grid.Row="2" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="8,6" Visibility="Collapsed">
+                        <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Button Content="«" Style="{StaticResource PagerBtn}" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPrevPage}" Width="26" Height="26" FontSize="10"/>
+                            <Button Content="‹" Style="{StaticResource PagerBtn}" Command="{Binding PrevPageCommand}" IsEnabled="{Binding HasPrevPage}" Width="26" Height="26" FontSize="14"/>
+                            <ItemsControl ItemsSource="{Binding PageButtons}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentPaginationButton}"><Button Style="{StaticResource PagerPageBtn}" Width="28" Height="26" FontSize="10" Command="{Binding DataContext.SetPageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PageNumber}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                            <Button Content="›" Style="{StaticResource PagerBtn}" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}" Width="26" Height="26" FontSize="14"/>
+                            <Button Content="»" Style="{StaticResource PagerBtn}" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}" Width="26" Height="26" FontSize="10"/>
+                        </WrapPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- RIGHT: Inspector Panel -->
+            <Border Grid.Column="2" Width="480" Margin="6,6,8,6" Style="{StaticResource PanelCard}" Padding="0" Visibility="{Binding IsRightPanelOpen, Converter={StaticResource BoolToVis}}">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <!-- Inspector Header -->
+                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="14,12">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{Binding SelectedItem.PaymentNo}" FontSize="14" FontWeight="Bold" Foreground="#0F172A"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                    <Border CornerRadius="7" Padding="5,2" Background="{Binding SelectedItem.StatusBg, Converter={StaticResource StringToBrush}}"><TextBlock Text="{Binding SelectedItem.StatusLabel}" FontSize="9" FontWeight="SemiBold" Foreground="{Binding SelectedItem.StatusColor, Converter={StaticResource StringToBrush}}"/></Border>
+                                    <TextBlock Text="{Binding SelectedItem.Amount, StringFormat=' — {0:N0} ₫'}" FontSize="11" Foreground="#64748B" Margin="6,0,0,0"/>
+                                    <Border CornerRadius="4" Padding="3,1" Background="#FFF0F5" Margin="6,0,0,0" Visibility="{Binding SelectedItem.IsOverPayment, Converter={StaticResource BoolToVis}}"><TextBlock Text="OVER" FontSize="7" FontWeight="Bold" Foreground="#E32F70"/></Border>
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="×" Style="{StaticResource SecondaryBtn}" Width="30" Height="30" Padding="0" FontSize="14" FontWeight="SemiBold" Command="{Binding CloseDetailCommand}"/>
+                            <Button Grid.Column="1" Panel.ZIndex="1" Content="&#x00D7;" Style="{StaticResource SecondaryBtn}" Width="30" Height="30" Padding="0" FontSize="14" FontWeight="SemiBold" Command="{Binding CloseDetailCommand}" ToolTip="Close detail"/>
+                        </Grid>
+                    </Border>
+                    <!-- Inspector Tabs -->
+                    <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="10,6">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Tổng quan" Click="OnDetailTabClick" Tag="0"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDetailTab}" Value="0"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                                <Button Content="Phân bổ" Click="OnDetailTabClick" Tag="1"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDetailTab}" Value="1"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                                <Button Content="Invoice" Click="OnDetailTabClick" Tag="2"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDetailTab}" Value="2"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                                <Button Content="Receipt" Click="OnDetailTabClick" Tag="3"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDetailTab}" Value="3"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                                <Button Content="Lịch sử" Click="OnDetailTabClick" Tag="4"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDetailTab}" Value="4"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                                <Button Content="Documents" Click="OnDetailTabClick" Tag="5"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDetailTab}" Value="5"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                                <Button Content="Ghi chú" Click="OnDetailTabClick" Tag="6"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDetailTab}" Value="6"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                                <Button Content="Audit" Click="OnDetailTabClick" Tag="7"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource InspectorTabBtn}"><Style.Triggers><DataTrigger Binding="{Binding SelectedDetailTab}" Value="7"><Setter Property="Background" Value="#EFF6FF"/><Setter Property="Foreground" Value="#1E40AF"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                    <!-- Inspector Content -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0"><Grid Margin="18,14">
+                        <!-- OVERVIEW TAB -->
+                        <StackPanel Visibility="{Binding IsOverviewTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="THÔNG TIN THANH TOÁN" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8" FontFamily="Segoe UI"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/><RowDefinition Height="28"/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Payment No" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedItem.PaymentNo}" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Row="1" Text="Ngày" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedItem.PaymentDate, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" FontSize="11"/>
+                                <TextBlock Grid.Row="2" Text="Company" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedItem.CompanyName, TargetNullValue='—'}" FontSize="11"/>
+                                <TextBlock Grid.Row="3" Text="Guest" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedItem.GuestName, TargetNullValue='—'}" FontSize="11"/>
+                                <TextBlock Grid.Row="4" Text="Method" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedItem.Method}" FontSize="11"/>
+                                <TextBlock Grid.Row="5" Text="Bank" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedItem.Bank, TargetNullValue='—'}" FontSize="11"/>
+                                <TextBlock Grid.Row="6" Text="Currency" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedItem.Currency}" FontSize="11"/>
+                                <TextBlock Grid.Row="7" Text="Exchange Rate" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SelectedItem.ExchangeRate, StringFormat='{}{0:N0}'}" FontSize="11"/>
+                                <TextBlock Grid.Row="8" Text="Reference" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding SelectedItem.Reference, TargetNullValue='—'}" FontSize="11"/>
+                                <TextBlock Grid.Row="9" Text="Amount" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding SelectedItem.Amount, StringFormat='{}{0:N0} ₫'}" FontSize="13" FontWeight="Bold" Foreground="#0F172A"/>
+                                <TextBlock Grid.Row="10" Text="Allocated" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding SelectedItem.Allocated, StringFormat='{}{0:N0} ₫'}" FontSize="12" FontWeight="SemiBold" Foreground="#16A34A"/>
+                                <TextBlock Grid.Row="11" Text="Remaining" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="11" Grid.Column="1" Text="{Binding SelectedItem.Remaining, StringFormat='{}{0:N0} ₫'}" FontSize="12" FontWeight="SemiBold" Foreground="#DC2626"/>
+                                <TextBlock Grid.Row="12" Text="Collector" FontSize="10" Foreground="#94A3B8"/><TextBlock Grid.Row="12" Grid.Column="1" Text="{Binding SelectedItem.Collector, TargetNullValue='—'}" FontSize="11"/>
+                            </Grid>
+                            <!-- Allocation Progress -->
+                            <Border Margin="0,12,0,0" Padding="12,10" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="TIẾN ĐỘ PHÂN BỔ" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <Border Height="8" CornerRadius="4" Background="#E2E8F0"><Border Height="8" CornerRadius="4" Background="#2563EB" Width="{Binding SelectedItem.ProgressPercent}" HorizontalAlignment="Left"/></Border>
+                                        <TextBlock Grid.Column="1" FontSize="9" Foreground="#64748B" Margin="8,0,0,0"><Run Text="{Binding SelectedItem.Allocated, Mode=OneWay, StringFormat='{}{0:N0}'}"/><Run Text=" / "/><Run Text="{Binding SelectedItem.Amount, Mode=OneWay, StringFormat='{}{0:N0}'}"/></TextBlock>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <!-- Over Payment Actions -->
+                            <Border Margin="0,10,0,0" Padding="12,10" Background="#FFF0F5" CornerRadius="8" BorderBrush="#FBCFE8" BorderThickness="1" Visibility="{Binding SelectedItem.IsOverPayment, Converter={StaticResource BoolToVis}}">
+                                <StackPanel>
+                                    <TextBlock Text="OVER PAYMENT" FontSize="10" FontWeight="Bold" Foreground="#E32F70" Margin="0,0,0,6"/>
+                                    <TextBlock FontSize="10" Foreground="#475569" TextWrapping="Wrap"><Run Text="Thanh toán vượt "/><Run Text="{Binding SelectedItem.Amount, Mode=OneWay, StringFormat='{}{0:N0} ₫'}" FontWeight="SemiBold"/><Run Text=" so với "/><Run Text="{Binding SelectedItem.Allocated, Mode=OneWay, StringFormat='{}{0:N0} ₫'}" FontWeight="SemiBold"/><Run Text=" đã phân bổ."/></TextBlock>
+                                    <WrapPanel Margin="0,8,0,0">
+                                        <Button Content="Giữ Credit" Style="{StaticResource PrimaryBtn}" Height="28" FontSize="10" Margin="0,0,4,4" Command="{Binding HandleOverPaymentCommand}" CommandParameter="Credit"/>
+                                        <Button Content="Refund" Style="{StaticResource DangerBtn}" Height="28" FontSize="10" Margin="0,0,4,4" Command="{Binding HandleOverPaymentCommand}" CommandParameter="Refund"/>
+                                        <Button Content="Advance Deposit" Style="{StaticResource WarningBtn}" Height="28" FontSize="10" Margin="0,0,4,4" Command="{Binding HandleOverPaymentCommand}" CommandParameter="Advance"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- ALLOCATION TAB -->
+                        <StackPanel Visibility="{Binding IsAllocationTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="PHÂN BỔ" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8" FontFamily="Segoe UI"/>
+                            <WrapPanel Margin="0,0,0,8">
+                                <Button Content="Auto Allocate (FIFO)" Style="{StaticResource WarningBtn}" Height="30" FontSize="10" Margin="0,0,5,4" Command="{Binding AutoAllocateCommand}"/>
+                                <Button Content="Manual Allocate" Style="{StaticResource PrimaryBtn}" Height="30" FontSize="10" Margin="0,0,5,4" Command="{Binding OpenAllocFormCommand}"/>
+                                <Button Content="Hoàn tác" Style="{StaticResource DangerBtn}" Height="30" FontSize="10" Margin="0,0,5,4" Command="{Binding UndoAllocateCommand}"/>
+                            </WrapPanel>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Allocations}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentAllocationDto}">
+                                <Border Padding="10,8" Margin="0,0,0,4" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding InvoiceNo}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Allocated, StringFormat='{}{0:N0} ₫'}" FontSize="12" FontWeight="Bold" Foreground="#16A34A" TextAlignment="Right"/>
+                                        </Grid>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,3,0,0">
+                                            <TextBlock Text="{Binding InvoiceDate, StringFormat='{}{0:dd/MM}'}" FontSize="9" Foreground="#64748B"/>
+                                            <TextBlock Text="{Binding DueDate, StringFormat=' → Hạn: {0:dd/MM}'}" FontSize="9" Foreground="#94A3B8" Margin="4,0,0,0"/>
+                                        </StackPanel>
+                                        <Grid Grid.Row="2" Margin="0,5,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Border Height="5" CornerRadius="3" Background="#E2E8F0"><Border Height="5" CornerRadius="3" Background="#16A34A" Width="{Binding ProgressPercent}" HorizontalAlignment="Left"/></Border>
+                                            <TextBlock Grid.Column="1" Text="{Binding Remaining, StringFormat='Còn: {0:N0} ₫'}" FontSize="9" Foreground="#DC2626" Margin="8,0,0,0"/>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </StackPanel>
+
+                        <!-- INVOICE TAB -->
+                        <StackPanel Visibility="{Binding IsInvoiceTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="DANH SÁCH INVOICE" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Invoices}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentInvoiceDto}">
+                                <Border Padding="10,8" Margin="0,0,0,4" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel><TextBlock Text="{Binding InvoiceNo}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <TextBlock Text="{Binding Outstanding, StringFormat='Còn: {0:N0} ₫'}" FontSize="9" Foreground="#DC2626"/>
+                                                <TextBlock Text="{Binding DueDate, StringFormat=' • Hạn: {0:dd/MM}'}" FontSize="9" Foreground="#94A3B8" Margin="4,0,0,0"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Vat, StringFormat='VAT: {0:N0} ₫'}" FontSize="9" Foreground="#7C3AED" TextAlignment="Right"/>
+                                            <TextBlock Text="{Binding Balance, StringFormat='Balance: {0:N0} ₫'}" FontSize="9" Foreground="#64748B" TextAlignment="Right"/>
+                                            <Border CornerRadius="4" Padding="3,1" Background="#EFF6FF" HorizontalAlignment="Right" Margin="0,2,0,0"><TextBlock Text="{Binding Status}" FontSize="8" Foreground="#2563EB"/></Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </StackPanel>
+
+                        <!-- RECEIPT TAB -->
+                        <StackPanel Visibility="{Binding IsReceiptTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="RECEIPT" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Receipts}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentReceiptDto}">
+                                <Border Padding="10,8" Margin="0,0,0,4" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding ReceiptNo}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                            <Border CornerRadius="5" Padding="4,1" Background="{Binding IsPrinted, Converter={StaticResource BoolToVis}}"><TextBlock><TextBlock.Style><Style TargetType="TextBlock" x:Name="ReceiptStatusTxt"><Setter Property="Text" Value="Đã in"/><Setter Property="FontSize" Value="8"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#16A34A"/></Style></TextBlock.Style></TextBlock></Border>
+                                        </Grid>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0">
+                                            <TextBlock Text="{Binding Cashier, StringFormat='Cashier: {0}'}" FontSize="9" Foreground="#64748B"/>
+                                            <TextBlock Text="{Binding ReceiptDate, StringFormat=' • {0:dd/MM/yyyy}'}" FontSize="9" Foreground="#94A3B8" Margin="4,0,0,0"/>
+                                            <TextBlock Text="{Binding ReprintCount, StringFormat=' • Reprint: {0}'}" FontSize="9" Foreground="#0891B2" Margin="4,0,0,0"/>
+                                            <TextBlock Text=" • Đã email" FontSize="9" Foreground="#16A34A" Margin="4,0,0,0" Visibility="{Binding IsEmailed, Converter={StaticResource BoolToVis}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </StackPanel>
+
+                        <!-- HISTORY TAB -->
+                        <StackPanel Visibility="{Binding IsHistoryTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="TIMELINE" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Timeline}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentTimelineDto}">
+                                <Grid Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Border Width="12" Height="12" CornerRadius="6" Background="{Binding Color, Converter={StaticResource StringToBrush}}" Margin="0,3,0,0"/><Border Width="2" HorizontalAlignment="Center" Background="#E2E8F0" Margin="5,15,5,0" VerticalAlignment="Stretch"/></Grid>
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                        <TextBlock Text="{Binding Event}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" FontSize="10" Foreground="#94A3B8"/>
+                                        <TextBlock Text="{Binding Detail}" FontSize="11" Foreground="#475569" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </StackPanel>
+
+                        <!-- DOCUMENTS TAB -->
+                        <StackPanel Visibility="{Binding IsDocumentsTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="TÀI LIỆU ĐÍNH KÈM" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Documents}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentDocumentDto}">
+                                <Border Margin="0,0,0,8" Background="#F8FAFC" CornerRadius="10" Padding="12" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="36" Height="36" CornerRadius="8" Background="#DBEAFE" Margin="0,0,10,0">
+                                            <TextBlock Text="PDF" FontSize="9" FontWeight="Bold" Foreground="#2563EB" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <Border CornerRadius="4" Padding="4,1" Background="#EFF6FF"><TextBlock Text="{Binding TypeLabel}" FontSize="8" Foreground="#2563EB"/></Border>
+                                                <TextBlock Text="{Binding UploadDate, StringFormat=' • {0:dd/MM/yyyy}'}" FontSize="9" Foreground="#94A3B8" Margin="4,0,0,0"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </StackPanel>
+
+                        <!-- NOTES TAB -->
+                        <StackPanel Visibility="{Binding IsNotesTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="GHI CHÚ" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Notes}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentNoteDto}">
+                                <Border Padding="10,8" Margin="0,0,0,5" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border CornerRadius="4" Padding="4,1" Background="#EFF6FF"><TextBlock Text="{Binding TypeLabel}" FontSize="8" Foreground="#2563EB"/></Border>
+                                            <TextBlock Text="{Binding Author, StringFormat=' • {0}'}" FontSize="9" Foreground="#94A3B8" Margin="4,0,0,0"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Content}" FontSize="10" Foreground="#475569" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" FontSize="8" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </StackPanel>
+
+                        <!-- AUDIT TAB -->
+                        <StackPanel Visibility="{Binding IsAuditTab, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="AUDIT LOG" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8" FontFamily="Segoe UI"/>
+                            <ItemsControl ItemsSource="{Binding SelectedItem.Audits}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentAuditDto}">
+                                <Border Padding="10,8" Margin="0,0,0,5" Background="#F8FAFC" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="8" Height="8" CornerRadius="4" Background="#2563EB" Margin="0,4,0,0"/>
+                                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                            <TextBlock Text="{Binding Action}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                                <TextBlock Text="{Binding Actor}" FontSize="9" Foreground="#2563EB"/>
+                                                <TextBlock Text="{Binding Device, StringFormat=' • {0}'}" FontSize="9" Foreground="#94A3B8" Margin="3,0,0,0"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Detail}" FontSize="10" Foreground="#475569" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontSize="8" Foreground="#94A3B8" Margin="0,1,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </StackPanel>
+                    </Grid></ScrollViewer>
+                    <!-- Empty State -->
+                    <Border Grid.Row="2" Background="White" Panel.ZIndex="2"><Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasSelection}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="—" FontFamily="Segoe UI" FontSize="32" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Chọn một thanh toán" FontSize="16" FontWeight="SemiBold" Foreground="#52657D" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                            <TextBlock Text="để xem chi tiết và phân bổ." FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ═══ FOOTER ═══ -->
+        <Border Grid.Row="5" Background="White" BorderBrush="#DDE7F3" BorderThickness="0,1,0,0" Padding="14,8">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding PageDisplay}" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                    <Border CornerRadius="5" Padding="6,2" Margin="10,0,0,0" Background="#EFF6FF"><TextBlock Text="AR Payment Center" FontSize="10" Foreground="#2563EB" FontWeight="SemiBold"/></Border>
+                    <Border CornerRadius="5" Padding="6,2" Margin="6,0,0,0" Background="#F0FDF4"><TextBlock FontSize="10" Foreground="#16A34A" FontWeight="SemiBold"><Run Text="Tỷ lệ thu hồi: "/><Run Text="{Binding OverallCollectionRate, Mode=OneWay, StringFormat='{}{0:F0}%'}"/></TextBlock></Border>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <Button Content="&#x00AB;" ToolTip="Trang đầu" Style="{StaticResource PagerBtn}" Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPrevPage}"/>
+                    <Button Content="&#x2039;" ToolTip="Trang trước" Style="{StaticResource PagerBtn}" Command="{Binding PrevPageCommand}" IsEnabled="{Binding HasPrevPage}"/>
+                    <ItemsControl ItemsSource="{Binding PageButtons}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentPaginationButton}">
+                            <Button Style="{StaticResource PagerPageBtn}" Command="{Binding DataContext.SetPageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PageNumber}"/>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="&#x203A;" ToolTip="Trang sau" Style="{StaticResource PagerBtn}" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}"/>
+                    <Button Content="&#x00BB;" ToolTip="Trang cuối" Style="{StaticResource PagerBtn}" Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <TextBlock Text="Hiển thị" FontSize="10" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <ComboBox ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding PageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemStringFormat="{}{0} / trang" Style="{StaticResource FluentComboBox}" Width="110" Height="30" MinWidth="0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ PAYMENT FORM OVERLAY ═══ -->
+        <Border Grid.RowSpan="6" Background="#80000000" Visibility="{Binding IsFormOpen, Converter={StaticResource BoolToVis}}">
+            <Grid><Border Background="White" CornerRadius="16" MaxWidth="520" MaxHeight="620" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="16,16,0,0" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="18,14">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding FormTitle}" FontSize="15" FontWeight="SemiBold" Foreground="#0F172A"/>
+                            <Button Grid.Column="1" Content="Đóng" Style="{StaticResource SecondaryBtn}" Width="56" Height="30" Padding="6,0" Command="{Binding CloseFormCommand}"/>
+                        </Grid>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="18,12">
+                        <StackPanel>
+                            <Border Background="#FEF2F2" CornerRadius="8" Padding="8,6" Margin="0,0,0,10" Visibility="{Binding FormErrorMessage, Converter={StaticResource StringToVis}}"><TextBlock Text="{Binding FormErrorMessage}" FontSize="10" Foreground="#DC2626"/></Border>
+                            <!-- Payment Form -->
+                            <StackPanel Visibility="{Binding IsPaymentForm, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Khách hàng *" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/><ComboBox ItemsSource="{Binding PaymentCustomers}" SelectedItem="{Binding SelectedPaymentCustomer}" DisplayMemberPath="CustomerName" Style="{StaticResource FilterCombo}" Width="Auto" Margin="0,0,0,10"/>
+                                <TextBlock Text="Mã khách" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/><TextBlock Text="{Binding SelectedPaymentCustomer.CustomerCode, TargetNullValue=—}" FontSize="11" Foreground="#475569" Margin="0,0,0,10"/>
+                                <TextBlock Text="Invoice" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/><TextBox Text="{Binding PayInvoiceNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,10"/>
+                                <TextBlock Text="Phương thức *" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/>
+                                <ComboBox SelectedItem="{Binding PayMethod}" Style="{StaticResource FilterCombo}" Width="Auto" Margin="0,0,0,10">
+                                    <ComboBoxItem Content="Tiền mặt"/><ComboBoxItem Content="Chuyển khoản"/><ComboBoxItem Content="Thẻ tín dụng"/><ComboBoxItem Content="Thẻ ghi nợ"/><ComboBoxItem Content="QR"/><ComboBoxItem Content="Virtual Card"/><ComboBoxItem Content="Séc"/><ComboBoxItem Content="Voucher"/>
+                                </ComboBox>
+                                <TextBlock Text="Số tiền *" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/><TextBox Text="{Binding PayAmount, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,10"/>
+                                <TextBlock Text="Currency" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/><ComboBox Style="{StaticResource FilterCombo}" Width="Auto" Margin="0,0,0,10"><ComboBoxItem Content="VND" IsSelected="True"/><ComboBoxItem Content="USD"/><ComboBoxItem Content="EUR"/></ComboBox>
+                                <TextBlock Text="Tham chiếu" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/><TextBox Text="{Binding PayReference, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,10"/>
+                                <TextBlock Text="Ghi chú" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/><TextBox Text="{Binding PayRemark, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,10"/>
+                                <!-- Mixed Payment -->
+                                <Border Margin="0,4,0,0" Padding="10,8" Background="#FFF7ED" CornerRadius="8" BorderBrush="#FDE68A" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="Thanh toán hỗn hợp" FontSize="10" FontWeight="SemiBold" Foreground="#D97706" Margin="0,0,0,6"/>
+                                        <ItemsControl ItemsSource="{Binding PaymentSplits}"><ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:ArPaymentSplitItem}"><Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <ComboBox SelectedItem="{Binding Method}" Style="{StaticResource FilterCombo}" Width="Auto" Margin="0,0,4,0"><ComboBoxItem Content="Tiền mặt"/><ComboBoxItem Content="Chuyển khoản"/><ComboBoxItem Content="Thẻ tín dụng"/></ComboBox>
+                                            <TextBox Grid.Column="1" Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,4,0"/>
+                                            <Button Grid.Column="2" Content="×" Style="{StaticResource DangerBtn}" Width="24" Height="24" Padding="0" FontSize="12" Command="{Binding DataContext.RemovePaymentSplitCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                        </Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                        <Button Content="+ Thêm phương thức" Style="{StaticResource SecondaryBtn}" Height="28" FontSize="10" Margin="0,4,0,0" Command="{Binding AddPaymentSplitCommand}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            <!-- Allocation Form -->
+                            <StackPanel Visibility="{Binding IsAllocForm, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Invoice *" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/><TextBox Text="{Binding AllocInvoiceNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,10"/>
+                                <TextBlock Text="Số tiền *" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/><TextBox Text="{Binding AllocAmount, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FilterTextBox}" Width="Auto" Margin="0,0,0,10"/>
+                                <TextBlock FontSize="9" Foreground="#94A3B8" TextWrapping="Wrap"><Run Text="Số tiền chưa phân bổ: "/><Run Text="{Binding SelectedItem.Unallocated, Mode=OneWay, StringFormat='{}{0:N0} ₫'}" FontWeight="SemiBold" Foreground="#DC2626"/></TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="0,0,16,16" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="16,12">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Hủy" Style="{StaticResource SecondaryBtn}" Width="70" Command="{Binding CloseFormCommand}" Margin="0,0,8,0"/>
+                            <Button Content="Lưu" Width="70"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource SuccessBtn}"><Style.Triggers><DataTrigger Binding="{Binding IsPaymentForm}" Value="True"><Setter Property="Command" Value="{Binding SubmitPaymentFormCommand}"/></DataTrigger><DataTrigger Binding="{Binding IsAllocForm}" Value="True"><Setter Property="Command" Value="{Binding SubmitAllocFormCommand}"/></DataTrigger></Style.Triggers></Style></Button.Style></Button>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border></Grid>
+        </Border>
+
+        <!-- ═══ BANK IMPORT OVERLAY ═══ -->
+        <Border Grid.RowSpan="6" Background="#80000000" Visibility="{Binding IsBankImportOpen, Converter={StaticResource BoolToVis}}">
+            <Grid><Border Background="White" CornerRadius="16" Width="800" Height="600" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="16,16,0,0" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="18,14">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Import Sao Kê Ngân Hàng" FontSize="15" FontWeight="SemiBold" Foreground="#0F172A"/><TextBlock Text="Excel / CSV → Đối chiếu tự động" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/></StackPanel>
+                            <Button Grid.Column="1" Content="Đóng" Style="{StaticResource SecondaryBtn}" Width="60" Height="32" Command="{Binding CloseBankImportCommand}"/>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="14,8">
+                        <WrapPanel>
+                            <Button Content="Tải sao kê thật" Style="{StaticResource PrimaryBtn}" Height="32" FontSize="10" Margin="0,0,8,0" Command="{Binding ReloadBankStatementsCommand}"/>
+                            <Button Content="Auto Match" Style="{StaticResource SuccessBtn}" Height="32" FontSize="10" Margin="0,0,8,0" Command="{Binding AutoMatchBankCommand}"/>
+                            <TextBlock Text="{Binding BankImportStatus}" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                        </WrapPanel>
+                    </Border>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="8">
+                        <DataGrid ItemsSource="{Binding BankImportRows}" AutoGenerateColumns="False" Style="{StaticResource ModDataGrid}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Ngày" Binding="{Binding TransactionDate, StringFormat='{}{0:dd/MM/yyyy}'}" Width="90"/>
+                                <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="100"/>
+                                <DataGridTextColumn Header="Mô tả" Binding="{Binding Description}" Width="180"/>
+                                <DataGridTemplateColumn Header="Số tiền" Width="120"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Amount, StringFormat='{}{0:N0} ₫'}" FontSize="10" FontWeight="SemiBold"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Currency" Binding="{Binding Currency}" Width="60"/>
+                                <DataGridTemplateColumn Header="Đối chiếu" Width="140"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                    <Border CornerRadius="5" Padding="5,2"><Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding IsMatched}" Value="True"><Setter Property="Background" Value="#DCFCE7"/></DataTrigger><DataTrigger Binding="{Binding IsMatched}" Value="False"><Setter Property="Background" Value="#FFFBEB"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                                        <TextBlock><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="FontSize" Value="8"/><Setter Property="FontWeight" Value="SemiBold"/><Style.Triggers><DataTrigger Binding="{Binding IsMatched}" Value="True"><Setter Property="Text" Value="Đã đối chiếu"/><Setter Property="Foreground" Value="#16A34A"/></DataTrigger><DataTrigger Binding="{Binding IsMatched}" Value="False"><Setter Property="Text" Value="Chưa đối chiếu"/><Setter Property="Foreground" Value="#F59E0B"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                                    </Border>
+                                </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Phiếu thu đích" Width="190"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                    <ComboBox ItemsSource="{Binding CandidatePayments}" DisplayMemberPath="Label" SelectedValuePath="TransactionId" SelectedValue="{Binding SelectedPaymentId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsMatched, Converter={StaticResource InverseBool}}" FontSize="9" Padding="3,0"/>
+                                </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="" Width="60"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="Ghép" Height="24" FontSize="9" Padding="6,0" Command="{Binding DataContext.MatchBankRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource PrimaryBtn}"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding IsMatched}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style></Button></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </ScrollViewer>
+                    <Border Grid.Row="3" Background="#F8FAFC" CornerRadius="0,0,16,16" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="12,10">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontSize="10" Foreground="#64748B"><Run Text="Đã đối chiếu: "/><Run Text="{Binding BankImportRows.Count, Mode=OneWay, StringFormat='{}{0}'}" FontWeight="SemiBold"/></TextBlock></StackPanel>
+                    </Border>
+                </Grid>
+            </Border></Grid>
+        </Border>
+
+        <!-- ═══ RECEIPT CENTER OVERLAY ═══ -->
+        <Border Grid.RowSpan="6" Background="#80000000" Visibility="{Binding IsReceiptCenterOpen, Converter={StaticResource BoolToVis}}">
+            <Grid><Border Background="White" CornerRadius="16" Width="900" Height="600" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="16,16,0,0" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="18,14">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Receipt Center" FontSize="15" FontWeight="SemiBold" Foreground="#0F172A"/><TextBlock Text="Quản lý in ấn, email, reprint, download PDF" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/></StackPanel>
+                            <Button Grid.Column="1" Content="Đóng" Style="{StaticResource SecondaryBtn}" Width="60" Height="32" Command="{Binding CloseReceiptCenterCommand}"/>
+                        </Grid>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
+                        <DataGrid ItemsSource="{Binding ReceiptCenterItems}" AutoGenerateColumns="False" Style="{StaticResource ModDataGrid}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Receipt No" Binding="{Binding ReceiptNo}" Width="100"/>
+                                <DataGridTextColumn Header="Payment No" Binding="{Binding PaymentNo}" Width="100"/>
+                                <DataGridTextColumn Header="Ngày" Binding="{Binding ReceiptDate, StringFormat='{}{0:dd/MM/yyyy}'}" Width="90"/>
+                                <DataGridTextColumn Header="Cashier" Binding="{Binding Cashier}" Width="100"/>
+                                <DataGridTemplateColumn Header="Trạng thái" Width="100"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border CornerRadius="5" Padding="5,1" Background="{Binding StatusBg, Converter={StaticResource StringToBrush}}"><TextBlock Text="{Binding StatusLabel}" FontSize="8" FontWeight="SemiBold" Foreground="{Binding StatusColor, Converter={StaticResource StringToBrush}}"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="In" Width="60"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding ReprintCount, StringFormat='In: {0}'}" FontSize="9" Foreground="#0891B2"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Email" Width="60"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding IsEmailed, StringFormat='Email: {0}'}" FontSize="9" Foreground="#16A34A"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Actions" Width="180"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="In" Style="{StaticResource PrimaryBtn}" Height="24" FontSize="9" Padding="6,0" Margin="0,0,3,0" Command="{Binding DataContext.ReprintReceiptCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding ReceiptNo}"/>
+                                        <Button Content="Email" Style="{StaticResource SuccessBtn}" Height="24" FontSize="9" Padding="6,0" Margin="0,0,3,0" Command="{Binding DataContext.EmailReceiptCenterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding ReceiptNo}"/>
+                                        <Button Content="PDF" Style="{StaticResource SecondaryBtn}" Height="24" FontSize="9" Padding="6,0"/>
+                                    </StackPanel>
+                                </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </ScrollViewer>
+                    <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="0,0,16,16" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="12,10">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontSize="10" Foreground="#64748B"><Run Text="Tổng: "/><Run Text="{Binding ReceiptCenterItems.Count, Mode=OneWay, StringFormat='{}{0}'}" FontWeight="SemiBold"/><Run Text=" receipts"/></TextBlock></StackPanel>
+                    </Border>
+                </Grid>
+            </Border></Grid>
+        </Border>
+
+        <!-- ═══ COLLECTION DASHBOARD OVERLAY ═══ -->
+        <Border Grid.RowSpan="6" Background="#80000000" Visibility="{Binding IsCollectionDashboardOpen, Converter={StaticResource BoolToVis}}">
+            <Grid><Border Background="White" CornerRadius="16" Width="900" Height="600" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="16,16,0,0" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="18,14">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Collection Dashboard" FontSize="15" FontWeight="SemiBold" Foreground="#0F172A"/><TextBlock Text="Tỷ lệ thu hồi • Tuổi nợ • Hiệu suất nhân viên • Công ty thanh toán" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/></StackPanel>
+                            <Button Grid.Column="1" Content="Đóng" Style="{StaticResource SecondaryBtn}" Width="60" Height="32" Command="{Binding CloseCollectionDashboardCommand}"/>
+                        </Grid>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,12">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <!-- KPI Cards -->
+                            <WrapPanel Grid.Row="0" Margin="0,0,0,12">
+                                <Border Background="#ECFEFF" CornerRadius="10" Padding="16,14" Width="180" Margin="0,0,10,10" BorderBrush="#E2E8F0" BorderThickness="1"><StackPanel><TextBlock Text="Tỷ lệ thu hồi" FontSize="10" Foreground="#64748B"/><TextBlock Text="{Binding OverallCollectionRate, Mode=OneWay, StringFormat='{}{0:F0}%'}" FontSize="24" FontWeight="Bold" Foreground="#0891B2"/></StackPanel></Border>
+                                <Border Background="#F0FDF4" CornerRadius="10" Padding="16,14" Width="180" Margin="0,0,10,10" BorderBrush="#E2E8F0" BorderThickness="1"><StackPanel><TextBlock Text="Đã hoàn thành" FontSize="10" Foreground="#64748B"/><TextBlock Text="{Binding CompletedCount}" FontSize="24" FontWeight="Bold" Foreground="#16A34A"/></StackPanel></Border>
+                                <Border Background="#FEF2F2" CornerRadius="10" Padding="16,14" Width="180" Margin="0,0,10,10" BorderBrush="#E2E8F0" BorderThickness="1"><StackPanel><TextBlock Text="Quá hạn" FontSize="10" Foreground="#64748B"/><TextBlock Text="{Binding OverdueCount}" FontSize="24" FontWeight="Bold" Foreground="#DC2626"/></StackPanel></Border>
+                                <Border Background="#FFFBEB" CornerRadius="10" Padding="16,14" Width="180" Margin="0,0,10,10" BorderBrush="#E2E8F0" BorderThickness="1"><StackPanel><TextBlock Text="Pending" FontSize="10" Foreground="#64748B"/><TextBlock Text="{Binding PendingCount}" FontSize="24" FontWeight="Bold" Foreground="#F59E0B"/></StackPanel></Border>
+                                <Border Background="#F3E8FF" CornerRadius="10" Padding="16,14" Width="180" Margin="0,0,10,10" BorderBrush="#E2E8F0" BorderThickness="1"><StackPanel><TextBlock Text="Tổng thanh toán" FontSize="10" Foreground="#64748B"/><TextBlock Text="{Binding TotalItems}" FontSize="24" FontWeight="Bold" Foreground="#7C3AED"/></StackPanel></Border>
+                            </WrapPanel>
+                            <!-- Outstanding Trend -->
+                            <Border Grid.Row="1" Style="{StaticResource PanelCard}" Padding="14,12" Margin="0,0,0,12">
+                                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <TextBlock Text="Xu hướng công nợ" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding OutstandingTrendData}" ItemTemplate="{StaticResource BarChartTemplate}"/></ScrollViewer>
+                                </Grid>
+                            </Border>
+                            <!-- Collector Performance -->
+                            <Border Grid.Row="2" Style="{StaticResource PanelCard}" Padding="14,12">
+                                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <TextBlock Text="Hiệu suất nhân viên thu nợ" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding CollectorPerformanceData}" ItemTemplate="{StaticResource CollectorPerfTemplate}"/></ScrollViewer>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
+                    <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="0,0,16,16" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="12,10">
+                        <TextBlock FontSize="10" Foreground="#64748B"><Run Text="Collection Dashboard — "/><Run Text="{Binding TotalItems, Mode=OneWay, StringFormat='{}{0}'}" FontWeight="SemiBold"/><Run Text=" payments"/></TextBlock>
+                    </Border>
+                </Grid>
+            </Border></Grid>
+        </Border>
+
+        <!-- ═══ LOADING OVERLAY ═══ -->
+        <Border Grid.RowSpan="6" Background="#80FFFFFF" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Đang tải..." FontSize="16" Foreground="#64748B"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

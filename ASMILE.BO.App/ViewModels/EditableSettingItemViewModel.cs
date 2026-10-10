@@ -2,7 +2,9 @@ using ASMILE.BO.Application.DTOs.Settings;
 using ASMILE.BO.Core.Entities.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 using System.Collections.ObjectModel;
+using System.IO;
 
 namespace ASMILE.BO.App.ViewModels.Settings;
 
@@ -11,7 +13,7 @@ public sealed partial class EditableSettingItemViewModel : ObservableValidator
     private readonly SettingDefinitionDto _definition;
     private readonly string? _originalValue;
 
-    public EditableSettingItemViewModel(SettingDefinitionDto definition, string? value)
+    public EditableSettingItemViewModel(SettingDefinitionDto definition, string? value, bool isPersisted = false, bool isRuntimeProvided = false)
     {
         _definition = definition;
         _originalValue = value;
@@ -22,6 +24,8 @@ public sealed partial class EditableSettingItemViewModel : ObservableValidator
         IsSensitive = definition.IsSensitive;
         IsEncrypted = definition.IsSensitive;
         IsReadOnly = definition.IsReadOnly;
+        IsPersisted = isPersisted;
+        IsRuntimeProvided = isRuntimeProvided;
         IsRequired = definition.IsRequired;
         RequiresRestart = definition.RequiresRestart;
         RequiredPermission = definition.RequiredPermission;
@@ -38,6 +42,10 @@ public sealed partial class EditableSettingItemViewModel : ObservableValidator
     public bool IsSensitive { get; }
     public bool IsEncrypted { get; }
     public bool IsReadOnly { get; }
+    public bool CanEdit => !IsReadOnly;
+    public bool IsPersisted { get; }
+    public bool IsRuntimeProvided { get; }
+    public string ValueSourceText => IsRuntimeProvided ? "Cấu hình runtime của ứng dụng" : IsPersisted ? "Đã lưu trong cơ sở dữ liệu" : "Giá trị mặc định · chưa lưu";
     public bool IsRequired { get; }
     public bool RequiresRestart { get; }
     public string? RequiredPermission { get; }
@@ -71,6 +79,7 @@ public sealed partial class EditableSettingItemViewModel : ObservableValidator
     [RelayCommand]
     private void Toggle()
     {
+        if (IsReadOnly) return;
         if (ValueType == SettingValueType.Boolean)
         {
             Value = string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase) ? "false" : "true";
@@ -81,12 +90,29 @@ public sealed partial class EditableSettingItemViewModel : ObservableValidator
     [RelayCommand]
     private void Browse()
     {
+        if (IsReadOnly || !IsPath) return;
+
+        var dialog = new OpenFolderDialog
+        {
+            Title = $"Chọn thư mục — {DisplayName}",
+            Multiselect = false
+        };
+
+        if (!string.IsNullOrWhiteSpace(Value) && Directory.Exists(Value))
+        {
+            dialog.InitialDirectory = Value;
+        }
+
+        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.FolderName))
+        {
+            Value = Path.GetFullPath(dialog.FolderName);
+        }
     }
 
     [RelayCommand]
     private void ToggleReveal()
     {
-        if (IsSensitive)
+        if (IsSensitive && !IsReadOnly)
         {
             IsRevealed = !IsRevealed;
         }

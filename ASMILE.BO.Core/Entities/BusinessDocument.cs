@@ -20,6 +20,9 @@ public sealed class BusinessDocument
     public DateTime DocumentDate { get; set; }
     public decimal Amount { get; set; }
 
+    [MaxLength(32)]
+    public string PaymentMethod { get; set; } = "Chưa xác định";
+
     [MaxLength(16)]
     public string Currency { get; set; } = "VND";
 

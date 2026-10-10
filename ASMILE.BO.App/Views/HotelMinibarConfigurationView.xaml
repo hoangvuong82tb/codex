@@ -1,0 +1,109 @@
+<UserControl x:Class="ASMILE.BO.App.Views.HotelMinibarConfigurationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <Style x:Key="MinibarButton" TargetType="Button" BasedOn="{StaticResource HotelSettingsButtonBase}" />
+        <Style x:Key="MinibarPrimaryButton" TargetType="Button" BasedOn="{StaticResource HotelSettingsPrimaryButtonBase}" />
+        <Style x:Key="MinibarInput" TargetType="TextBox" BasedOn="{StaticResource HotelSettingsTextBoxBase}" />
+        <Style x:Key="MinibarDatePicker" TargetType="DatePicker">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{StaticResource HotelSettingsTextBrush}" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource HotelSettingsBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+    </UserControl.Resources>
+    <Grid Background="#F8FAFC" Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Hàng minibar" FontSize="28" FontWeight="Bold" Foreground="#162C4E"/>
+            <TextBlock Text="Thiết lập mặt hàng, giá bán, VAT và định mức tồn dùng khi kiểm minibar và ghi Folio."
+                       Margin="0,4,0,0" FontSize="14" Foreground="#64748B"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Background="White" BorderBrush="#D7E2F0" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,12">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Làm mới" Command="{Binding LoadCommand}" Style="{StaticResource MinibarButton}" Margin="8,0,0,0"/>
+                <Button DockPanel.Dock="Right" Content="Xóa lọc" Command="{Binding ClearFiltersCommand}" Style="{StaticResource MinibarButton}" Margin="8,0,0,0"/>
+                <StackPanel>
+                    <TextBlock Text="Từ khóa" Foreground="#64748B" FontSize="12" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}" Height="32" Padding="10,0" VerticalContentAlignment="Center"
+                             Style="{StaticResource MinibarInput}" ToolTip="Tìm theo mã hoặc tên hàng minibar"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="420"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="White" BorderBrush="#D7E2F0" BorderThickness="1" CornerRadius="10" Padding="10">
+                <DataGrid Background="Transparent" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}" AutoGenerateColumns="False"
+                          CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single" GridLinesVisibility="Horizontal">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Mã" Binding="{Binding ItemCode}" Width="110"/>
+                        <DataGridTextColumn Header="Tên hàng" Binding="{Binding ItemName}" Width="*"/>
+                        <DataGridTextColumn Header="Nhóm minibar" Binding="{Binding Category}" Width="140"/>
+                        <DataGridTextColumn Header="Giá bán" Binding="{Binding RetailPrice, StringFormat={}{0:N0}}" Width="105"/>
+                        <DataGridTextColumn Header="Định mức" Binding="{Binding StandardQuantity}" Width="80"/>
+                        <DataGridCheckBoxColumn Header="Dùng" Binding="{Binding IsActive}" Width="60"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <Border Grid.Column="2" Background="White" BorderBrush="#D7E2F0" BorderThickness="1" CornerRadius="10" Padding="16">
+                <StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Cấu hình minibar" FontSize="18" FontWeight="SemiBold" Foreground="#162C4E" Margin="0,0,0,14"/>
+                        <TextBlock Text="Mã hàng" Foreground="#64748B"/><TextBox Text="{Binding Editing.ItemCode, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,8"/>
+                        <TextBlock Text="Tên hàng" Foreground="#64748B"/><TextBox Text="{Binding Editing.ItemName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,8"/>
+                        <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Đơn vị" Foreground="#64748B"/><TextBox Text="{Binding Editing.Unit, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,0"/></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="Nhóm minibar" Foreground="#64748B"/><TextBox Text="{Binding Editing.Category, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,0"/></StackPanel>
+                        </Grid>
+                        <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Giá bán" Foreground="#64748B"/><TextBox Text="{Binding Editing.RetailPrice, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,0"/></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="VAT (%)" Foreground="#64748B"/><TextBox Text="{Binding Editing.VatRate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,0"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Định mức chuẩn" Foreground="#64748B"/><TextBox Text="{Binding Editing.StandardQuantity, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,8"/>
+                        <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Tồn tối thiểu" Foreground="#64748B"/><TextBox Text="{Binding Editing.MinStock, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,0"/></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="Tồn tối đa" Foreground="#64748B"/><TextBox Text="{Binding Editing.MaxStock, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,0"/></StackPanel>
+                        </Grid>
+                        <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Mã tính tiền" Foreground="#64748B"/><TextBox Text="{Binding Editing.ChargeCode, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,0"/></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="Mã phí dịch vụ" Foreground="#64748B"/><TextBox Text="{Binding Editing.ServiceChargeCode, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,0"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Hiệu lực đến" Foreground="#64748B"/><DatePicker SelectedDate="{Binding Editing.EffectiveTo}" Style="{StaticResource MinibarDatePicker}" Margin="0,4,0,8"/>
+                        <CheckBox Content="Tự động ghi vào Folio" IsChecked="{Binding Editing.AutoPostToFolio}" Margin="0,2,0,4"/>
+                        <CheckBox Content="Yêu cầu duyệt trước khi ghi" IsChecked="{Binding Editing.RequiresApproval}" Margin="0,2,0,4"/>
+                        <TextBlock Text="Thời gian bổ sung (phút)" Foreground="#64748B"/><TextBox Text="{Binding Editing.ReplenishmentLeadMinutes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MinibarInput}" Margin="0,4,0,8"/>
+                        <CheckBox Content="Đang kinh doanh" IsChecked="{Binding Editing.IsActive}" Margin="0,4,0,14"/>
+                        <WrapPanel>
+                            <Button Content="Mới" Command="{Binding NewCommand}" Style="{StaticResource MinibarButton}" Margin="0,0,8,0"/>
+                            <Button Content="Lưu" Command="{Binding SaveCommand}" Style="{StaticResource MinibarPrimaryButton}" Margin="0,0,8,0" Background="#0F766E" Foreground="White"/>
+                            <Button Content="{Binding StatusActionText}" Command="{Binding ToggleActiveCommand}" Style="{StaticResource MinibarButton}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <DockPanel Grid.Row="3" Margin="0,12,0,0">
+            <TextBlock Text="{Binding DataMessage}" Foreground="#64748B" VerticalAlignment="Center"/>
+            <StackPanel DockPanel.Dock="Right"><TextBlock Text="{Binding ErrorMessage}" Foreground="#B91C1C"/><TextBlock Text="{Binding InfoMessage}" Foreground="#15803D"/></StackPanel>
+        </DockPanel>
+    </Grid>
+</UserControl>
+
